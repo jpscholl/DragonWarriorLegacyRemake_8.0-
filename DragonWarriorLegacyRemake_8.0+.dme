@@ -1,0 +1,47 @@
+// DM Environment file for DragonWarriorLegacyRemake_8.0+.dme.
+// All manual changes should be made outside the BEGIN_ and END_ blocks.
+// New source code should be placed in .dm files: choose File/New --> Code File.
+
+// BEGIN_INTERNALS
+// END_INTERNALS
+
+// BEGIN_FILE_DIR
+#define FILE_DIR .
+#define FILE_DIR "Mob Icons"
+#define FILE_DIR "Mob Icons/Custom GM"
+#define FILE_DIR "Mob Icons/Monsters"
+#define FILE_DIR "Mob Icons/NPC"
+#define FILE_DIR "Mob Icons/Player"
+#define FILE_DIR "Sound & Music"
+#define FILE_DIR "UI & Effects"
+#define FILE_DIR "World Icons"
+// END_FILE_DIR
+
+// BEGIN_PREFERENCES
+// END_PREFERENCES
+#define TILE_WIDTH 32
+#define TILE_HEIGHT 32
+
+
+// BEGIN_INCLUDE
+#include "Area.dm"
+#include "ClassTemplates.dm"
+#include "ClickableStats.dm"
+#include "CombatSystem.dm"
+#include "DebugTools.dm"
+#include "EnemyNPCs.dm"
+#include "GMCommands.dm"
+#include "LoginMenu.dm"
+#include "Main.dm"
+#include "Obj.dm"
+#include "SkillDatum.dm"
+#include "SmoothMovement.dm"
+#include "SocialVerbs.dm"
+#include "StatPanels.dm"
+#include "Turfs.dm"
+#include "Verbs.dm"
+#include "Interface.dmf"
+#include "Maps\OGDWLv8.0.dmm"
+#include "Maps\backup\OGDWLv8.0.dmm"
+// END_INCLUDE
+
