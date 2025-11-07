@@ -2,12 +2,13 @@
 /*
 MAP_PLANE_MASTERS: 
 MAP_ZOOM: 1.500
-LAST_COMPILE_TIME: 1762532845
+LAST_COMPILE_TIME: 1762549328
+DIR: Code\ATOM Code\Combat Code\Mods Code\PlayerCustomization 
 AUTO_FILE_DIR: ON
 MAP_ICON_TYPE: 0
 LAST_COMPILE_VERSION: 516.1669
-WINDOW: LoginMenu.dm;SmoothMovement.dm
-FILE: SmoothMovement.dm
+WINDOW: Code\Verbs.dm
+FILE: Code\Verbs.dm
 MAP_INSTANCE_MODE: copy
 */
 // END_INTERNALS

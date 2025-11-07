@@ -3,7 +3,7 @@ client
 	var
 		next_move = 0
 		move_delay = 1
-	proc Move()
+	Move()
 		if(src.next_move < world.time)
 			src.next_move = world.time+src.move_delay
 			return ..()
@@ -11,7 +11,6 @@ client
 // Make objects move 8 pixels per tick when walking
 
 mob
-	icon = 'dw3hero.dmi'
 	icon_state = "world"
 	glide_size = 3
 	var
@@ -39,7 +38,7 @@ client
 	var
 		move_dir = 0
 
-	proc New()
+	New()
 		. = ..()
 		if(.)
 			MoveLoop()
@@ -53,7 +52,7 @@ client
 				sleep(round(world.tick_lag * world.fps))  // sleep for ~10 frames
 
 
-	proc Move(atom/loc,dir)
+	Move(atom/loc,dir)
 		//world.log << world.tick_lag
 		walk(usr,0)
 		return mob.Step(dir)
