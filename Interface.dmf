@@ -1,0 +1,87 @@
+macro "macro"
+	elem 
+		name = "Center"
+		command = "Interact"
+	elem 
+		name = "Northeast+REP"
+		command = "UseSkill"
+	elem 
+		name = "Southeast+REP"
+		command = ".southeast"
+	elem 
+		name = "Southwest+REP"
+		command = ".southwest"
+	elem 
+		name = "Northwest+REP"
+		command = ".northwest"
+	elem 
+		name = "West+REP"
+		command = ".west"
+	elem 
+		name = "North+REP"
+		command = ".north"
+	elem 
+		name = "East+REP"
+		command = ".east"
+	elem 
+		name = "South+REP"
+		command = ".south"
+	elem 
+		name = "Add"
+		command = "EquipBasicAttack"
+
+
+menu "menu"
+	elem 
+		name = "&Quit"
+		command = ".quit"
+		category = "&File"
+		saved-params = "is-checked"
+
+
+window "Main"
+	elem "Main"
+		type = MAIN
+		pos = 291,0
+		size = 1920x1080
+		anchor1 = -1,-1
+		anchor2 = -1,-1
+		is-default = true
+		saved-params = "pos;size;is-minimized;is-maximized"
+		title = "Dragon Warrior Legacy Remake v0.1"
+		macro = "macro"
+		menu = "menu"
+	elem "Info"
+		type = OUTPUT
+		pos = 1344,359
+		size = 580x360
+		anchor1 = 70,33
+		anchor2 = 100,67
+		border = line
+		saved-params = "max-lines"
+	elem "Messages"
+		type = OUTPUT
+		pos = 1344,719
+		size = 580x360
+		anchor1 = 70,67
+		anchor2 = 100,100
+		border = line
+		saved-params = "max-lines"
+	elem "StatsCommands"
+		type = INFO
+		pos = 1344,0
+		size = 580x359
+		anchor1 = 70,0
+		anchor2 = 100,33
+		border = line
+		saved-params = ""
+	elem "GamePlay"
+		type = MAP
+		pos = 0,0
+		size = 1340x1080
+		anchor1 = 0,0
+		anchor2 = 70,100
+		border = line
+		saved-params = "\"zoom;letterbox=false;zoom-mode=fit\""
+		letterbox = false
+
