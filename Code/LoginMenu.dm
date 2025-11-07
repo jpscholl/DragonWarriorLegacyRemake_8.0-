@@ -2,6 +2,9 @@ var
 	list
 		players = list()
 
+mob
+    var/obj/preview_obj
+
 // Entry point for login menu
 proc/show_login_menu(mob/M)
 	var/list/options = list("New Character", "Load Character", "Quit")
@@ -22,13 +25,15 @@ proc/show_login_menu(mob/M)
 
 // Character creation flow
 proc/new_character(mob/player_tmp/M)
+
+//choose name and don't allow blank names and assign it to mob
 	var/name = prompt_for_name(M)
 	if(!name) return
-
 	M.name = name
 
+//storing class info
 	var/class_choice
-	var/icon
+	var/icon_choice
 	var/is_valid_selection = FALSE
 
 	while(!is_valid_selection)
@@ -36,18 +41,17 @@ proc/new_character(mob/player_tmp/M)
 		if(!class_choice) return
 
 		while(TRUE)
-			icon = prompt_for_icon(M, class_choice)
-			if(icon == "Back")
+			icon_choice = prompt_for_icon(M, class_choice)
+			if(icon_choice == "Back")
 				break
-			if(icon)
-				is_valid_selection = TRUE
-				break
+			else
+				icon_customization(M, icon_choice)
 
 	var/mob/player/new_player = create_player_mob(class_choice)
 	if(!new_player) return
 
 	new_player.name = M.name
-	new_player.icon = icon
+	new_player.icon = icon_choice
 	new_player.loc = locate(26, 8, 4)
 	M.client.mob = new_player
 	del M
@@ -76,6 +80,7 @@ proc/prompt_for_class(mob/M)
 		class_choice = input(M, "Choose your class:", "Class Selection") in classes
 		if(class_choice == "Back")
 			show_login_menu(M)
+			del M
 			return null
 		return class_choice
 
@@ -107,7 +112,7 @@ proc/get_icon_color(mob/M, color_choice)
 // Returns icon list for a given class
 proc/get_class_icons(class_choice)
 	switch(class_choice)
-		if("Hero") return list("DW3 Male" = 'dw3hero.dmi', "DW2 Male" = 'dw2hero.dmi', "Back" = null)
+		if("Hero") return list("Dragon Warrior 3 Male Hero" = 'dw3hero.dmi', "DW2 Male" = 'dw2hero.dmi', "Back" = null)
 		if("Soldier") return list("DW3 Guard" = 'dw3guard.dmi', "DW2 Soldier" = 'dw2soldier.dmi', "Back" = null)
 		if("Wizard") return list("DW3 M Wizard" = 'dw3malewizard.dmi', "DW2 M Wizard" = 'dw2wizard.dmi', "Back" = null)
 	return list()
@@ -120,3 +125,27 @@ proc/create_player_mob(class_choice)
 		if("Soldier") return new /mob/player/soldier
 		if("Wizard") return new /mob/player/wizard
 	return null
+
+// Preview customization
+proc/icon_customization(mob/M, icon_choice)
+    show_icon_preview(M, icon_choice)
+
+
+
+// Show preview on screen
+proc/show_icon_preview(mob/M, icon_choice)
+    // Clean up old preview if it exists
+	if(M.preview_obj)
+		del M.preview_obj
+
+	var/obj/preview = new /obj
+	preview.icon = icon_choice
+	preview.icon_state = "world"
+	preview.loc = locate(3,3,2)  // special preview area
+	M.preview_obj = preview       // store reference on mob
+
+    // Show this object in the client’s view
+	M.client.eye = preview
+
+
+

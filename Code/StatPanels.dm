@@ -11,12 +11,15 @@ mob/player
 //player stats
 		//stats update without stat points
 		statpanel("Stats")
-		stat("Name: [src]")
-		stat("Class: [class]")
-		stat("Level: [Level]")
-		stat("EXP: [Exp]/[Nexp]")
-		stat("HP: [HP]/[MaxHP]")
-		stat("MP: [MP]/[MaxMP]")
+		stat("[src]")
+		stat("Class:				[class]")
+		stat("Level:				[Level]")
+		stat("Party:				None")
+		stat("Hit Points:			[HP]/[MaxHP]")
+		stat("Magic Points: 	 	[MP]/[MaxMP]")
+		stat("Experience Points: 	[Exp]/[Nexp]")
+		stat("Gold: 				50")
+		stat("Players online:		1")
 
 		if(!str_display)str_display = new /obj/stat_link("Strength", Strength)
 		if(!vit_display)vit_display = new /obj/stat_link("Vitality", Vitality)
