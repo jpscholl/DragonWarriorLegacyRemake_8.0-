@@ -41,8 +41,10 @@
 #include "Code\Combat\SkillDatum.dm"
 #include "Code\Mods\DebugTools.dm"
 #include "Code\Mods\GMCommands.dm"
+#include "Code\PlayerCustomization\ColorSwap.dm"
+#include "Code\PlayerCustomization\ColorTestVerbs.dm"
 #include "Code\PlayerCustomization\PaletteManager.dm"
-#include "Code\PlayerCustomization\PlayerColorPalatte.dm"
+#include "Code\PlayerCustomization\PlayerIconColorPalette.dm"
 #include "Maps\OGDWLv8.0.dmm"
 #include "Maps\backup\OGDWLv8.0.dmm"
 // END_INCLUDE

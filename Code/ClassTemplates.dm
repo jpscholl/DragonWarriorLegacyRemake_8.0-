@@ -16,19 +16,15 @@ mob
 		Luck = 1
 		StatPoints = 10
 
-//wtf is this code???
-	//login override
-	//Login()
-		//..()
-
 //mob variables
 	var/list/skills = list()
 	var/datum/Skill/active_skill
 	var/can_move = TRUE
 
 	verb/UseSkill()
+		set hidden = 1
 		if (!active_skill)
-			usr << "No skill equipped."
+			usr << output("No skill equipped.", "Info")
 			return
 		active_skill.Activate(src, null)
 
@@ -37,7 +33,7 @@ mob
 		var/datum/skill/Attack/atk = new
 		skills += atk
 		active_skill = atk
-		usr << "Equipped skill: [atk.name]"
+		usr << output("Equipped skill: [atk.name]", "Info")
 
 	verb/Attack()
 		set hidden = 1

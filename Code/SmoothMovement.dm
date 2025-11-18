@@ -8,11 +8,9 @@ client
 			src.next_move = world.time+src.move_delay
 			return ..()
 
-// Make objects move 8 pixels per tick when walking
-
 mob
 	icon_state = "world"
-	glide_size = 3
+	//glide_size = round(TILE_WIDTH / delay * world.tick_lag)
 	var
 		step_delay = 1
 		tmp
@@ -51,11 +49,6 @@ client
 					Move(null, move_dir)
 				sleep(round(world.tick_lag * world.fps))  // sleep for ~10 frames
 
-
-	Move(atom/loc,dir)
-		//world.log << world.tick_lag
-		walk(usr,0)
-		return mob.Step(dir)
 
 	verb
 		onMoveKey(dir as num,state as num)

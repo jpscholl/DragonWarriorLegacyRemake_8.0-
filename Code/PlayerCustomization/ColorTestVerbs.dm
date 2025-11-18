@@ -39,7 +39,7 @@ mob/verb/chooseIcon()
         return
     selectedIcon = iconChoice
 
-    palette = new /datum/PaletteManager(selectedClass, selectedIcon)
+    src.palette = new /datum/PaletteManager(selectedClass, selectedIcon)
 
     src.icon = icon(selectedIcon)
     usr << "Your icon has been changed to [selectedClass] → [selectedIcon]."
@@ -69,3 +69,12 @@ mob/verb/reset_icon()
 	set name = "Reset Icon"
 	set category = "Reset"
 	src.icon = icon(selectedIcon, "world")
+
+mob/verb/checkPalette()
+    if(!src.palette)
+        src << "No palette assigned."
+        return
+
+    var/list/zones = src.palette.GetAllZones()
+    for(var/zone in zones)
+        src << "[zone]: [zones[zone]]"

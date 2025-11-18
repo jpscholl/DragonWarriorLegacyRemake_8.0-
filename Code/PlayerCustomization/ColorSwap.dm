@@ -20,8 +20,8 @@ mob/proc/GetAllColorOptions()
     return all_colors
 
 mob/proc/UpdateAppearance()
-    if (!selectedIcon || !palette) return  // Defensive check
-    var/icon/base = new /icon(selectedIcon, icon_state)
+    if (!selected_icon || !palette) return  // Defensive check
+    var/icon/base = new /icon(selected_icon, icon_state)
     for (var/zone in palette.colors)
         var/original = palette.originalColors[zone]
         var/custom = palette.colors[zone]
@@ -35,7 +35,7 @@ mob/verb/Set_Main()
     var/list/choices = color_swatches
     var/new_color = input("Choose Main Color:") in choices
     if(IsColorUsed(choices[new_color])) return
-    palette.SetZoneColor("Main", choices[new_color])
+    src.palette.SetZoneColor("Main", choices[new_color])
     UpdateAppearance()
 
 mob/verb/Set_Accent()
@@ -43,7 +43,7 @@ mob/verb/Set_Accent()
     var/list/choices = color_swatches
     var/new_color = input("Choose Accent Color:") in choices
     if (IsColorUsed(choices[new_color])) return
-    palette.SetZoneColor("Accent", choices[new_color])
+    src.palette.SetZoneColor("Accent", choices[new_color])
     UpdateAppearance()
 
 mob/verb/Set_Hair()
@@ -51,7 +51,7 @@ mob/verb/Set_Hair()
     var/list/choices = color_swatches
     var/new_color = input("Choose Hair Color:") in choices
     if (IsColorUsed(choices[new_color])) return
-    palette.SetZoneColor("Hair", choices[new_color])
+    src.palette.SetZoneColor("Hair", choices[new_color])
     UpdateAppearance()
 
 mob/verb/Set_Eyes()
@@ -59,7 +59,7 @@ mob/verb/Set_Eyes()
     var/list/choices = color_swatches
     var/new_color = input("Choose Eyes Color:") in choices
     if (IsColorUsed(choices[new_color])) return
-    palette.SetZoneColor("Eyes", choices[new_color])
+    src.palette.SetZoneColor("Eyes", choices[new_color])
     UpdateAppearance()
 
 

@@ -3,6 +3,9 @@ area
 
 	town
 		icon_state = "town"
+		Entered(mob/M)
+			M.client << sound(null)
+			M.client << sound('dw3town.mid', repeat = 1, volume = world_volume)
 
 	casino
 		icon_state = "casino"
@@ -18,6 +21,9 @@ area
 
 	townrain
 		icon_state = "townrain"
+		Entered(mob/M)
+			M.client << sound(null)
+			M.client << sound('dw4town.mid', repeat = 1, volume = world_volume)
 
 	battle
 		icon_state = "battle"
