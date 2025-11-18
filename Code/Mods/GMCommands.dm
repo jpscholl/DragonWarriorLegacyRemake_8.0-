@@ -4,7 +4,7 @@ mob/var/icon/original_icon
 
 mob/proc/ToggleGhostForm()
 	if(in_ghostform)
-		view() << sound('spell.WAV', volume=100)
+		view() << sound('spell.WAV', volume = world_volume)
 		in_ghostform = FALSE
 		invisibility = 0
 		density = 1
@@ -15,7 +15,7 @@ mob/proc/ToggleGhostForm()
 		icon_state = "world"
 		src << output("You reappear!", "Info")
 	else
-		view() << sound('spell.WAV', volume=100)
+		view() << sound('spell.WAV', volume = world_volume)
 		in_ghostform = TRUE
 		original_icon = icon
 		icon = null

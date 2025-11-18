@@ -5,10 +5,12 @@
 	reference. This version is aimed to replicate that version to the best of my ability while also adding
 	some QoL changes...so 8.0+ so to speak.
 	Author: Cerebella (Shorin88)
-	Last Update: 11/7/2025
+	Last Update: 11/17/2025
 
 	Notes: Having issues combining all the crap I've done into one cohesive game...
 */
+var/global
+	world_volume = 20
 
 world
 	name = "Dragon Warrior Legacy Remake"
@@ -37,6 +39,7 @@ mob
 
 mob/player_tmp
 	Login()
+		client << sound('dw3conti.mid', repeat = 1, volume = world_volume) //add a way to adjust sounds volume later
 		usr << output("Welcome to DWL Remake!!", "Info")
 		world << output("[usr] has joined the world!!", "Messages")
 		show_login_menu(src)

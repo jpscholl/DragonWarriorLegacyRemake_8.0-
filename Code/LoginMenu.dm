@@ -1,151 +1,132 @@
-var
-	list
-		players = list()
+var/list/players = list()
 
 mob
     var/obj/preview_obj
+    var/selected_class
+    var/selected_icon
+    var/selected_color
+    var/datum/PaletteManager/palette
 
-// Entry point for login menu
+// Entry point
 proc/show_login_menu(mob/M)
-	var/list/options = list("New Character", "Load Character", "Quit")
-	var/choice = input(M, "Select an option:", "Login Menu") in options
+    var/list/options = list("New Character","Load Character","Quit")
+    var/choice = input(M,"Select an option:","Login Menu") in options
 
-	switch(choice)
-		if("New Character")
-			M << output("Starting a new game...", "Info")
-			new_character(M)
-		if("Load Character")
-			M << output("Loading characters not yet implemented...", "Info")
-			show_login_menu(M) // Re-show the menu
-			// TODO: Implement character loading
-		if("Quit")
-			M << "[M] has logged out"
-			del M
+    switch(choice)
+        if("New Character")
+            M << "Starting a new game..."
+            new_character(M)
+        if("Load Character")
+            M << "Loading characters not yet implemented..."
+            show_login_menu(M)
+        if("Quit")
+            M << "[M] has logged out"
+            del M
 
-
-// Character creation flow
+// Character creation
 proc/new_character(mob/player_tmp/M)
+    M.name = prompt_for_name(M)
+    if(!M.name) return
 
-//choose name and don't allow blank names and assign it to mob
-	var/name = prompt_for_name(M)
-	if(!name) return
-	M.name = name
+    M.selected_class = prompt_for_class(M)
+    if(!M.selected_class) return
 
-//storing class info
-	var/class_choice
-	var/icon_choice
-	var/is_valid_selection = FALSE
+    M.selected_icon = prompt_for_icon(M, M.selected_class)
+    if(M.selected_icon == "Set Zone") return
 
-	while(!is_valid_selection)
-		class_choice = prompt_for_class(M)
-		if(!class_choice) return
+    // Apply preview + color customization
+    icon_customization(M, M.selected_icon)
 
-		while(TRUE)
-			icon_choice = prompt_for_icon(M, class_choice)
-			if(icon_choice == "Back")
-				break
-			else
-				icon_customization(M, icon_choice)
+    var/mob/player/new_player = create_player_mob(M.selected_class)
+    if(!new_player) return
 
-	var/mob/player/new_player = create_player_mob(class_choice)
-	if(!new_player) return
+    new_player.name = M.name
+    new_player.icon = M.icon   // already customized
+    var/turf/start = locate(26,8,4)
+    if(start)
+        new_player.loc = start
+    else
+        world.log << "Start location invalid!"
 
-	new_player.name = M.name
-	new_player.icon = icon_choice
-	new_player.loc = locate(26, 8, 4)
-	M.client.mob = new_player
-	del M
+    M.client.mob = new_player
+    new_player.client.eye = new_player
+    del M
 
-	new_player << "Welcome, [new_player.name] the [new_player.class]!"
-	players += new_player
+    new_player << sound(null)
+    new_player << sound('dw4town.mid', repeat=1, volume = world_volume)
+    new_player << "Welcome, [new_player.name] the [new_player.class]!"
+    players += new_player
 
 
-// Prompt for valid name
+// Prompt for name
 proc/prompt_for_name(mob/M)
-	var/name
-	while(!name || !length(trimtext(name)))
-		name = input(M, "Enter your name:", "New Character") as text|null
-		if(isnull(name))
-			show_login_menu(M)
-			return null
-	return trimtext(name)
+    var/name
+    while(!name || !length(trimtext(name)))
+        name = input(M,"Enter your name:","New Character") as text|null
+        if(isnull(name))
+            show_login_menu(M)
+            return null
+    return trimtext(name)
 
-
-// Prompt for class selection
+// Prompt for class
 proc/prompt_for_class(mob/M)
-	var/list/classes = list("Hero", "Soldier", "Wizard", "Back")
-	var/class_choice
+    var/list/classes = list("Hero","Soldier","Wizard","Back")
+    var/class_choice = input(M,"Choose your class:","Class Selection") in classes
+    if(class_choice == "Back")
+        if(M.preview_obj) del M.preview_obj
+        show_login_menu(M)
+        return null
+    return class_choice
 
-	while(TRUE)
-		class_choice = input(M, "Choose your class:", "Class Selection") in classes
-		if(class_choice == "Back")
-			show_login_menu(M)
-			del M
-			return null
-		return class_choice
-
-
-// Prompt for icon selection
-proc/prompt_for_icon(mob/M, class_choice)
-	var/list/icons = get_class_icons(class_choice)
-	var/icon_choice = input(M, "Choose your appearance:", "Icon Selection") in icons
-	if(isnull(icon_choice) || icon_choice == "Back")
-		return "Back"
-	return icons[icon_choice]
-
-
-// Prompt for color selection
-proc/prompt_for_icon_color(mob/M)
-	var/list/colors = list("Red", "Blue", "Green", "Yellow", "Purple", "Black", "White")
-	var/color_choice = input(M, "Choose your icon color:", "Color Selection") in colors
-	get_icon_color(M, color_choice)
-
-
-// Select colors
-proc/get_icon_color(mob/M, color_choice)
-	//var/icon/base_icon = icon('base_icon.dmi', "default") // Replace with your actual icon
-	//var/icon/colored_icon = base_icon
-	//colored_icon.Blend(color_choice, ICON_MULTIPLY)
-	//M.icon = colored_icon
-
-
-// Returns icon list for a given class
-proc/get_class_icons(class_choice)
-	switch(class_choice)
-		if("Hero") return list("Dragon Warrior 3 Male Hero" = 'dw3hero.dmi', "DW2 Male" = 'dw2hero.dmi', "Back" = null)
-		if("Soldier") return list("DW3 Guard" = 'dw3guard.dmi', "DW2 Soldier" = 'dw2soldier.dmi', "Back" = null)
-		if("Wizard") return list("DW3 M Wizard" = 'dw3malewizard.dmi', "DW2 M Wizard" = 'dw2wizard.dmi', "Back" = null)
-	return list()
-
-
-// Creates a new mob instance based on class
+// Create mob by class
 proc/create_player_mob(class_choice)
-	switch(class_choice)
-		if("Hero") return new /mob/player/hero
-		if("Soldier") return new /mob/player/soldier
-		if("Wizard") return new /mob/player/wizard
-	return null
+    switch(class_choice)
+        if("Hero") return new /mob/player/hero
+        if("Soldier") return new /mob/player/soldier
+        if("Wizard") return new /mob/player/wizard
+    return null
 
-// Preview customization
-proc/icon_customization(mob/M, icon_choice)
-    show_icon_preview(M, icon_choice)
+// Prompt for icon
+proc/prompt_for_icon(mob/M,class_choice)
+    var/list/icons = get_class_icons(class_choice)
+    var/icon_choice = input(M,"Choose your appearance:","Icon Selection") in icons
+    if(isnull(icon_choice) || icon_choice=="Back") return "Back"
+    return icons[icon_choice]
 
+// Icon lists
+proc/get_class_icons(class_choice)
+    switch(class_choice)
+        if("Hero") return list("DW1 Hero"='dw1hero.dmi',"DW2 Hero"='dw2hero.dmi',"DW3 Hero"='dw3hero.dmi',"Back"=null)
+        if("Soldier") return list("DW1 Soldier"='dw1soldier.dmi',"DW2 Soldier"='dw2soldier.dmi',"DW3 Guard"='dw3guard.dmi',"Back"=null)
+        if("Wizard") return list("DW1 Wizard"='dw1wizard.dmi',"DW2 Wizard"='dw2wizard.dmi',"DW3 Wizard"='dw3malewizard.dmi',"Back"=null)
+    return list()
 
+// Customization
+proc/icon_customization(mob/M,icon_choice)
+    show_icon_preview(M,icon_choice)
+    prompt_for_icon_color(M,icon_choice)
 
-// Show preview on screen
-proc/show_icon_preview(mob/M, icon_choice)
-    // Clean up old preview if it exists
-	if(M.preview_obj)
-		del M.preview_obj
+//preview custom icon
+proc/show_icon_preview(mob/M,icon_choice)
+    if(M.preview_obj) del M.preview_obj
+    var/obj/preview = new /obj
+    preview.icon = icon_choice
+    preview.icon_state = "world"
+    preview.loc = locate(3,3,2)
+    M.preview_obj = preview
+    M.client.eye = preview
 
-	var/obj/preview = new /obj
-	preview.icon = icon_choice
-	preview.icon_state = "world"
-	preview.loc = locate(3,3,2)  // special preview area
-	M.preview_obj = preview       // store reference on mob
+//color menu
+proc/prompt_for_icon_color(mob/M,icon_choice)
+    if(!M || !M.client) return
+    var/list/colors = list("Red","Blue","Green","Yellow","Purple","Black","White", "Set Zone")
+    var/color_choice = input(M,"Choose your icon color:","Color Selection") in colors
+    if(color_choice) get_icon_color(M,icon_choice,color_choice)
 
-    // Show this object in the client’s view
-	M.client.eye = preview
-
-
-
+//adds color blend but will be replaced
+proc/get_icon_color(mob/M,icon_choice,color_choice)
+    var/icon/base_icon = icon(icon_choice)
+    var/icon/colored_icon = base_icon
+    colored_icon.Blend(color_choice,ICON_MULTIPLY)
+    M.icon = colored_icon
+    M.selected_color = color_choice

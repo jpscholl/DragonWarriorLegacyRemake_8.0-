@@ -180,6 +180,7 @@ turf/table/longtablecenter
 		icon = 'stairs.dmi'
 		density = 0
 
+
 		stairsup
 			name = "stairs"
 			icon_state = "stoneup"
@@ -189,7 +190,7 @@ turf/table/longtablecenter
 					var/turf/new_loc = locate(M.x, M.y, M.z + 1)
 					if(new_loc)
 						M.loc = new_loc
-
+				view() << sound('stairs.wav', repeat = 0, volume = world_volume)
 //walking over causes player to warp one Z level up
 
 		stairsdown
@@ -201,6 +202,7 @@ turf/table/longtablecenter
 					var/turf/new_loc = locate(M.x, M.y, M.z - 1)
 					if(new_loc)
 						M.loc = new_loc
+				view() << sound('stairs.wav', repeat = 0, volume = world_volume)
 
 //walking over causes player to warp one Z level down
 
