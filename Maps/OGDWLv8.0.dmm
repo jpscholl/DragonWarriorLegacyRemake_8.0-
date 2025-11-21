@@ -22,7 +22,7 @@
 "av" = (/turf/tree/tree,/area)
 "aw" = (/turf/ground/brush,/area)
 "ax" = (/turf/floor/woodfloor,/area)
-"ay" = (/obj/stat/bookcase,/obj/stat/bookcase/bookcase,/turf/floor/cobble,/area/town)
+"ay" = (/obj/stat/drawers/wooden,/turf/floor/cobble,/area/bar)
 "az" = (/obj/stat/sign/inn,/turf/ground/grass,/area)
 "aA" = (/turf/furniture/woodbedleft,/area)
 "aB" = (/turf/furniture/woodbedright,/area)
@@ -136,10 +136,21 @@
 "cF" = (/obj/ceiling,/turf/furniture/bedleft,/area/ceiling)
 "cG" = (/obj/stat/drawers/wooden{step_x = 0},/turf/floor/cobble,/area/town)
 "cH" = (/obj/ceiling,/turf/furniture/bedright,/area/ceiling)
-"cI" = (/obj/stat/door/wooden,/turf,/area/town)
+"cI" = (/turf/furniture/tub,/area/bar)
 "cJ" = (/turf/ground/grass,/turf/ground/grass,/area/townrain)
 "cK" = (/turf/tree/tree{name = ""},/area/townrain)
 "cL" = (/obj/ceiling,/turf/furniture/table,/area/ceiling)
+"cM" = (/turf/furniture/stove,/area/bar)
+"cN" = (/turf/floor/cobble,/area/bar)
+"cO" = (/obj/stat/door/wooden,/turf,/area/bar)
+"cP" = (/obj/stat/bookcase,/obj/stat/bookcase/bookcase,/turf/floor/cobble,/area/bar)
+"cQ" = (/turf/stairs/stairsup,/area/bar)
+"cR" = (/turf/furniture/counter,/area/bar)
+"cS" = (/turf/floor/stool,/area/bar)
+"cT" = (/turf/furniture/table,/area/bar)
+"cU" = (/turf/furniture/woodtableleft,/area/bar)
+"cV" = (/turf/furniture/woodtableright,/area/bar)
+"cW" = (/turf/furniture/plant,/area/bar)
 
 (1,1,1) = {"
 ababababababababababababababababababababababababababababababababababababababababababababababababababababab
@@ -318,15 +329,15 @@ abababababababababababababababababababababababababababababababababababababababab
 ababababababababababababababababababababababababababababababababababababababababababababababababababababab
 ababababababababababababababababababababababababababababababababababababababababababababababababababababab
 ababababababakalalalalalalalalalalalalalalakalalalalalalalalalalalalalalalalalalalalalalalakababababababab
-ababababababakanaoapaparcIararayayayararaCakbGbGbGbGbGbGbGbGbGbGbGbGaKbVbWbVbVbWbVbVbWbWaTakababababababab
-ababababababakarararararatbrarararararararakbGbWbWbWbWbGbGbWbWbWbWbGakalalalalalalakalalalakababababababab
-ababababababakarararararatbrarararararararakbGbWbwbzbWbGbGbWbzbzbWbGalbBbBaoapapapakararaCakababababababab
-ababababababakatatatatatatbrarararararbrarakbGbWbzbzbWbGbGbWbzbzbWbGbCararararararakarararakababababababab
-ababababababakbrbrbrbrbrbrarararararbrbEbrakbGbWbzbzbWbGbGbWbzbzbWbGakararararararakarararakababababababab
-ababababababakararararararararararararbrarakbGbWbzbzbWbGbGbWbzbzbWbGakarbrbrarararalalbCalakababababababab
-ababababababakarbrbrararararbrararararararakbGbWbwbzbWbGbGbWbzbzbWbGakbrbTcgbrararararararakababababababab
-ababababababakbrbTcgbrararbrbEbrararararchakbGbWbWbWbWbGbGbWbWbWbWbGakarbrbrarararararararakababababababab
-ababababababakarbrbrararararbrarararararchakbGbGbGbGbGbGbGbGbGbGbGbGakararararararararararakababababababab
+ababababababakaycIcMcMcNcOcNcNcPcPcPcNcNcQakbGbGbGbGbGbGbGbGbGbGbGbGaKbVbWbVbVbWbVbVbWbWaTakababababababab
+ababababababakcNcNcNcNcNcRcScNcNcNcNcNcNcNakbGbWbWbWbWbGbGbWbWbWbWbGakalalalalalalakalalalakababababababab
+ababababababakcNcNcNcNcNcRcScNcNcNcNcNcNcNakbGbWbwbzbWbGbGbWbzbzbWbGalbBbBaoapapapakararaCakababababababab
+ababababababakcRcRcRcRcRcRcScNcNcNcNcNcScNakbGbWbzbzbWbGbGbWbzbzbWbGbCararararararakarararakababababababab
+ababababababakcScScScScScScNcNcNcNcNcScTcSakbGbWbzbzbWbGbGbWbzbzbWbGakararararararakarararakababababababab
+ababababababakcNcNcNcNcNcNcNcNcNcNcNcNcScNakbGbWbzbzbWbGbGbWbzbzbWbGakarbrbrarararalalbCalakababababababab
+ababababababakcNcScScNcNcNcNcScNcNcNcNcNcNakbGbWbwbzbWbGbGbWbzbzbWbGakbrbTcgbrararararararakababababababab
+ababababababakcScUcVcScNcNcScTcScNcNcNcNcWakbGbWbWbWbWbGbGbWbWbWbWbGakarbrbrarararararararakababababababab
+ababababababakcNcScScNcNcNcNcScNcNcNcNcNcWakbGbGbGbGbGbGbGbGbGbGbGbGakararararararararararakababababababab
 ababababababakalakalalalbyalakalalalararalalcicicicicibGciciciciciciakararbrarararararararakababababababab
 abababbxababakbXakcjcjckckckakbXbFclbGbGbFbFbFbFbFbFbFbGbFbFbFbFbFbVakarbrbEbrakalalbCalalakababababababab
 ababababababakbXakcmcmcmcmcmakbVbFbFbGbGbFbFbFbFbFbFbFbGbFbFbFbFbFbXakararbrarakananarananakababababababab

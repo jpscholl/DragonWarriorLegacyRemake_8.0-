@@ -11,7 +11,7 @@ mob/player
 //player stats
 		//stats update without stat points
 		statpanel("Stats")
-		stat("[src]")
+		stat("[src.name]")
 		stat("Class:			[class]")
 		stat("Level:			[Level]")
 		stat("Party:			None")

@@ -1,11 +1,8 @@
+//for music transitions...or skipping them
+mob/var/current_music = null
+
 area
 	icon = 'environment.dmi'
-
-	town
-		icon_state = "town"
-		Entered(mob/M)
-			M.client << sound(null)
-			M.client << sound('dw3town.mid', repeat = 1, volume = world_volume)
 
 	casino
 		icon_state = "casino"
@@ -21,9 +18,27 @@ area
 
 	townrain
 		icon_state = "townrain"
-		Entered(mob/M)
-			M.client << sound(null)
-			M.client << sound('dw4town.mid', repeat = 1, volume = world_volume)
+		Entered(atom/movable/O)
+			..()
+			if(ismob(O))
+				var/mob/M = O
+				if(M.client)
+					if(M.current_music != 'dw4town.mid')
+						M.client << sound('dw4town.mid', repeat = 1, volume = world_volume, channel = 1)
+						M.current_music = 'dw4town.mid'
+
+
+	town
+		icon_state = "town"
+		Entered(atom/movable/O)
+			..()
+			if(ismob(O))
+				var/mob/M = O
+				if(M.client)
+					if(M.current_music != 'dw4town.mid')
+						M.client << sound('dw4town.mid', repeat = 1, volume = world_volume, channel = 1)
+						M.current_music = 'dw4town.mid'
+
 
 	battle
 		icon_state = "battle"
@@ -42,6 +57,21 @@ area
 
 	bar
 		icon_state = "bar"
+		Entered(atom/movable/O)
+			..()
+			if(ismob(O))
+				var/mob/M = O
+				if(M.client)
+					if(M.current_music != 'dw3town.mid')
+						M.client << sound('dw3town.mid', repeat = 1, volume = world_volume, channel = 1)
+						M.current_music = 'dw3town.mid'
+
+		Exited(atom/movable/O)
+			..()
+			if(ismob(O))
+				var/mob/M = O
+				if(M.client)
+					M.client << sound(null, channel = 1)
 
 	jail
 		icon_state = "jail"

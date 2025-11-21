@@ -2,13 +2,13 @@
 /*
 MAP_PLANE_MASTERS: 
 MAP_ZOOM: 1.500
-LAST_COMPILE_TIME: 1763432988
+LAST_COMPILE_TIME: 1763740663
 DIR: Code Code\ATOM Code\Combat Code\Mods Code\PlayerCustomization Maps 
 AUTO_FILE_DIR: ON
 MAP_ICON_TYPE: 0
 LAST_COMPILE_VERSION: 516.1673
-WINDOW: Code\LoginMenu.dm
-FILE: Code\LoginMenu.dm
+WINDOW: Code\PlayerCustomization\PlayerIconColorPalette.dm;Code\PlayerCustomization\PaletteManager.dm;Code\PlayerCustomization\ColorSwap.dm;Code\LoginMenuTest.dm;Code\Main.dm;Code\ClassTemplates.dm
+FILE: Code\PlayerCustomization\ColorSwap.dm
 MAP_INSTANCE_MODE: copy
 */
 // END_INTERNALS
