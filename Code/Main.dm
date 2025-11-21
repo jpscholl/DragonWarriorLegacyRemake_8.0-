@@ -39,13 +39,11 @@ mob
 
 mob/player_tmp
 	Login()
-		client << sound('dw3conti.mid', repeat = 1, volume = world_volume) //add a way to adjust sounds volume later
+		client << sound('dw3conti.mid', repeat = 1, volume = world_volume, channel = 1) //add a way to adjust sounds volume later
 		usr << output("Welcome to DWL Remake!!", "Info")
-		show_login_menu(src)
-		client << sound(null)
-		world << output("[src.name] has joined the world!!", "Messages")
-		loc = locate(26,8,4)
+		show_login_menu(usr)
+		world << output("[usr.name] has joined the world!!", "Messages")
 
 	Logout()
-		players -= src
+		players -= client
 		src.loc -= null
