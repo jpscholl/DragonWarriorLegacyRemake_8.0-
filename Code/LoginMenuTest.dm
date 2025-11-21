@@ -14,8 +14,6 @@ mob
 		selected_icon
 		selected_icon_name
 		datum/PaletteManager/palette
-mob/player_tmp
-
 
 // Entry point
 proc/show_login_menu(mob/player_tmp/M)
@@ -76,15 +74,12 @@ proc/new_character(mob/player_tmp/M)
 				InitializeIconBaseColors()
 				IconPreview(M)
 				step = M.customize_colors()
-
-			//Stat Allocation
+d
 			if(STEP_STATS)
 				M << output("Allocate Stats","Info")
-				step = allocate_stats(M)
-				if(STEP_STATS)
-					finalize_player(M)
-					return
+				break
 
+			//Stat Allocation
 
 //Send player to start location
 
@@ -169,49 +164,10 @@ proc/IconPreview(mob/M)
 	M.client.eye = preview
 
 // Create mob by class
-proc/finalize_player(mob/player_tmp/M)
-	var/mob/player/newplayer
-
-	switch(M.selected_class)
-		if("Hero")     newplayer = new /mob/player/hero
-		if("Soldier")  newplayer = new /mob/player/soldier
-		if("Wizard")   newplayer = new /mob/player/wizard
-
-	//assigns name
-	newplayer.name = M.selected_name
-
-	//checks for valid newplayer and copies changes to icon
-	if(M.preview_obj)
-		newplayer.icon = icon(M.preview_obj.icon)
-		newplayer.icon_state = M.preview_obj.icon_state
-	else
-		newplayer.icon = icon(M.selected_icon)
-		newplayer.icon_state = "world"
-
-	M << sound(null, channel = 1)
-
-	newplayer << sound('dw4town.mid', repeat = 1, channel = 1, volume = world_volume)
-
-	M.client.mob = newplayer
-	newplayer.loc = locate(26,8,4)
-	del M
-
-//stat allocation process
-proc/allocate_stats(mob/player_tmp/M)
-    while(M.StatPoints > 0)
-        M << "Points remaining: [M.StatPoints]"
-        var/list/options = list("Strength","Vitality","Agility","Intelligence","Luck","Finish")
-        var/choice = input(M,"Allocate your stat points","Stats") in options
-
-        switch(choice)
-            if("Strength")     { M.Strength++; M.StatPoints-- }
-            if("Vitality")     { M.Vitality++; M.StatPoints-- }
-            if("Agility")      { M.Agility++; M.StatPoints-- }
-            if("Intelligence") { M.Intelligence++; M.StatPoints-- }
-            if("Luck")         { M.Luck++; M.StatPoints-- }
-            if("Finish")
-                if(M.StatPoints > 0)
-                    M << "You still have [M.StatPoints] points left!"
-                else
-                    M << "Stat allocation complete."
-                    return STEP_STATS
+proc/create_player_mob(class_choice)
+    switch(class_choice)
+        if("Hero") return new /mob/player/hero
+        if("Soldier") return new /mob/player/soldier
+        if("Wizard") return new /mob/player/wizard
+    return null
+	
