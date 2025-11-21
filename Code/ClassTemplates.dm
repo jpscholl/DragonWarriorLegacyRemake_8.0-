@@ -14,7 +14,7 @@ mob
 		Agility = 1
 		Intelligence = 1
 		Luck = 1
-		StatPoints = 10
+		StatPoints = 0
 
 //mob variables
 	var/list/skills = list()
@@ -46,7 +46,7 @@ mob
 //class overrides
 mob/player/hero
 	class = "Hero"
-	MaxMP = 10
+	MaxMP = 15
 
 mob/player/soldier
 	class = "Soldier"

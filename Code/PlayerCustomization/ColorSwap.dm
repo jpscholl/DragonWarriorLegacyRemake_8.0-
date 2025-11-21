@@ -13,12 +13,6 @@ var/list/color_swatches = list(
 		"Black" = rgb(0,0,0),
 		"Brown" = rgb(88,57,39))
 
-mob/proc/GetAllColorOptions()
-    var/list/all_colors = list()
-    for (var/name in palette.colors)
-        all_colors[name] = palette.colors[name]
-    return all_colors
-
 mob/proc/UpdateAppearance()
     if (!selected_icon || !palette) return
 
@@ -64,15 +58,6 @@ mob/proc/Set_Eyes()
 	UpdateAppearance()
 
 //scan for colors of icons and get rgb value of colors
-
-
-mob/verb/DebugSwatches()
-    set category = "Debug"
-    var/list/test = GetAllColorOptions()
-    for(var/name in test)
-        usr << "[name]: [test[name]]"
-
-
 mob/proc/IsColorUsed(color)
     for(var/zone in palette.colors)
         if(palette.colors[zone] == color)
