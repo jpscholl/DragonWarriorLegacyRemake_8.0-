@@ -1,11 +1,11 @@
 /*
 	Game: Dragon Warrior Legacy Remake
-	Description: This game is a remake of Wizdragon(Tarq)'s Dragon Warrior action rpg
+	Description: This game is a remake of Wizdragon(Tarq)'s Dragon Warrior action rpg from
 	The game is based on version 8.0. There were later versions, but this is the only version available for
 	reference. This version is aimed to replicate that version to the best of my ability while also adding
 	some QoL changes...so 8.0+ so to speak.
 	Author: Cerebella (Shorin88)
-	Last Update: 11/17/2025
+	Last Update: 11/19/2025
 
 	Notes: Having issues combining all the crap I've done into one cohesive game...
 */
@@ -41,8 +41,9 @@ mob/player_tmp
 	Login()
 		client << sound('dw3conti.mid', repeat = 1, volume = world_volume) //add a way to adjust sounds volume later
 		usr << output("Welcome to DWL Remake!!", "Info")
-		world << output("[usr] has joined the world!!", "Messages")
 		show_login_menu(src)
+		client << sound(null)
+		world << output("[src.name] has joined the world!!", "Messages")
 		loc = locate(26,8,4)
 
 	Logout()
