@@ -75,8 +75,6 @@ proc/new_character(mob/player_tmp/M)
                     finalize_player(M)
                     return
 
-
-
 // Prompt user for valid name
 proc/prompt_for_name(mob/M)
     var/selected_name
@@ -128,27 +126,31 @@ proc/handle_icon_selection(mob/M, icon_choice, class_choice)
 
 // Custom colors
 mob/proc/customize_colors()
-    palette = new /datum/PaletteManager(selected_class, selected_icon)
-    src << "selected_icon = [selected_icon]"
+	palette = new /datum/PaletteManager(selected_class, selected_icon)
+	src << "selected_icon = [selected_icon]"
 
-    while(TRUE)
-        var/list/options = list("Main", "Accent", "Hair", "Eyes", "Finish", "Back")
-        var/zone_choice = input(src, "Choose another zone or Finish", "Color Customization") in options
+	while(TRUE)
+		var/list/options = list("Main", "Accent", "Hair", "Eyes", "Finish", "Back")
+		var/zone_choice = input(src, "Choose another zone or Finish", "Color Customization") in options
 
-        switch(zone_choice)
-            if("Main")       Set_Main()
-            if("Accent")     Set_Accent()
-            if("Hair")       Set_Hair()
-            if("Eyes")       Set_Eyes()
-            if("Finish")
-                if(preview_obj)
-                    icon = preview_obj.icon
-                client.eye = src
-                src << output("Finished", "Info")
-                return STEP_STATS
-            if("Back")
-                src << output("Back", "Info")
-                return STEP_ICON
+		switch(zone_choice)
+			if("Main")       Set_Main()
+			if("Accent")     Set_Accent()
+			if("Hair")       Set_Hair()
+			if("Eyes")       Set_Eyes()
+			if("Finish")
+				if(preview_obj)
+					icon = preview_obj.icon
+				client.eye = src
+				src << output("Finished", "Info")
+				return STEP_STATS
+			if("Back")
+				if(preview_obj)
+					del preview_obj
+				client.eye = src   // or M, or a black turf
+				src << output("Back", "Info")
+				return STEP_ICON
+
 
 // Show preview of icon
 mob/proc/IconPreview()
@@ -168,60 +170,101 @@ mob/proc/IconPreview()
 
 // Finalize player
 proc/finalize_player(mob/player_tmp/M)
-	var/mob/player/newplayer
+    var/mob/player/newplayer
 
-	switch(M.selected_class)
-		if("Hero")    newplayer = new /mob/player/hero
-		if("Soldier") newplayer = new /mob/player/soldier
-		if("Wizard")  newplayer = new /mob/player/wizard
+    switch(M.selected_class)
+        if("Hero")    newplayer = new /mob/player/hero
+        if("Soldier") newplayer = new /mob/player/soldier
+        if("Wizard")  newplayer = new /mob/player/wizard
 
-	newplayer.name = M.selected_name
+    if(!newplayer) return
 
-	if(M.preview_obj)
-		newplayer.icon = icon(M.preview_obj.icon)  // copy customized icon
-		newplayer.icon_state = M.preview_obj.icon_state
-	else
-		newplayer.icon = icon(M.selected_icon)
-		newplayer.icon_state = "world"
+    // Copy name and icon
+    newplayer.name = M.selected_name
+    if(M.preview_obj)
+        newplayer.icon = icon(M.preview_obj.icon)
+        newplayer.icon_state = M.preview_obj.icon_state
+    else
+        newplayer.icon = icon(M.selected_icon)
+        newplayer.icon_state = "world"
 
+    // Copy stats from the temporary mob
+    newplayer.Strength     = M.Strength
+    newplayer.Vitality     = M.Vitality
+    newplayer.Agility      = M.Agility
+    newplayer.Intelligence = M.Intelligence
+    newplayer.Luck         = M.Luck
 
-	M << sound(null, channel=1)
-	newplayer << sound('dw4town.mid', repeat=1, channel=1, volume=world_volume)
-	M.client.mob = newplayer
-	newplayer.loc = locate(26,8,4)
-	del M
+    // Transfer control
+    M << sound(null, channel=1)
+    newplayer << sound('dw4town.mid', repeat=1, channel=1, volume=world_volume)
+    M.client.mob = newplayer
+    newplayer.loc = locate(26,8,4)
+    del M
 
 // Stat allocation
 proc/allocate_stats(mob/player_tmp/M)
-    while(M.StatPoints > 0)
-        M << "Points remaining: [M.StatPoints]"
-        var/list/options = list("Strength", "Vitality", "Agility", "Intelligence", "Luck", "Finish")
+    var/local_points = 10   // give each player 10 points to spend
+    while(TRUE)
+        // Show current stats and remaining points
+        M << output("Points remaining: [local_points]", "Info")
+        M << "Strength: [M.Strength]"
+        M << "Vitality: [M.Vitality]"
+        M << "Agility: [M.Agility]"
+        M << "Intelligence: [M.Intelligence]"
+        M << "Luck: [M.Luck]"
+
+        var/list/options = list(
+            "Strength",
+            "Vitality",
+            "Agility",
+            "Intelligence",
+            "Luck",
+            "Finish"
+        )
+
         var/choice = input(M, "Allocate your stat points", "Stats") in options
 
         switch(choice)
             if("Strength")
-                M.Strength++
-                M.StatPoints--
+                if(local_points > 0)
+                    M.Strength++
+                    local_points--
+                else
+                    M << "No points left!"
 
             if("Vitality")
-                M.Vitality++
-                M.StatPoints--
+                if(local_points > 0)
+                    M.Vitality++
+                    local_points--
+                else
+                    M << "No points left!"
 
             if("Agility")
-                M.Agility++
-                M.StatPoints--
+                if(local_points > 0)
+                    M.Agility++
+                    local_points--
+                else
+                    M << "No points left!"
 
             if("Intelligence")
-                M.Intelligence++
-                M.StatPoints--
+                if(local_points > 0)
+                    M.Intelligence++
+                    local_points--
+                else
+                    M << "No points left!"
 
             if("Luck")
-                M.Luck++
-                M.StatPoints--
+                if(local_points > 0)
+                    M.Luck++
+                    local_points--
+                else
+                    M << "No points left!"
 
             if("Finish")
-                if(M.StatPoints > 0)
-                    M << "You still have [M.StatPoints] points left!"
+                if(local_points > 0)
+                    M << "You still have [local_points] points left!"
+                    // stay in allocation loop
                 else
                     M << "Stat allocation complete."
-                    break
+                    return STEP_STATS   // signal completion
