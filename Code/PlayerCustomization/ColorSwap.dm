@@ -15,24 +15,17 @@ var/list/color_swatches = list(
 
 // Apply palette swaps to preview
 mob/proc/UpdateAppearance()
-    if (!selected_icon || !palette) return
+    if (!selected_icon || !palette || !preview_obj) return
 
-    // Build fresh icon from base
     var/icon/base = new /icon(selected_icon, "world")
 
-    // Apply all palette swaps
     for (var/zone in palette.colors)
         var/original = palette.originalColors[zone]
         var/custom   = palette.colors[zone]
         if(original && custom)
             base.SwapColor(original, custom)
 
-    // Update preview object
-    if(preview_obj)
-        preview_obj.icon = icon(base)   // duplicate so changes persist
-    else
-        src.icon = icon(base)
-
+    preview_obj.icon = icon(base)
 
 
 //these verbs bring up the list and allow players to select color

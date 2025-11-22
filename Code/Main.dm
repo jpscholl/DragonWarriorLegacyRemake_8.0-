@@ -5,7 +5,7 @@
 	reference. This version is aimed to replicate that version to the best of my ability while also adding
 	some QoL changes...so 8.0+ so to speak.
 	Author: Cerebella (Shorin88)
-	Last Update: 11/19/2025
+	Last Update: 11/21/2025
 
 	Notes: Having issues combining all the crap I've done into one cohesive game...
 */
