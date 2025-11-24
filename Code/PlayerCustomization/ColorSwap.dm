@@ -17,7 +17,7 @@ var/list/color_swatches = list(
 mob/proc/UpdateAppearance()
     if (!selected_icon || !palette || !preview_obj) return
 
-    var/icon/base = new /icon(selected_icon, "world")
+    var/icon/base = new /icon(selected_icon)
 
     for (var/zone in palette.colors)
         var/original = palette.originalColors[zone]
