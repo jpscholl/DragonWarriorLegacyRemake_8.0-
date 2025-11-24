@@ -9,6 +9,8 @@
 
 	Notes: Having issues combining all the crap I've done into one cohesive game...
 */
+
+//lower volume because I refuse to have one of the games that destroys ear drums on launch
 var/global
 	world_volume = 20
 

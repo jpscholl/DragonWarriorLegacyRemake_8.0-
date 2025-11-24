@@ -43,6 +43,3 @@ datum/skill/Attack
                 M.TakeDamage(user.Strength)
 
         spawn(3) user.can_move = TRUE
-
-
-

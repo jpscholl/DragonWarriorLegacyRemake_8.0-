@@ -63,6 +63,7 @@ proc/new_character(mob/player_tmp/M)
                 M.selected_icon_name = iconChoice
                 step = STEP_CUSTOM
 
+			//icon customization
             if(STEP_CUSTOM)
                 InitializeIconBaseColors()
                 M.IconPreview()
@@ -153,20 +154,24 @@ mob/proc/customize_colors()
 
 
 // Show preview of icon
-mob/proc/IconPreview()
-	if(preview_obj)
-		del preview_obj
+mob/proc/IconPreview(turf/T = locate(3,3,2))
+    if(preview_obj)
+        del preview_obj
 
-	var/obj/preview = new /obj
-	preview.icon = icon(selected_icon)   // start from base
-	preview.icon_state = "world"
-	preview.loc = locate(3,3,2)
+    if(!selected_icon)
+        return
 
-	preview_obj = preview
-	client.eye = preview
+    var/obj/preview = new /obj
+    preview.icon = icon(selected_icon)
+    preview.icon_state = "world"
+    preview.loc = T
 
-    // Apply current palette swaps immediately
-	UpdateAppearance()
+    preview_obj = preview
+    client.eye = preview
+
+    UpdateAppearance(preview_obj)
+
+
 
 // Finalize player
 proc/finalize_player(mob/player_tmp/M)
