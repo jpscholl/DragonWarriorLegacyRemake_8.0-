@@ -29,7 +29,7 @@ proc/show_login_menu(mob/player_tmp/M)
             new_character(M)
 
         if("Load Character")
-            M << "Loading characters not yet implemented..."
+            M << output("Loading characters not yet implemented...", "Info")
             show_login_menu(M)
 
         if("Quit")
@@ -205,6 +205,7 @@ proc/finalize_player(mob/player_tmp/M)
     newplayer << sound('dw4town.mid', repeat=1, channel=1, volume=world_volume)
     M.client.mob = newplayer
     newplayer.loc = locate(26,8,4)
+    players += newplayer
     del M
 
 // Stat allocation
@@ -212,64 +213,42 @@ proc/allocate_stats(mob/player_tmp/M)
     var/local_points = 10   // give each player 10 points to spend
     while(TRUE)
         // Show current stats and remaining points
-        M << output("Points remaining: [local_points]", "Info")
-        M << "Strength: [M.Strength]"
-        M << "Vitality: [M.Vitality]"
-        M << "Agility: [M.Agility]"
-        M << "Intelligence: [M.Intelligence]"
-        M << "Luck: [M.Luck]"
-
         var/list/options = list(
-            "Strength",
-            "Vitality",
-            "Agility",
-            "Intelligence",
-            "Luck",
-            "Finish"
+            "Strength [M.Strength]"     = "Strength",
+            "Vitality [M.Vitality]"     = "Vitality",
+            "Agility [M.Agility]"       = "Agility",
+            "Intelligence [M.Intelligence]" = "Intelligence",
+            "Luck [M.Luck]"             = "Luck",
+            "Back"                      = "Back",
+            "Finish"                    = "Finish"
         )
 
-        var/choice = input(M, "Allocate your stat points", "Stats") in options
+        var/choice = input(M, "Allocate your stat points. Points left ([local_points])", "Stats") in options
+        choice = options[choice]
 
         switch(choice)
-            if("Strength")
-                if(local_points > 0)
-                    M.Strength++
-                    local_points--
-                else
-                    M << "No points left!"
-
-            if("Vitality")
-                if(local_points > 0)
-                    M.Vitality++
-                    local_points--
-                else
-                    M << "No points left!"
-
-            if("Agility")
-                if(local_points > 0)
-                    M.Agility++
-                    local_points--
-                else
-                    M << "No points left!"
-
-            if("Intelligence")
-                if(local_points > 0)
-                    M.Intelligence++
-                    local_points--
-                else
-                    M << "No points left!"
-
-            if("Luck")
-                if(local_points > 0)
-                    M.Luck++
-                    local_points--
-                else
-                    M << "No points left!"
-
+            if("Strength","Vitality","Agility","Intelligence","Luck")
+                local_points = increment_stat(M, choice, local_points)
+                if(local_points > 0) M << output("You increased [choice] by 1", "Info")
+            if("Back")
+                return STEP_ICON
             if("Finish")
                 if(local_points > 0)
-                    M << "You still have [local_points] points left!"
-                    // stay in allocation loop
+                    return
                 else
-                    M << "Stat allocation complete."
                     return STEP_STATS   // signal completion
+
+
+proc/increment_stat(mob/player_tmp/M, stat, local_points)
+	if(local_points <= 0)
+		M << "No points left!"
+		return local_points
+
+	switch(stat)
+		if("Strength")     M.Strength++
+		if("Vitality")     M.Vitality++
+		if("Agility")      M.Agility++
+		if("Intelligence") M.Intelligence++
+		if("Luck")         M.Luck++
+
+	return local_points - 1

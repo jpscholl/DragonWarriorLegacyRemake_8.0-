@@ -1,4 +1,3 @@
-
 mob
 	verb
 		Emote(msg as text)
