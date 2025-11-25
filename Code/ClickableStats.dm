@@ -1,24 +1,26 @@
-//system to make it where you can add stat points by
-//clicking on the stats in the stat panel
-obj
-	stat_link
-		var
-			label
-			value
+obj/stat_link
+    var/label        // e.g. "Strength"
+    var/mob/player/P // reference to the owning player
 
-		New(_label, _value, _mob)
-			label = _label
-			value = _value
-			name = "[label]: [value]"
+    New(label, mob/player/P)
+        src.label = label
+        src.P = P
+        name = "[label]: [P.vars[label]]"  // initial display
 
-		proc/Update(new_value)
-			value = new_value
-			name = "[label]: [new_value]"
+    // When clicked in the stat panel
+    Click()
+        if(!P || !ismob(P)) return
+        if(P.StatPoints <= 0)
+            P << "No stat points left!"
+            return
 
-		Click()
-			if(usr && ismob(usr))
-				var/mob/player/P = usr
-				if(P.StatPoints > 0)
-					P.StatPoints--
-					P.vars[label] += 1
-					Update(P.vars[label])
+        // Increment the correct stat
+        switch(label)
+            if("Strength")     P.Strength++
+            if("Vitality")     P.Vitality++
+            if("Agility")      P.Agility++
+            if("Intelligence") P.Intelligence++
+            if("Luck")         P.Luck++
+
+        P.StatPoints--
+        P.Stat()   // refresh the stat panel
