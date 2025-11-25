@@ -12,3 +12,19 @@ mob
 		Test_Leveling()
 			usr.Exp+=100000
 			spawn() usr.LevelCheck()
+
+		S_World()
+			set category = "Debug"
+			icon_state = "world"
+
+		S_Sleep()
+			set category = "Debug"
+			icon_state = "sleep"
+
+		S_Attack()
+			set category = "Debug"
+			icon_state = "attack"
+
+		S_Defend()
+			set category = "Debug"
+			icon_state = "defend"

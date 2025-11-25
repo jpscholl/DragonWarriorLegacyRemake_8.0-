@@ -1,3 +1,4 @@
+// NGL...Idk wtf to make of most of this code. I tried to learn from Ter13's snippet post, but I still don't get it
 client
 	tick_lag = 0.16
 	var
@@ -47,7 +48,7 @@ client
 			while(src)
 				if(move_dir)
 					Move(null, move_dir)
-				sleep(round(world.tick_lag * world.fps))  // sleep for ~10 frames
+				sleep(round(world.tick_lag * world.fps))
 
 
 	verb
