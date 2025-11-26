@@ -12,7 +12,6 @@ datum/PaletteManager
         colors = list()
         for(var/zone in originalColors)
             colors[zone] = originalColors[zone]  // start with defaults
-        for(var/icon_id in baseIconColors["Hero"]) world.log << "Hero icon key: [icon_id]"
 
 
     proc/GetZoneColor(zone)

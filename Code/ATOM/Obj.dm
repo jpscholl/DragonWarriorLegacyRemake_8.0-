@@ -97,15 +97,17 @@ obj
 				icon_state = "pot"
 
 
+// Ceiling object
 obj/ceiling
     icon = 'wall.dmi'
     icon_state = "ceiling"
-    layer = TURF_LAYER + 1
-    invisibility = 1  // Hidden unless see_invisible >= 1
-area/ceiling
-    Entered(mob/M)
-        if(ismob(M)) M.see_invisible = 0
+    layer = 100
+    invisibility = 1   // hidden unless mob.see_invisible >= 1
 
-    Exited(mob/M)
-        if(ismob(M)) M.see_invisible = 1
-
+    Crossed(mob/M)
+        if(ismob(M) && M.client)
+            // Loop through adjacent turfs
+            for(var/turf/T in oview(3, src))
+                // Skip walls and ceilings
+                if(istype(T, /turf/wall))
+                    T.opacity = 1

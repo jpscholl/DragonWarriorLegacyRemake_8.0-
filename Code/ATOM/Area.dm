@@ -1,5 +1,6 @@
 //for music transitions...or skipping them
-mob/var/current_music = null
+mob/var
+		current_music = null
 
 area
 	icon = 'environment.dmi'

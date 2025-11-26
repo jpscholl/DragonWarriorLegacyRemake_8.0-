@@ -39,6 +39,8 @@
 #include "Code\ATOM\Turfs.dm"
 #include "Code\Combat\CombatSystem.dm"
 #include "Code\Combat\SkillDatum.dm"
+#include "Code\Moderators\DebugTools.dm"
+#include "Code\Moderators\GMCommands.dm"
 #include "Code\PlayerCustomization\ColorSwap.dm"
 #include "Code\PlayerCustomization\PaletteManager.dm"
 #include "Code\PlayerCustomization\PlayerIconColorPalette.dm"
