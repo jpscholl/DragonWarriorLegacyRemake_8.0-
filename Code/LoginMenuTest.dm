@@ -1,24 +1,31 @@
+// -----------------------------
+// Character Creation Pipeline
+// -----------------------------
+// Step constants for the creation flow
 #define STEP_NAME   1
 #define STEP_CLASS  2
 #define STEP_ICON   3
 #define STEP_CUSTOM 4
 #define STEP_STATS  5
 
+// Global list of active players
 var/list/players = list()
 
+// Temporary mob used during character creation
 mob
     var
-        obj/preview_obj
-        selected_name
-        selected_class
-        selected_icon
-        selected_icon_name
-        datum/PaletteManager/palette
+        obj/preview_obj                // preview object for icon customization
+        selected_name                  // chosen character name
+        selected_class                 // chosen class (Hero, Soldier, Wizard)
+        selected_icon                  // chosen icon file
+        selected_icon_name             // chosen icon label
+        datum/PaletteManager/palette   // palette manager for recoloring
 
-mob/player_tmp
+mob/player_tmp   // placeholder mob type for login/creation
 
-
-// Entry point
+// -----------------------------
+// Entry Point: Login Menu
+// -----------------------------
 proc/show_login_menu(mob/player_tmp/M)
     var/list/options = list("New Character", "Load Character", "Quit")
     var/choice = input(M, "Select an option:", "Login Menu") in options
@@ -36,19 +43,24 @@ proc/show_login_menu(mob/player_tmp/M)
             world << output("[M] has logged out", "Messages")
             del M
 
-// Start character creation
+
+// -----------------------------
+// Character Creation Flow
+// -----------------------------
 proc/new_character(mob/player_tmp/M)
     var/step = STEP_NAME
 
     while(step)
         switch(step)
             if(STEP_NAME)
+                // Prompt for nam
                 M.selected_name = prompt_for_name(M)
                 if(!M.selected_name) return
                 M << output("[M.selected_name] is your chosen name", "Info")
                 step = STEP_CLASS
 
             if(STEP_CLASS)
+                // Prompt for class
                 var/class_choice = prompt_for_class(M)
                 M.selected_class = handle_class_selection(M, class_choice)
                 if(!M.selected_class) { step = STEP_NAME; continue }
@@ -56,6 +68,7 @@ proc/new_character(mob/player_tmp/M)
                 step = STEP_ICON
 
             if(STEP_ICON)
+                // Prompt for icon based on class
                 var/list/iconChoices = get_class_icon_list(M, M.selected_class)
                 var/iconChoice = input(M, "Choose your icon:", "Icon Selection") in iconChoices
                 if(iconChoice == "Back") { step = STEP_CLASS; continue }
@@ -63,20 +76,23 @@ proc/new_character(mob/player_tmp/M)
                 M.selected_icon_name = iconChoice
                 step = STEP_CUSTOM
 
-			//icon customization
             if(STEP_CUSTOM)
+                // Icon customization
                 InitializeIconBaseColors()
                 M.IconPreview()
                 step = M.customize_colors()  // must return STEP_STATS or STEP_ICON
-
             if(STEP_STATS)
+                // Stat allocation
                 M << output("Allocate Stats","Info")
                 step = allocate_stats(M)     // must return STEP_STATS when done
                 if(step == STEP_STATS)
                     finalize_player(M)
                     return
 
-// Prompt user for valid name
+
+// -----------------------------
+// Prompts
+// -----------------------------
 proc/prompt_for_name(mob/M)
     var/selected_name
     while(!selected_name || !length(trimtext(selected_name)))
@@ -86,21 +102,20 @@ proc/prompt_for_name(mob/M)
             return null
         return trimtext(selected_name)
 
-// Class prompt
 proc/prompt_for_class(mob/M)
     var/list/classes = list("Hero", "Soldier", "Wizard", "Back")
-    var/class_choice = input(M, "Choose your class:", "Class Selection") in classes
-    return class_choice
+    return input(M, "Choose your class:", "Class Selection") in classes
 
-// Class selection logic
 proc/handle_class_selection(mob/M, class_choice)
     if(class_choice == "Back")
-        if(M.preview_obj)
-            del M.preview_obj
+        if(M.preview_obj) del M.preview_obj
         return null
     return class_choice
 
-// Retrieve class icon lists
+
+// -----------------------------
+// Icon Handling
+// -----------------------------
 proc/get_class_icon_list(mob/M, class_choice)
     switch(class_choice)
         if("Hero")
@@ -111,55 +126,10 @@ proc/get_class_icon_list(mob/M, class_choice)
             return list("DW1 Wizard"='dw1wizard.dmi', "DW2 Wizard"='dw2wizard.dmi', "DW3 Wizard"='dw3malewizard.dmi', "Back")
     return list()
 
-// Icon selection prompt
-proc/prompt_for_icon(mob/M, class_choice)
-    var/list/icons = get_class_icon_list(M, class_choice)
-    var/icon_choice = input(M, "Choose your appearance:", "Icon Selection") in icons
-    return icon_choice
-
-// Handle icon selection
-proc/handle_icon_selection(mob/M, icon_choice, class_choice)
-    if(icon_choice == "Back")
-        if(M.preview_obj)
-            del M.preview_obj
-        return null
-    return get_class_icon_list(M, icon_choice)
-
-// Custom colors
-mob/proc/customize_colors()
-	palette = new /datum/PaletteManager(selected_class, selected_icon)
-	src << "selected_icon = [selected_icon]"
-
-	while(TRUE)
-		var/list/options = list("Main", "Accent", "Hair", "Eyes", "Finish", "Back")
-		var/zone_choice = input(src, "Choose another zone or Finish", "Color Customization") in options
-
-		switch(zone_choice)
-			if("Main")       Set_Main()
-			if("Accent")     Set_Accent()
-			if("Hair")       Set_Hair()
-			if("Eyes")       Set_Eyes()
-			if("Finish")
-				if(preview_obj)
-					icon = preview_obj.icon
-				client.eye = src
-				src << output("Finished", "Info")
-				return STEP_STATS
-			if("Back")
-				if(preview_obj)
-					del preview_obj
-				client.eye = src   // or M, or a black turf
-				src << output("Back", "Info")
-				return STEP_ICON
-
-
-// Show preview of icon
+// Preview icon in a separate area
 mob/proc/IconPreview(turf/T = locate(3,3,2))
-    if(preview_obj)
-        del preview_obj
-
-    if(!selected_icon)
-        return
+    if(preview_obj) del preview_obj
+    if(!selected_icon) return
 
     var/obj/preview = new /obj
     preview.icon = icon(selected_icon)
@@ -172,11 +142,39 @@ mob/proc/IconPreview(turf/T = locate(3,3,2))
     UpdateAppearance(preview_obj)
 
 
+// -----------------------------
+// Icon Customization
+// -----------------------------
+mob/proc/customize_colors()
+    palette = new /datum/PaletteManager(selected_class, selected_icon)
+    src << "selected_icon = [selected_icon]"
 
-// Finalize player
+    while(TRUE)
+        var/list/options = list("Main", "Accent", "Hair", "Eyes", "Finish", "Back")
+        var/zone_choice = input(src, "Choose another zone or Finish", "Color Customization") in options
+
+        switch(zone_choice)
+            if("Main")       Set_Main()
+            if("Accent")     Set_Accent()
+            if("Hair")       Set_Hair()
+            if("Eyes")       Set_Eyes()
+            if("Finish")
+                if(preview_obj) icon = preview_obj.icon
+                client.eye = src
+                return STEP_STATS
+            if("Back")
+                if(preview_obj) del preview_obj
+                client.eye = src
+                return STEP_ICON
+
+
+// -----------------------------
+// Finalize Player
+// -----------------------------
 proc/finalize_player(mob/player_tmp/M)
     var/mob/player/newplayer
 
+    // Create new mob based on class
     switch(M.selected_class)
         if("Hero")    newplayer = new /mob/player/hero
         if("Soldier") newplayer = new /mob/player/soldier
@@ -193,14 +191,14 @@ proc/finalize_player(mob/player_tmp/M)
         newplayer.icon = icon(M.selected_icon)
         newplayer.icon_state = "world"
 
-    // Copy stats from the temporary mob
+    // Copy stats
     newplayer.Strength     = M.Strength
     newplayer.Vitality     = M.Vitality
     newplayer.Agility      = M.Agility
     newplayer.Intelligence = M.Intelligence
     newplayer.Luck         = M.Luck
 
-    // Transfer control
+    // Transfer control to new mob
     M << sound(null, channel=1)
     newplayer << sound('dw4town.mid', repeat=1, channel=1, volume=world_volume)
     M.client.mob = newplayer
@@ -208,11 +206,13 @@ proc/finalize_player(mob/player_tmp/M)
     players += newplayer
     del M
 
-// Stat allocation
+
+// -----------------------------
+// Stat Allocation
+// -----------------------------
 proc/allocate_stats(mob/player_tmp/M)
-    var/local_points = 10   // give each player 10 points to spend
+    var/local_points = 10   // starting points to distribute
     while(TRUE)
-        // Show current stats and remaining points
         var/list/options = list(
             "Strength [M.Strength]"     = "Strength",
             "Vitality [M.Vitality]"     = "Vitality",
@@ -234,21 +234,20 @@ proc/allocate_stats(mob/player_tmp/M)
                 return STEP_ICON
             if("Finish")
                 if(local_points > 0)
-                    return
+                    return   // don’t allow finishing with leftover points
                 else
                     return STEP_STATS   // signal completion
 
-
 proc/increment_stat(mob/player_tmp/M, stat, local_points)
-	if(local_points <= 0)
-		M << "No points left!"
-		return local_points
+    if(local_points <= 0)
+        M << "No points left!"
+        return local_points
 
-	switch(stat)
-		if("Strength")     M.Strength++
-		if("Vitality")     M.Vitality++
-		if("Agility")      M.Agility++
-		if("Intelligence") M.Intelligence++
-		if("Luck")         M.Luck++
+    switch(stat)
+        if("Strength")     M.Strength++
+        if("Vitality")     M.Vitality++
+        if("Agility")      M.Agility++
+        if("Intelligence") M.Intelligence++
+        if("Luck")         M.Luck++
 
-	return local_points - 1
+    return local_points - 1

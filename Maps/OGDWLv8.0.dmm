@@ -1,4 +1,5 @@
 "aa" = (/obj/stat/pot/woodpot,/turf/floor/woodfloor,/area)
+"ab" = (/turf/wall/stonewall{opacity = 0},/area/town)
 "ac" = (/turf/wall/stonewall,/area)
 "ad" = (/turf/wall/stonewalledge,/area)
 "ae" = (/turf/sky/sky,/area)
@@ -368,7 +369,7 @@ bxbxbxbxbxbxakalalalalakararakaoanananakbVdbdbdbdbbDbDbWakcxcyczcAcAcBakarararar
 bxbxbxbxbxbxakbBchananakararbCararararakcKdbdbdbdbbDbDbVakczczcXczczczakararcCcCcCcCcCararakbxbxbxbxbxbxbx
 bxbxbxbxbxbxakbrarararalararakararcpcqakbVdbdbdbdbbDbDcKakczczczcYczczakbCalalalakalalalbCakbxbxbxbxbxbxbx
 bxbxbxbxbxbxakbEbrararbCararalalalalalakbWdbdbdbdbbDbDbVakczcDczcEcFcHakararcGcGakcGcGararakbxbxbxbxbxbxbx
-bxbxbxbxbxbxakbrarararakarararararararakbVdbdbdbdbcZbDbVakcDcLcDczczczakararararakararararakbxbxbxbxbxbxbx
+bxbxbxbxbxbxakbrarararakarararararararakbVdbdbdbdbcZbDbVabcDcLcDczczczakararararakararararakbxbxbxbxbxbxbx
 bxbxbxbxbxbxakaoarcpcqakararararararaCakcKbVbVdbdbdabDbVakczcDczczcFcHakcharcpcqakcpcqarchakbxbxbxbxbxbxbx
 bxbxbxbxbxbxalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalalbxbxbxbxbxbxbx
 bxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbxbx

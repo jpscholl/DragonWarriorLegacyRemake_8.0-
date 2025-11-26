@@ -24,7 +24,6 @@ mob
 	verb/UseSkill()
 		set hidden = 1
 		if (!active_skill)
-			usr << output("No skill equipped.", "Info")
 			return
 		active_skill.Activate(src, null)
 
@@ -33,7 +32,6 @@ mob
 		var/datum/skill/Attack/atk = new
 		skills += atk
 		active_skill = atk
-		usr << output("Equipped skill: [atk.name]", "Info")
 
 	verb/Attack()
 		set hidden = 1

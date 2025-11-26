@@ -11,13 +11,25 @@
     Known Issues:
         - Attacks break when targeting off screen
         - Movement still feels janky
+
+    To do list:
+    - Clean and refactor code as needed(for developer purposes)
+    - Complete combat - players, enemies with AI, involving all the things below
+    - Class templates - default player template and class specific skills and stat growth
+    - Skills and abilities - so players can do cool battle stuff
+    - Level up - figuring out character stat growth
+    - Interact system - the basic .center interact with npcs, picking up items, open doors, etc.
+    - Party System
+    - Tweak roof controls
+    - respawn at church
+    - custom doors, custom keys that will unlock/lock doors or open when you interact while carrying the key
 */
 
 // -------------------- Global Settings --------------------
 var/global/world_volume = 20   // I'm not going to have one of those games that deafens people on startup
 world
     name      = "Dragon Warrior Legacy Remake"
-    fps       = 63
+    fps       = 60
     tick_lag  = 0.16
     icon_size = 32
     turf      = /turf/ground/grass
