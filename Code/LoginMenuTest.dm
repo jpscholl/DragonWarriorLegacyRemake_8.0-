@@ -27,18 +27,13 @@ mob/player_tmp   // placeholder mob type for login/creation
 // Entry Point: Login Menu
 // -----------------------------
 proc/show_login_menu(mob/player_tmp/M)
-    var/list/options = list("New Character", "Load Character", "Quit")
-    var/choice = input(M, "Select an option:", "Login Menu") in options
+    var/list/options = list("Create New Character", "Quit")
+    var/choice = input(M, "If this is your first time playing, please take time to skim the help file. Thanks", "Welcome to Dragon Warrior Legacy") in options
 
     switch(choice)
-        if("New Character")
+        if("Create New Character")
             M << output("Starting a new game...", "Info")
             new_character(M)
-
-        if("Load Character")
-            M << output("Loading characters not yet implemented...", "Info")
-            show_login_menu(M)
-
         if("Quit")
             world << output("[M] has logged out", "Messages")
             del M
@@ -53,7 +48,7 @@ proc/new_character(mob/player_tmp/M)
     while(step)
         switch(step)
             if(STEP_NAME)
-                // Prompt for nam
+                // Prompt for name
                 M.selected_name = prompt_for_name(M)
                 if(!M.selected_name) return
                 M << output("[M.selected_name] is your chosen name", "Info")
@@ -74,6 +69,7 @@ proc/new_character(mob/player_tmp/M)
                 if(iconChoice == "Back") { step = STEP_CLASS; continue }
                 M.selected_icon      = iconChoices[iconChoice]
                 M.selected_icon_name = iconChoice
+                M << output("You've selected [M.selected_icon_name]", "Info")
                 step = STEP_CUSTOM
 
             if(STEP_CUSTOM)
@@ -81,6 +77,7 @@ proc/new_character(mob/player_tmp/M)
                 InitializeIconBaseColors()
                 M.IconPreview()
                 step = M.customize_colors()  // must return STEP_STATS or STEP_ICON
+
             if(STEP_STATS)
                 // Stat allocation
                 M << output("Allocate Stats","Info")
@@ -100,7 +97,7 @@ proc/prompt_for_name(mob/M)
         if(isnull(selected_name))
             show_login_menu(M)
             return null
-        return trimtext(selected_name)
+    return trimtext(selected_name)
 
 proc/prompt_for_class(mob/M)
     var/list/classes = list("Hero", "Soldier", "Wizard", "Back")
@@ -112,21 +109,22 @@ proc/handle_class_selection(mob/M, class_choice)
         return null
     return class_choice
 
-
 // -----------------------------
 // Icon Handling
 // -----------------------------
 proc/get_class_icon_list(mob/M, class_choice)
     switch(class_choice)
         if("Hero")
-            return list("DW1 Hero"='dw1hero.dmi', "DW2 Hero"='dw2hero.dmi', "DW3 Hero"='dw3hero.dmi', "Back")
+            return list("Dragon Warrior 1 Hero"='dw1hero.dmi', "Dragon Warrior 2 Hero"='dw2hero.dmi', "Dragon Warrior 3 Hero"='dw3hero.dmi', "Back")
         if("Soldier")
-            return list("DW1 Soldier"='dw1soldier.dmi', "DW2 Soldier"='dw2soldier.dmi', "DW3 Guard"='dw3guard.dmi', "Back")
+            return list("Dragon Warrior 1 Soldier"='dw1soldier.dmi', "Dragon Warrior 2 Soldier"='dw2soldier.dmi', "Dragon Warrior 3 Guard"='dw3guard.dmi', "Back")
         if("Wizard")
-            return list("DW1 Wizard"='dw1wizard.dmi', "DW2 Wizard"='dw2wizard.dmi', "DW3 Wizard"='dw3malewizard.dmi', "Back")
+            return list("Dragon Warrior 1 Wizard"='dw1wizard.dmi', "Dragon Warrior 2 Wizard"='dw2wizard.dmi', "Dragon Warrior 3 Wizard"='dw3malewizard.dmi', "Back")
     return list()
 
+//---------------------------------
 // Preview icon in a separate area
+//---------------------------------
 mob/proc/IconPreview(turf/T = locate(3,3,2))
     if(preview_obj) del preview_obj
     if(!selected_icon) return
@@ -147,7 +145,6 @@ mob/proc/IconPreview(turf/T = locate(3,3,2))
 // -----------------------------
 mob/proc/customize_colors()
     palette = new /datum/PaletteManager(selected_class, selected_icon)
-    src << "selected_icon = [selected_icon]"
 
     while(TRUE)
         var/list/options = list("Main", "Accent", "Hair", "Eyes", "Finish", "Back")
@@ -161,12 +158,12 @@ mob/proc/customize_colors()
             if("Finish")
                 if(preview_obj) icon = preview_obj.icon
                 client.eye = src
+                src << output("Icon looking good!", "Info")
                 return STEP_STATS
             if("Back")
                 if(preview_obj) del preview_obj
                 client.eye = src
                 return STEP_ICON
-
 
 // -----------------------------
 // Finalize Player
@@ -197,6 +194,7 @@ proc/finalize_player(mob/player_tmp/M)
     newplayer.Agility      = M.Agility
     newplayer.Intelligence = M.Intelligence
     newplayer.Luck         = M.Luck
+    M << output("Player finalized", "Info")
 
     // Transfer control to new mob
     M << sound(null, channel=1)
@@ -206,48 +204,60 @@ proc/finalize_player(mob/player_tmp/M)
     players += newplayer
     del M
 
+    players << output("[newplayer.name] has joined the world!", "Messages")
 
 // -----------------------------
 // Stat Allocation
 // -----------------------------
 proc/allocate_stats(mob/player_tmp/M)
-    var/local_points = 10   // starting points to distribute
+    var/local_points = 12
+    var/tmp_strength = M.Strength
+    var/tmp_vitality = M.Vitality
+    var/tmp_agility = M.Agility
+    var/tmp_intelligence = M.Intelligence
+    var/tmp_luck = M.Luck
+
     while(TRUE)
         var/list/options = list(
-            "Strength [M.Strength]"     = "Strength",
-            "Vitality [M.Vitality]"     = "Vitality",
-            "Agility [M.Agility]"       = "Agility",
-            "Intelligence [M.Intelligence]" = "Intelligence",
-            "Luck [M.Luck]"             = "Luck",
-            "Back"                      = "Back",
-            "Finish"                    = "Finish"
+            "Strength [tmp_strength]" = "Strength",
+            "Vitality [tmp_vitality]" = "Vitality",
+            "Agility [tmp_agility]" = "Agility",
+            "Intelligence [tmp_intelligence]" = "Intelligence",
+            "Luck [tmp_luck]" = "Luck",
+            "Back" = "Back",
+            "Finish" = "Finish"
         )
 
         var/choice = input(M, "Allocate your stat points. Points left ([local_points])", "Stats") in options
         choice = options[choice]
 
         switch(choice)
-            if("Strength","Vitality","Agility","Intelligence","Luck")
-                local_points = increment_stat(M, choice, local_points)
-                if(local_points > 0) M << output("You increased [choice] by 1", "Info")
+            if("Strength")
+                if(local_points > 0) { tmp_strength++; local_points--; M << "You increased Strength by 1" }
+                else M << "No points left!"
+            if("Vitality")
+                if(local_points > 0) { tmp_vitality++; local_points--; M << "You increased Vitality by 1" }
+                else M << "No points left!"
+            if("Agility")
+                if(local_points > 0) { tmp_agility++; local_points--; M << "You increased Agility by 1" }
+                else M << "No points left!"
+            if("Intelligence")
+                if(local_points > 0) { tmp_intelligence++; local_points--; M << "You increased Intelligence by 1" }
+                else M << "No points left!"
+            if("Luck")
+                if(local_points > 0) { tmp_luck++; local_points--; M << "You increased Luck by 1" }
+                else M << "No points left!"
+
             if("Back")
-                return STEP_ICON
+                return STEP_ICON   // discard changes
             if("Finish")
                 if(local_points > 0)
-                    return   // don’t allow finishing with leftover points
+                    M << "You must spend all points before finishing."
                 else
-                    return STEP_STATS   // signal completion
-
-proc/increment_stat(mob/player_tmp/M, stat, local_points)
-    if(local_points <= 0)
-        M << "No points left!"
-        return local_points
-
-    switch(stat)
-        if("Strength")     M.Strength++
-        if("Vitality")     M.Vitality++
-        if("Agility")      M.Agility++
-        if("Intelligence") M.Intelligence++
-        if("Luck")         M.Luck++
-
-    return local_points - 1
+                    // commit changes
+                    M.Strength     = tmp_strength
+                    M.Vitality     = tmp_vitality
+                    M.Agility      = tmp_agility
+                    M.Intelligence = tmp_intelligence
+                    M.Luck         = tmp_luck
+                    return STEP_STATS
