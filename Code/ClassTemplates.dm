@@ -38,8 +38,6 @@ mob
 		set desc = "Use your equipped skill"
 		UseSkill()
 
-	verb/Interact()
-		set hidden = 1
 
 //class overrides
 mob/player/hero
