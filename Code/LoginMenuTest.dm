@@ -63,14 +63,8 @@ proc/new_character(mob/player_tmp/M)
                 step = STEP_ICON
 
             if(STEP_ICON)
-                // Prompt for icon based on class
-                var/list/iconChoices = get_class_icon_list(M, M.selected_class)
-                var/iconChoice = input(M, "Choose your icon:", "Icon Selection") in iconChoices
-                if(iconChoice == "Back") { step = STEP_CLASS; continue }
-                M.selected_icon      = iconChoices[iconChoice]
-                M.selected_icon_name = iconChoice
-                M << output("You've selected [M.selected_icon_name]", "Info")
-                step = STEP_CUSTOM
+                step = select_icon(M)
+                continue
 
             if(STEP_CUSTOM)
                 // Icon customization
@@ -90,6 +84,8 @@ proc/new_character(mob/player_tmp/M)
 // -----------------------------
 // Prompts
 // -----------------------------
+
+//Name
 proc/prompt_for_name(mob/M)
     var/selected_name
     while(!selected_name || !length(trimtext(selected_name)))
@@ -98,11 +94,12 @@ proc/prompt_for_name(mob/M)
             show_login_menu(M)
             return null
     return trimtext(selected_name)
-
+//Class
 proc/prompt_for_class(mob/M)
     var/list/classes = list("Hero", "Soldier", "Wizard", "Back")
     return input(M, "Choose your class:", "Class Selection") in classes
 
+//idk why this is in with prompts section but ok?
 proc/handle_class_selection(mob/M, class_choice)
     if(class_choice == "Back")
         if(M.preview_obj) del M.preview_obj
@@ -112,6 +109,8 @@ proc/handle_class_selection(mob/M, class_choice)
 // -----------------------------
 // Icon Handling
 // -----------------------------
+
+//fetch list based on the class player chooses
 proc/get_class_icon_list(mob/M, class_choice)
     switch(class_choice)
         if("Hero")
@@ -121,6 +120,20 @@ proc/get_class_icon_list(mob/M, class_choice)
         if("Wizard")
             return list("Dragon Warrior 1 Wizard"='dw1wizard.dmi', "Dragon Warrior 2 Wizard"='dw2wizard.dmi', "Dragon Warrior 3 Wizard"='dw3malewizard.dmi', "Back")
     return list()
+
+//icon selection and storage
+proc/select_icon(mob/player_tmp/M)
+    var/list/iconChoices = get_class_icon_list(M, M.selected_class)
+    var/iconChoice = input(M, "Choose your icon:", "Icon Selection") in iconChoices
+
+    if(iconChoice == "Back")
+        return STEP_CLASS
+
+    M.selected_icon      = iconChoices[iconChoice]
+    M.selected_icon_name = iconChoice
+
+    M << output("You've selected [M.selected_icon_name]", "Info")
+    return STEP_CUSTOM
 
 //---------------------------------
 // Preview icon in a separate area
@@ -138,7 +151,6 @@ mob/proc/IconPreview(turf/T = locate(3,3,2))
     client.eye = preview
 
     UpdateAppearance(preview_obj)
-
 
 // -----------------------------
 // Icon Customization
@@ -176,6 +188,10 @@ proc/finalize_player(mob/player_tmp/M)
         if("Hero")    newplayer = new /mob/player/hero
         if("Soldier") newplayer = new /mob/player/soldier
         if("Wizard")  newplayer = new /mob/player/wizard
+        //implement these classes later
+        //if("Fighter") newplayer = new /mob/player/fighter
+        //if("Pilgrim") newplayer = new /mob/player/pilgrim
+        //if("Goof-off) newplayer = new /mob/player/goofoff
 
     if(!newplayer) return
 
@@ -233,7 +249,7 @@ proc/allocate_stats(mob/player_tmp/M)
 
         switch(choice)
             if("Strength")
-                if(local_points > 0) { tmp_strength++; local_points--; M << "You increased Strength by 1" }
+                if(local_points > 0 && tmp_strength < 10) { tmp_strength++; local_points--; M << "You increased Strength by 1" }
                 else M << "No points left!"
             if("Vitality")
                 if(local_points > 0) { tmp_vitality++; local_points--; M << "You increased Vitality by 1" }

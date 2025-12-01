@@ -9,7 +9,7 @@
 //
 //    Author: Cerebella (Shorin88)
 //
-//    Last Update: 11/28/2025
+//    Last Update: 11/30/2025
 //
 //    Known Issues:
 //    - Attacks break when targeting off screen
@@ -29,7 +29,7 @@
 */
 
 // -------------------- Global Settings --------------------
-var/global/world_volume = 20   // I'm not going to have one of those games that deafens people on startup
+var/global/world_volume = 30   // I'm not going to have one of those games that deafens people on startup
 world
     name      = "Dragon Warrior Legacy Remake"
     fps       = 60
