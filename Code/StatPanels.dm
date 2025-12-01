@@ -16,7 +16,7 @@ mob/player
         stat("Hit Points: [HP]/[MaxHP]")
         stat("Magic Points: [MP]/[MaxMP]")
         stat("Experience Points: [Exp]/[Nexp]")
-        //stat("Gold: [Gold]")
+        stat("Gold: [Gold]")
         stat("Players online: [length(players)]")
 
         // Initialize stat links once

@@ -25,7 +25,7 @@ datum/skill/Attack
         user.can_move = FALSE
 
         flick("attack", user)
-        user << sound('attack.wav')
+        user << sound('attack.wav', volume = 60)
 
         var/turf/target_tile = get_step(user, user.dir)
         if (!target_tile) return

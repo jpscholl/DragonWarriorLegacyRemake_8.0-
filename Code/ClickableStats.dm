@@ -1,20 +1,25 @@
 obj/stat_link
     var/label        // e.g. "Strength"
     var/mob/player/P // reference to the owning player
-
     New(label, mob/player/P)
         src.label = label
         src.P = P
-        name = "[label]: [P.vars[label]]"  // initial display
+        update_name()   // set initial display
+    proc/update_name()
+        if(!P) return
+        switch(label)
+            if("Strength")     name = "Strength: [P.Strength]"
+            if("Vitality")     name = "Vitality: [P.Vitality]"
+            if("Agility")      name = "Agility: [P.Agility]"
+            if("Intelligence") name = "Intelligence: [P.Intelligence]"
+            if("Luck")         name = "Luck: [P.Luck]"
 
-    // When clicked in the stat panel
     Click()
         if(!P || !ismob(P)) return
         if(P.StatPoints <= 0)
             P << "No stat points left!"
             return
 
-        // Increment the correct stat
         switch(label)
             if("Strength")     P.Strength++
             if("Vitality")     P.Vitality++
@@ -23,4 +28,4 @@ obj/stat_link
             if("Luck")         P.Luck++
 
         P.StatPoints--
-        P.Stat()   // refresh the stat panel
+        update_name()   // refresh this object’s display

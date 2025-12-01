@@ -1,5 +1,7 @@
 mob
 	see_invisible = 1
+	var/datum/stats/stats
+	var/can_move = 1
 	var
 		class = null
 		Level = 1
@@ -14,12 +16,24 @@ mob
 		Agility = 1
 		Intelligence = 1
 		Luck = 1
+		Gold = 30
 		StatPoints = 0
+
+		//save icon preference
+		base_icon = null
+		hair_color = null
+		eye_color = null
+		main_color = null
+		accent_color = null
+
+mob/player
+	New()
+		..()
+		//stats = new
 
 //mob variables
 	var/list/skills = list()
 	var/datum/Skill/active_skill
-	var/can_move = TRUE
 
 	verb/UseSkill()
 		set hidden = 1
