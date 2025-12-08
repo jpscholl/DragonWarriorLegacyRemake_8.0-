@@ -27,13 +27,23 @@ mob/player_tmp   // placeholder mob type for login/creation
 // Entry Point: Login Menu
 // -----------------------------
 proc/show_login_menu(mob/player_tmp/M)
-    var/list/options = list("Create New Character", "Quit")
-    var/choice = input(M, "If this is your first time playing, please take time to skim the help file. Thanks", "Welcome to Dragon Warrior Legacy") in options
+    var/list/options = list("Continue", "Create New Character", "Quit")
+    var/choice = input(M, "Welcome to Dragon Warrior Legacy", "Login Menu") in options
 
     switch(choice)
+        if("Continue")
+            if(M.client && M.client.save_mgr)
+                if(M.client.save_mgr.load_character(M, 1))
+                    M << "Character loaded from save slot 1."
+                    return
+                else
+                    M << "No saved character found."
+                    new_character(M)
+
         if("Create New Character")
             M << output("Starting a new game...", "Info")
             new_character(M)
+
         if("Quit")
             world << output("[M] has logged out", "Messages")
             del M
@@ -79,7 +89,6 @@ proc/new_character(mob/player_tmp/M)
                 if(step == STEP_STATS)
                     finalize_player(M)
                     return
-
 
 // -----------------------------
 // Prompts
@@ -210,16 +219,27 @@ proc/finalize_player(mob/player_tmp/M)
     newplayer.Agility      = M.Agility
     newplayer.Intelligence = M.Intelligence
     newplayer.Luck         = M.Luck
-    M << output("Player finalized", "Info")
+
+    //save icon and zone colors
+    newplayer.base_icon = M.selected_icon
+    newplayer.hair_color   = M.hair_color
+    newplayer.eye_color    = M.eye_color
+    newplayer.main_color   = M.main_color
+    newplayer.accent_color = M.accent_color
 
     // Transfer control to new mob
+    M << output("Player finalized", "Info")
     M << sound(null, channel=1)
     newplayer << sound('dw4town.mid', repeat=1, channel=1, volume=world_volume)
     M.client.mob = newplayer
     newplayer.loc = locate(26,8,4)
     players += newplayer
-    del M
 
+
+    // Save immediately
+    if(M.client && M.client.save_mgr)
+        M.client.save_mgr.save_character(newplayer, 1)
+    del M
     players << output("[newplayer.name] has joined the world!", "Messages")
 
 // -----------------------------

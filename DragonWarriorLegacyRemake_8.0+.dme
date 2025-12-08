@@ -22,7 +22,6 @@
 #define TILE_WIDTH 32
 #define TILE_HEIGHT 32
 
-
 // BEGIN_INCLUDE
 #include "Interface.dmf"
 #include "Code\ClickableStats.dm"
@@ -48,4 +47,3 @@
 #include "Maps\OGDWLv8.0.dmm"
 #include "Maps\backup\OGDWLv8.0.dmm"
 // END_INCLUDE
-

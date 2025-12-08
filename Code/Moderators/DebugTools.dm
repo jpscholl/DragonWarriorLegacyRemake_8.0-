@@ -28,3 +28,17 @@ mob
 		S_Defend()
 			set category = "Debug"
 			icon_state = "defend"
+
+mob
+    verb
+        TestSave()
+            set category = "Debug"
+
+            if(client && client.save_mgr)
+                client.save_mgr.save_character(src, 1)
+                src << output("Saved character [name] with Strength=[Strength], Level=[Level]", "Info")
+
+mob
+	verb
+		TestColors()
+			src << output("Hair=[hair_color], Eyes=[eye_color], Main=[main_color], Accent=[accent_color]", "Info")
