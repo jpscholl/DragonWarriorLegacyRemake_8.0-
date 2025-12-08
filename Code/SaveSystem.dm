@@ -6,7 +6,7 @@ datum/SaveManager
     var/savefile/F
 
     New(ckey)
-        F = new("playersaves/[ckey].sav")
+        F = new("Player SaveFiles/[ckey].sav")
 
     proc/save_character(mob/player/M, slot)
         var/key = "char[slot]"
@@ -37,12 +37,6 @@ datum/SaveManager
 
         // Appearance
         F["[key].base_icon"]   << M.base_icon
-        F["[key].colors"]      << list(
-            "hair"   = M.hair_color,
-            "eyes"   = M.eye_color,
-            "main"   = M.main_color,
-            "accent" = M.accent_color
-        )
 
         // Skills/inventory (optional)
         F["[key].skills"]      << M.skills
@@ -88,17 +82,10 @@ datum/SaveManager
         F["[key].gold"]        >> newplayer.Gold
 
         // Appearance
-        F["[key].base_icon"]   >> newplayer.base_icon
-        var/list/colors
-        F["[key].colors"] >> colors
-        if(colors)
-            newplayer.hair_color   = colors["hair"]
-            newplayer.eye_color    = colors["eyes"]
-            newplayer.main_color   = colors["main"]
-            newplayer.accent_color = colors["accent"]
-
-        // Skills/inventory (optional)
-        F["[key].skills"] >> newplayer.skills
+        var/base_icon_id
+        F["[key].base_icon"] >> base_icon_id
+        newplayer.base_icon = base_icon_id
+        newplayer.RebuildIcon()
 
         // Transfer control
         M.client.mob = newplayer
@@ -107,3 +94,14 @@ datum/SaveManager
         del M
 
         return 1
+
+mob/player/proc/RebuildIcon()
+    // Reset icon and overlays
+    icon = null
+
+    // Base icon: treat as identifier string (e.g. "hero_base")
+    if(base_icon)
+        icon = file("Mob Icons/Player/" + base_icon)
+
+    // Return self for chaining if desired
+    return src

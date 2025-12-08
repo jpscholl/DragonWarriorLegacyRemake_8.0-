@@ -221,7 +221,7 @@ proc/finalize_player(mob/player_tmp/M)
     newplayer.Luck         = M.Luck
 
     //save icon and zone colors
-    newplayer.base_icon = M.selected_icon
+    newplayer.base_icon    = "[M.selected_icon]";
     newplayer.hair_color   = M.hair_color
     newplayer.eye_color    = M.eye_color
     newplayer.main_color   = M.main_color

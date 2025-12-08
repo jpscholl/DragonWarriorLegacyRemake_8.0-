@@ -9,7 +9,7 @@
 //
 //    Author: Cerebella (Shorin88)
 //
-//    Last Update: 12/2/2025
+//    Last Update: 12/8/2025
 //
 //    Known Issues:
 //    - Attacks break when targeting off screen
