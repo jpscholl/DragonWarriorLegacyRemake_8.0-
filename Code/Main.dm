@@ -9,7 +9,7 @@
 //
 //    Author: Cerebella (Shorin88)
 //
-//    Last Update: 11/30/2025
+//    Last Update: 12/2/2025
 //
 //    Known Issues:
 //    - Attacks break when targeting off screen
@@ -39,11 +39,16 @@ world
     mob       = /mob/player_tmp
     view      = "13x13"
 
-client/New()
-    ..()
-    var zoom = 5.6
-    winset(src, "GamePlay", "size=[world.view*world.icon_size*zoom]x[world.view*world.icon_size*zoom]")
-    perspective = EDGE_PERSPECTIVE
+client
+    var/datum/SaveManager/save_mgr   // declare the variable
+    New()
+        ..()                         // call parent constructor
+        save_mgr = new(ckey)         // attach SaveManager to this client
+        var/zoom = 5.6
+        winset(src, "GamePlay", "size=[world.view*world.icon_size*zoom]x[world.view*world.icon_size*zoom]")
+        perspective = EDGE_PERSPECTIVE
+
+
 
 // -------------------- Movement Rules --------------------
 obj
@@ -61,16 +66,30 @@ mob
 // -------------------- Temporary Player (Login Phase) --------------------
 mob/player_tmp
     Login()
-        DisableCommands()   // Prevent access to verbs before login completes
+        DisableCommands()
         client << sound('dw3conti.mid', repeat = 1, volume = world_volume, channel = 1)
         src << output("Welcome to DWL Remake!!", "Info")
-        show_login_menu(src)
-        EnableCommands()    // Enable verbs after login
+
+        if(client && client.save_mgr)
+            if(client.save_mgr.load_character(src, 1))
+                src << "Character loaded from save slot 1."
+                finalize_player(src)   // turn tmp into real mob
+            else
+                src << "No saved character found, please create one."
+                show_login_menu(src)   // <-- call your menu here
+        else
+            // If no SaveManager at all, fall back to menu
+            show_login_menu(src)
+
+        EnableCommands()
         world << output("[src.name] has joined the world!!", "Messages")
 
     Logout()
+        if(client && client.save_mgr)
+            client.save_mgr.save_character(src, 1)
         players -= client
         src.loc = null
+
 
 // -------------------- Command Control --------------------
 // Disable all verbs until login is complete
