@@ -20,11 +20,11 @@ mob
 		StatPoints = 0
 
 		//save icon preference
-		base_icon = null
-		hair_color = null
-		eye_color = null
-		main_color = null
-		accent_color = null
+		base_icon
+		hair_color
+		eye_color
+		main_color
+		accent_color
 
 mob/player
 	New()

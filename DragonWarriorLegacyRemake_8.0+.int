@@ -1,14 +1,14 @@
 // BEGIN_INTERNALS
 /*
-MAP_PLANE_MASTERS: (null)
+MAP_PLANE_MASTERS: 
 MAP_ZOOM: 1.500
-LAST_COMPILE_TIME: 1765221556
-DIR: Code Code\ATOM Code\Combat Code\Moderators Code\PlayerCustomization Maps Maps\backup playersaves 
+LAST_COMPILE_TIME: 1765233046
+DIR: Code Code\ATOM Code\Combat Code\Moderators Code\PlayerCustomization Maps Maps\backup Mob Icons Mob Icons\Player Player SaveFiles 
 AUTO_FILE_DIR: ON
 MAP_ICON_TYPE: 0
 LAST_COMPILE_VERSION: 516.1673
-WINDOW: Code\Main.dm;Code\SaveSystem.dm;Code\LoginMenuTest.dm;Code\PlayerTemplate.dm;Code\Moderators\DebugTools.dm;DragonWarriorLegacyRemake_8.0+.dme
-FILE: Code\LoginMenuTest.dm
+WINDOW: Code\Main.dm;Code\SaveSystem.dm;Code\LoginMenuTest.dm;Code\PlayerTemplate.dm;Code\Moderators\DebugTools.dm;Code\PlayerCustomization\ColorSwap.dm
+FILE: Code\SaveSystem.dm
 MAP_INSTANCE_MODE: copy
 */
 // END_INTERNALS
