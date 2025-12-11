@@ -178,8 +178,12 @@ mob/proc/customize_colors()
             if("Eyes")       Set_Eyes()
             if("Finish")
                 if(preview_obj) icon = preview_obj.icon
+                src.hair_color   = "[palette.colors["Hair"]]"
+                src.eye_color    = "[palette.colors["Eyes"]]"
+                src.main_color   = "[palette.colors["Main"]]"
+                src.accent_color = "[palette.colors["Accent"]]"
                 client.eye = src
-                src << output("Icon looking good!", "Info")
+                src << output("Icon looking sharp!", "Info")
                 return STEP_STATS
             if("Back")
                 if(preview_obj) del preview_obj
@@ -222,10 +226,10 @@ proc/finalize_player(mob/player_tmp/M)
 
     //save icon and zone colors
     newplayer.base_icon    = "[M.selected_icon]";
-    newplayer.hair_color   = M.hair_color
-    newplayer.eye_color    = M.eye_color
-    newplayer.main_color   = M.main_color
-    newplayer.accent_color = M.accent_color
+    newplayer.hair_color   = "[M.hair_color]"
+    newplayer.eye_color    = "[M.eye_color]"
+    newplayer.main_color   = "[M.main_color]"
+    newplayer.accent_color = "[M.accent_color]"
 
     // Transfer control to new mob
     M << output("Player finalized", "Info")

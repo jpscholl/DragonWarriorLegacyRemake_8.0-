@@ -26,7 +26,7 @@
 #include "Interface.dmf"
 #include "Code\ClickableStats.dm"
 #include "Code\EnemyNPCs.dm"
-#include "Code\LoginMenuTest.dm"
+#include "Code\LoginMenu.dm"
 #include "Code\Main.dm"
 #include "Code\PlayerTemplate.dm"
 #include "Code\SaveSystem.dm"
