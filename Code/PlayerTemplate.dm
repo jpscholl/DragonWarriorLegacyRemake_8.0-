@@ -18,7 +18,8 @@ mob
 		Luck = 1
 		Gold = 30
 		StatPoints = 0
-
+mob
+	var
 		//save icon preference
 		base_icon
 		hair_color
@@ -26,10 +27,10 @@ mob
 		main_color
 		accent_color
 
+
 mob/player
 	New()
 		..()
-		//stats = new
 
 //mob variables
 	var/list/skills = list()
