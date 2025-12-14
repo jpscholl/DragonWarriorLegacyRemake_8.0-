@@ -42,7 +42,7 @@ obj/stat_link
 
         // Check if player has stat points available
         if(P.StatPoints <= 0)
-            P << "No stat points left!"
+            P << output("No stat points left!", "Info")
             return
 
         // Allocate a point to the chosen stat

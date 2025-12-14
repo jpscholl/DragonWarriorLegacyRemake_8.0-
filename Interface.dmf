@@ -27,11 +27,19 @@ macro "macro"
 		name = "South+REP"
 		command = ".south"
 	elem 
+		name = "W"
+	elem 
+		name = "W+UP"
+	elem 
 		name = "Add"
 		command = "EquipBasicAttack"
 
 
 menu "menu"
+	elem 
+		name = "&File"
+		command = ""
+		saved-params = "is-checked"
 	elem 
 		name = "&Quit"
 		command = ".quit"
@@ -46,11 +54,17 @@ window "Main"
 		size = 1920x1080
 		anchor1 = -1,-1
 		anchor2 = -1,-1
+		background-color = none
 		is-default = true
 		saved-params = "pos;size;is-minimized;is-maximized"
 		title = "Dragon Warrior Legacy Remake v0.1"
 		macro = "macro"
 		menu = "menu"
+		outer-size = 1936x1158
+		outer-pos = 291,0
+		inner-size = 1920x1080
+		inner-pos = 8,51
+		screen-size = 2560x1392
 	elem "Info"
 		type = OUTPUT
 		pos = 1344,359
@@ -75,6 +89,7 @@ window "Main"
 		anchor2 = 100,33
 		border = line
 		saved-params = ""
+		tab-background-color = none
 	elem "GamePlay"
 		type = MAP
 		pos = 0,0

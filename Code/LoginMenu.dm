@@ -9,7 +9,7 @@
 #define STEP_STATS  5
 
 // Global list of active players
-var/list/players = list()
+//var/list/players = list()
 
 // Temporary mob used during character creation
 mob
