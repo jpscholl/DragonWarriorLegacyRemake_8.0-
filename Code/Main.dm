@@ -27,7 +27,7 @@
 //    - respawn at church
 //    - custom doors, custom keys that will unlock/lock doors or open when you interact while carrying the key
 */
-
+//test comment
 // -------------------- Global Settings --------------------
 var/global/world_volume = 30   // I'm not going to have one of those games that deafens people on startup
 world
