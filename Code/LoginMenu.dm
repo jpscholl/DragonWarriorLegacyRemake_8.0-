@@ -15,6 +15,7 @@ var/list/players = list()
 mob
     var
         obj/preview_obj                // preview object for icon customization
+        icon/base_preview_icon         // for recoloring just in case
         selected_name                  // chosen character name
         selected_class                 // chosen class (Hero, Soldier, Wizard)
         selected_icon                  // chosen icon file
@@ -78,7 +79,6 @@ proc/new_character(mob/player_tmp/M)
 
             if(STEP_CUSTOM)
                 // Icon customization
-                InitializeIconBaseColors()
                 M.IconPreview()
                 step = M.customize_colors()  // must return STEP_STATS or STEP_ICON
 
@@ -123,11 +123,20 @@ proc/handle_class_selection(mob/M, class_choice)
 proc/get_class_icon_list(mob/M, class_choice)
     switch(class_choice)
         if("Hero")
-            return list("Dragon Warrior 1 Hero"='dw1hero.dmi', "Dragon Warrior 2 Hero"='dw2hero.dmi', "Dragon Warrior 3 Hero"='dw3hero.dmi', "Back")
+            return list("Dragon Warrior 1 Hero"='dw1hero.dmi',
+                        "Dragon Warrior 2 Hero"='dw2hero.dmi',
+                        "Dragon Warrior 3 Hero"='dw3hero.dmi',
+                        "Back")
         if("Soldier")
-            return list("Dragon Warrior 1 Soldier"='dw1soldier.dmi', "Dragon Warrior 2 Soldier"='dw2soldier.dmi', "Dragon Warrior 3 Guard"='dw3guard.dmi', "Back")
+            return list("Dragon Warrior 1 Soldier"='dw1soldier.dmi',
+                        "Dragon Warrior 2 Soldier"='dw2soldier.dmi',
+                        "Dragon Warrior 3 Guard"='dw3guard.dmi',
+                        "Back")
         if("Wizard")
-            return list("Dragon Warrior 1 Wizard"='dw1wizard.dmi', "Dragon Warrior 2 Wizard"='dw2wizard.dmi', "Dragon Warrior 3 Wizard"='dw3malewizard.dmi', "Back")
+            return list("Dragon Warrior 1 Wizard"='dw1wizard.dmi',
+                        "Dragon Warrior 2 Wizard"='dw2wizard.dmi',
+                        "Dragon Warrior 3 Wizard"='dw3malewizard.dmi',
+                        "Back")
     return list()
 
 //icon selection and storage
@@ -139,7 +148,7 @@ proc/select_icon(mob/player_tmp/M)
         return STEP_CLASS
 
     M.selected_icon      = iconChoices[iconChoice]
-    M.selected_icon_name = iconChoice
+    M.selected_icon_name = "[iconChoices[iconChoice]]"
 
     M << output("You've selected [M.selected_icon_name]", "Info")
     return STEP_CUSTOM
@@ -148,8 +157,11 @@ proc/select_icon(mob/player_tmp/M)
 // Preview icon in a separate area
 //---------------------------------
 mob/proc/IconPreview(turf/T = locate(3,3,2))
-    if(preview_obj) del preview_obj
-    if(!selected_icon) return
+    if(preview_obj)
+        del preview_obj
+
+    if(!selected_icon)
+        return
 
     var/obj/preview = new /obj
     preview.icon = icon(selected_icon)
@@ -157,37 +169,42 @@ mob/proc/IconPreview(turf/T = locate(3,3,2))
     preview.loc = T
 
     preview_obj = preview
+
+    //Store pristine base icon ONCE
+    base_preview_icon = icon(selected_icon)
+
     client.eye = preview
 
-    UpdateAppearance(preview_obj)
+    UpdateAppearance()
 
 // -----------------------------
 // Icon Customization
 // -----------------------------
 mob/proc/customize_colors()
-    palette = new /datum/PaletteManager(selected_class, selected_icon)
+    // Build palette ONCE
+    palette = new /datum/PaletteManager(selected_class, selected_icon_name)
 
     while(TRUE)
         var/list/options = list("Main", "Accent", "Hair", "Eyes", "Finish", "Back")
-        var/zone_choice = input(src, "Choose another zone or Finish", "Color Customization") in options
+        var/zone_choice = input(src, "Choose a zone to change or Finish", "Color Customization") in options
 
         switch(zone_choice)
-            if("Main")       Set_Main()
-            if("Accent")     Set_Accent()
-            if("Hair")       Set_Hair()
-            if("Eyes")       Set_Eyes()
+            if("Main")   Set_Main()
+            if("Accent") Set_Accent()
+            if("Hair")   Set_Hair()
+            if("Eyes")   Set_Eyes()
             if("Finish")
-                if(preview_obj) icon = preview_obj.icon
-                src.hair_color   = "[palette.colors["Hair"]]"
-                src.eye_color    = "[palette.colors["Eyes"]]"
-                src.main_color   = "[palette.colors["Main"]]"
-                src.accent_color = "[palette.colors["Accent"]]"
+                src.hair_color   = palette.GetZoneColor("Hair")
+                src.eye_color    = palette.GetZoneColor("Eyes")
+                src.main_color   = palette.GetZoneColor("Main")
+                src.accent_color = palette.GetZoneColor("Accent")
+
                 client.eye = src
-                src << output("Icon looking sharp!", "Info")
+                src << output("Icon colors applied!", "Info")
                 return STEP_STATS
+
             if("Back")
-                if(preview_obj) del preview_obj
-                client.eye = src
+                palette = null
                 return STEP_ICON
 
 // -----------------------------
@@ -205,6 +222,8 @@ proc/finalize_player(mob/player_tmp/M)
         //if("Fighter") newplayer = new /mob/player/fighter
         //if("Pilgrim") newplayer = new /mob/player/pilgrim
         //if("Goof-off) newplayer = new /mob/player/goofoff
+        //if("Sage") newplayer    = new /mob/player/Sage
+        //if(GM)("Custom") newplayer = new /mob/player/GM
 
     if(!newplayer) return
 
@@ -289,7 +308,7 @@ proc/allocate_stats(mob/player_tmp/M)
                 else M << "No points left!"
 
             if("Back")
-                return STEP_ICON   // discard changes
+                return STEP_ICON
             if("Finish")
                 if(local_points > 0)
                     M << "You must spend all points before finishing."

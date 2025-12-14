@@ -38,7 +38,18 @@ mob
                 client.save_mgr.save_character(src, 1)
                 src << output("Saved character [name] with Strength=[Strength], Level=[Level]", "Info")
 
-mob
-	verb
-		TestColors()
-			src << output("Hair=[hair_color], Eyes=[eye_color], Main=[main_color], Accent=[accent_color]", "Info")
+        Debug_ShowZoneColors()
+            set category = "Debug"
+            // Zones to check
+            var/list/zones = list("Hair", "Eyes", "Main", "Accent")
+
+            for(var/zone in zones)
+                var/orig_color = palette?.originalColors[zone]
+                var/current_color = null
+                switch(zone)
+                    if("Hair")   current_color = hair_color
+                    if("Eyes")   current_color = eye_color
+                    if("Main")   current_color = main_color
+                    if("Accent") current_color = accent_color
+
+                src << "[zone]: Original=[orig_color]  Current=[current_color]"
