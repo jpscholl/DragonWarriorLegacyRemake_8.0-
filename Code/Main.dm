@@ -27,7 +27,7 @@
 //    - respawn at church
 //    - custom doors, custom keys that will unlock/lock doors or open when you interact while carrying the key
 */
-//test comment
+
 // -------------------- Global Settings --------------------
 var/global/world_volume = 30   // I'm not going to have one of those games that deafens people on startup
 world
@@ -47,8 +47,6 @@ client
         var/zoom = 5.6
         winset(src, "GamePlay", "size=[world.view*world.icon_size*zoom]x[world.view*world.icon_size*zoom]")
         perspective = EDGE_PERSPECTIVE
-
-
 
 // -------------------- Movement Rules --------------------
 obj
@@ -89,7 +87,6 @@ mob/player_tmp
             client.save_mgr.save_character(src, 1)
         players -= client
         src.loc = null
-
 
 // -------------------- Command Control --------------------
 // Disable all verbs until login is complete

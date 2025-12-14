@@ -13,45 +13,47 @@ var/list/color_swatches = list(
 		"Black" = rgb(0,0,0),
 		"Brown" = rgb(88,57,39))
 
-// Apply palette swaps to preview
+var/tmp/appearance_updating = FALSE
+
 mob/proc/UpdateAppearance()
-    if (!selected_icon || !palette || !preview_obj) return
+    if(!palette || !preview_obj || !base_preview_icon)
+        return
 
-    var/icon/base = new /icon(selected_icon)
+    // ALWAYS start from pristine base icon
+    var/icon/base = icon(base_preview_icon)
 
-    for (var/zone in palette.colors)
+    for(var/zone in palette.colors)
         var/original = palette.originalColors[zone]
         var/custom   = palette.colors[zone]
         if(original && custom)
             base.SwapColor(original, custom)
 
-    preview_obj.icon = icon(base)
-
+    preview_obj.icon = base
 
 //these verbs bring up the list and allow players to select color
 mob/proc/Set_Main()
-	var/choice = input(src, "Pick a color") in color_swatches
-	var/new_color = color_swatches[choice]
-	palette.SetZoneColor("Main", new_color)
-	UpdateAppearance()
+    var/choice = input(src, "Pick a color") in color_swatches
+    if(choice)
+        palette.SetZoneColor("Main", color_swatches[choice])
+        UpdateAppearance()   // push change to preview
 
 mob/proc/Set_Accent()
-	var/choice = input(src, "Pick a color") in color_swatches
-	var/new_color = color_swatches[choice]
-	palette.SetZoneColor("Accent", new_color)
-	UpdateAppearance()
-
-mob/proc/Set_Hair()
-	var/choice = input(src, "Pick a color") in color_swatches
-	var/new_color = color_swatches[choice]
-	palette.SetZoneColor("Hair", new_color)
-	UpdateAppearance()
+    var/choice = input(src, "Pick a color") in color_swatches
+    if(choice)
+        palette.SetZoneColor("Accent", color_swatches[choice])
+        UpdateAppearance()   // push change to preview
 
 mob/proc/Set_Eyes()
-	var/choice = input(src, "Pick a color") in color_swatches
-	var/new_color = color_swatches[choice]
-	palette.SetZoneColor("Eyes", new_color)
-	UpdateAppearance()
+    var/choice = input(src, "Pick a color") in color_swatches
+    if(choice)
+        palette.SetZoneColor("Eyes", color_swatches[choice])
+        UpdateAppearance()   // push change to preview
+
+mob/proc/Set_Hair()
+    var/choice = input(src, "Pick a color") in color_swatches
+    if(choice)
+        palette.SetZoneColor("Hair", color_swatches[choice])
+        UpdateAppearance()   // push change to preview
 
 //scan for colors of icons and get rgb value of colors
 mob/proc/IsColorUsed(color)
