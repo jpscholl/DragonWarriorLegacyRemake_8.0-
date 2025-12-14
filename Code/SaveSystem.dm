@@ -86,7 +86,7 @@ mob/player/proc/RebuildIcon()
 
     var/icon/my_icon = icon("Mob Icons/Player/" + base_icon)
     if(!my_icon)
-        world << "ERROR: Failed to load icon [base_icon]"
+        src << output("ERROR: Failed to load icon [base_icon]", "Info")
         return src
 
     var/list/zones = list("Hair","Eyes","Main","Accent")

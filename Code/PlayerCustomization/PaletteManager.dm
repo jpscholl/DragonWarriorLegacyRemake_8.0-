@@ -10,7 +10,7 @@ datum/PaletteManager
 
         var/defaults = new /datum/DefaultIconColors().GetIconColors(class, icon_id)
         if(!defaults)
-            world << "No base icon colors for [class]/[icon_id]"
+            src << output("No base icon colors for [class]/[icon_id]", "Info")
             return
 
         originalColors = list()
@@ -24,7 +24,7 @@ datum/PaletteManager
 
     proc/SetZoneColor(zone, newColor)
         if(!(zone in colors))
-            world << "Invalid zone: [zone]"
+            src << output("Invalid zone: [zone]", "Info")
             return
         colors[zone] = newColor
 

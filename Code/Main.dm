@@ -80,7 +80,7 @@ mob/player_tmp
             show_login_menu(src)
 
         EnableCommands()
-        world << output("[src.name] has joined the world!!", "Messages")
+        players << output("[src.name] has joined the world!!", "Messages")
 
     Logout()
         if(client && client.save_mgr)

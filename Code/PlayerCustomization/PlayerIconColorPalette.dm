@@ -22,9 +22,9 @@ datum/DefaultIconColors
 
     proc/GetIconColors(class, icon_id)
         if(!(class in colors_by_class))
-            world << "No default colors for class [class]"
+            src << output("No default colors for class [class]", "Info")
             return list()
         if(!(icon_id in colors_by_class[class]))
-            world << "No default colors for icon [icon_id]"
+            src << output("No default colors for icon [icon_id]", "Info")
             return list()
         return colors_by_class[class][icon_id]

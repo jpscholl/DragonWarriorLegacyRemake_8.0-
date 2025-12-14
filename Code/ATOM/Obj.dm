@@ -12,15 +12,21 @@ obj/door
             is_open = TRUE
             icon_state = "open"
             density = 0
-            // Optional: play sound or trigger animation
-            world << sound('door.wav')
+
+            for(var/mob/M in view(7, src))
+                if(M.client)
+                    M << sound('door.wav')
+
     proc/close()
         if(is_open)
             is_open = FALSE
             icon_state = "wooden"
             density = 1
-            // Optional: play sound or trigger animation
-            world << sound('door.wav')
+
+            for(var/mob/M in view(7, src))
+                if(M.client)
+                    M << sound('door.wav')
+
 
 obj
 	stat

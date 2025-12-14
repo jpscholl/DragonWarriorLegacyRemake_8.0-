@@ -35,7 +35,7 @@ proc/show_login_menu(mob/player_tmp/M)
         if("Continue")
             if(M.client && M.client.save_mgr)
                 if(M.client.save_mgr.load_character(M, 1))
-                    M << "Character loaded from save slot 1."
+                    M << output("Character loaded from save slot 1.", "Info")
                     return
                 else
                     M << "No saved character found."
@@ -46,7 +46,7 @@ proc/show_login_menu(mob/player_tmp/M)
             new_character(M)
 
         if("Quit")
-            world << output("[M] has logged out", "Messages")
+            players << output("[M] has logged out", "Messages")
             del M
 
 
@@ -74,6 +74,7 @@ proc/new_character(mob/player_tmp/M)
                 step = STEP_ICON
 
             if(STEP_ICON)
+                M.palette = null
                 step = select_icon(M)
                 continue
 
@@ -201,10 +202,16 @@ mob/proc/customize_colors()
 
                 client.eye = src
                 src << output("Icon colors applied!", "Info")
+
                 return STEP_STATS
 
             if("Back")
-                palette = null
+                // CLEANUP PREVIEW STATE
+                base_preview_icon = null
+                if(preview_obj)
+                    del preview_obj
+                preview_obj = null
+
                 return STEP_ICON
 
 // -----------------------------
@@ -292,26 +299,26 @@ proc/allocate_stats(mob/player_tmp/M)
 
         switch(choice)
             if("Strength")
-                if(local_points > 0 && tmp_strength < 10) { tmp_strength++; local_points--; M << "You increased Strength by 1" }
+                if(local_points > 0 && tmp_strength < 10) { tmp_strength++; local_points--; M << output("You increased Strength by 1", "Info")}
                 else M << "No points left!"
             if("Vitality")
-                if(local_points > 0) { tmp_vitality++; local_points--; M << "You increased Vitality by 1" }
+                if(local_points > 0 && tmp_vitality < 10) { tmp_vitality++; local_points--; M << output("You increased Vitality by 1", "Info")}
                 else M << "No points left!"
             if("Agility")
-                if(local_points > 0) { tmp_agility++; local_points--; M << "You increased Agility by 1" }
+                if(local_points > 0 && tmp_agility < 10) { tmp_agility++; local_points--; M << output("You increased Agility by 1", "Info")}
                 else M << "No points left!"
             if("Intelligence")
-                if(local_points > 0) { tmp_intelligence++; local_points--; M << "You increased Intelligence by 1" }
+                if(local_points > 0 && tmp_intelligence < 10) { tmp_intelligence++; local_points--; M << output("You increased Intelligence by 1", "Info")}
                 else M << "No points left!"
             if("Luck")
-                if(local_points > 0) { tmp_luck++; local_points--; M << "You increased Luck by 1" }
+                if(local_points > 0 && tmp_luck < 10) { tmp_luck++; local_points--; M << output("You increased Luck by 1", "Info")}
                 else M << "No points left!"
 
             if("Back")
                 return STEP_ICON
             if("Finish")
                 if(local_points > 0)
-                    M << "You must spend all points before finishing."
+                    M << output("You must spend all points before finishing.", "Info")
                 else
                     // commit changes
                     M.Strength     = tmp_strength
