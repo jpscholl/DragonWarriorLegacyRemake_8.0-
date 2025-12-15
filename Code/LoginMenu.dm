@@ -218,59 +218,76 @@ mob/proc/customize_colors()
 // Finalize Player
 // -----------------------------
 proc/finalize_player(mob/player_tmp/M)
-    var/mob/player/newplayer
+    if(!M || !M.client) return
 
-    // Create new mob based on class
-    switch(M.selected_class)
-        if("Hero")    newplayer = new /mob/player/hero
-        if("Soldier") newplayer = new /mob/player/soldier
-        if("Wizard")  newplayer = new /mob/player/wizard
-        //implement these classes later
-        //if("Fighter") newplayer = new /mob/player/fighter
-        //if("Pilgrim") newplayer = new /mob/player/pilgrim
-        //if("Goof-off) newplayer = new /mob/player/goofoff
-        //if("Sage") newplayer    = new /mob/player/Sage
-        //if(GM)("Custom") newplayer = new /mob/player/GM
-
+    var/mob/player/newplayer = create_player_from_class(M.selected_class)
     if(!newplayer) return
 
-    // Copy name and icon
+    // Identity
     newplayer.name = M.selected_name
-    if(M.preview_obj)
-        newplayer.icon = icon(M.preview_obj.icon)
-        newplayer.icon_state = M.preview_obj.icon_state
-    else
-        newplayer.icon = icon(M.selected_icon)
-        newplayer.icon_state = "world"
 
-    // Copy stats
-    newplayer.Strength     = M.Strength
-    newplayer.Vitality     = M.Vitality
-    newplayer.Agility      = M.Agility
-    newplayer.Intelligence = M.Intelligence
-    newplayer.Luck         = M.Luck
+    // Appearance & stats
+    copy_appearance(M, newplayer)
+    copy_stats(M, newplayer)
 
-    //save icon and zone colors
-    newplayer.base_icon    = "[M.selected_icon]";
-    newplayer.hair_color   = "[M.hair_color]"
-    newplayer.eye_color    = "[M.eye_color]"
-    newplayer.main_color   = "[M.main_color]"
-    newplayer.accent_color = "[M.accent_color]"
-
-    // Transfer control to new mob
+    // Transfer control
     M << output("Player finalized", "Info")
     M << sound(null, channel=1)
-    newplayer << sound('dw4town.mid', repeat=1, channel=1, volume=world_volume)
-    M.client.mob = newplayer
-    newplayer.loc = locate(26,8,4)
-    players += newplayer
 
+    newplayer << sound('dw4town.mid', repeat=1, channel=1, volume=world_volume)
+
+    M.client.mob = newplayer
+    newplayer.loc = locate(26, 8, 4)
+
+    players += newplayer
 
     // Save immediately
     if(M.client && M.client.save_mgr)
         M.client.save_mgr.save_character(newplayer, 1)
+
     del M
     players << output("[newplayer.name] has joined the world!", "Messages")
+
+//selects proper template based on class templates
+proc/create_player_from_class(class_name)
+    switch(class_name)
+        if("Hero")    return new /mob/player/hero
+        if("Soldier") return new /mob/player/soldier
+        if("Wizard")  return new /mob/player/wizard
+
+        // Future classes
+        // if("Fighter") return new /mob/player/fighter
+        // if("Pilgrim") return new /mob/player/pilgrim
+        // if("Goof-off") return new /mob/player/goofoff
+        // if("Sage")     return new /mob/player/sage
+        // if("Custom")   return new /mob/player/GM
+
+    return null
+
+//copy temp stats to player stats
+proc/copy_stats(mob/player_tmp/src, mob/player/dst)
+    dst.Strength     = src.Strength
+    dst.Vitality     = src.Vitality
+    dst.Agility      = src.Agility
+    dst.Intelligence = src.Intelligence
+    dst.Luck         = src.Luck
+
+//copy player appearance from preview
+proc/copy_appearance(mob/player_tmp/src, mob/player/dst)
+    if(src.preview_obj)
+        dst.icon = icon(src.preview_obj.icon)
+        dst.icon_state = src.preview_obj.icon_state
+    else
+        dst.icon = icon(src.selected_icon)
+        dst.icon_state = "world"
+
+    dst.base_icon    = "[src.selected_icon]"
+    dst.hair_color   = "[src.hair_color]"
+    dst.eye_color    = "[src.eye_color]"
+    dst.main_color   = "[src.main_color]"
+    dst.accent_color = "[src.accent_color]"
+
+
 
 // -----------------------------
 // Stat Allocation
