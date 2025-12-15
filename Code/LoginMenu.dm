@@ -276,54 +276,56 @@ proc/finalize_player(mob/player_tmp/M)
 // Stat Allocation
 // -----------------------------
 proc/allocate_stats(mob/player_tmp/M)
-    var/local_points = 12
-    var/tmp_strength = M.Strength
-    var/tmp_vitality = M.Vitality
-    var/tmp_agility = M.Agility
-    var/tmp_intelligence = M.Intelligence
-    var/tmp_luck = M.Luck
+    var/local_points = 14
+    var/stat_cap = 10
+
+    // Temporary stat storage
+    var/list/tmp_stats = list(
+        "Strength"     = M.Strength,
+        "Vitality"     = M.Vitality,
+        "Agility"      = M.Agility,
+        "Intelligence" = M.Intelligence,
+        "Luck"         = M.Luck
+    )
 
     while(TRUE)
-        var/list/options = list(
-            "Strength [tmp_strength]" = "Strength",
-            "Vitality [tmp_vitality]" = "Vitality",
-            "Agility [tmp_agility]" = "Agility",
-            "Intelligence [tmp_intelligence]" = "Intelligence",
-            "Luck [tmp_luck]" = "Luck",
-            "Back" = "Back",
-            "Finish" = "Finish"
-        )
+        var/list/options = list()
 
-        var/choice = input(M, "Allocate your stat points. Points left ([local_points])", "Stats") in options
+        // Build menu dynamically
+        for(var/stat in tmp_stats)
+            if(tmp_stats[stat] < stat_cap)
+                options["[stat] [tmp_stats[stat]]"] = stat
+
+        options["Back"]   = "Back"
+        options["Finish"] = "Finish"
+
+        var/choice = input(
+            M,
+            "Allocate your stat points. Points left ([local_points])",
+            "Stats"
+        ) in options
+
         choice = options[choice]
 
         switch(choice)
-            if("Strength")
-                if(local_points > 0 && tmp_strength < 10) { tmp_strength++; local_points--; M << output("You increased Strength by 1", "Info")}
-                else M << "No points left!"
-            if("Vitality")
-                if(local_points > 0 && tmp_vitality < 10) { tmp_vitality++; local_points--; M << output("You increased Vitality by 1", "Info")}
-                else M << "No points left!"
-            if("Agility")
-                if(local_points > 0 && tmp_agility < 10) { tmp_agility++; local_points--; M << output("You increased Agility by 1", "Info")}
-                else M << "No points left!"
-            if("Intelligence")
-                if(local_points > 0 && tmp_intelligence < 10) { tmp_intelligence++; local_points--; M << output("You increased Intelligence by 1", "Info")}
-                else M << "No points left!"
-            if("Luck")
-                if(local_points > 0 && tmp_luck < 10) { tmp_luck++; local_points--; M << output("You increased Luck by 1", "Info")}
-                else M << "No points left!"
-
             if("Back")
                 return STEP_ICON
+
             if("Finish")
                 if(local_points > 0)
                     M << output("You must spend all points before finishing.", "Info")
                 else
-                    // commit changes
-                    M.Strength     = tmp_strength
-                    M.Vitality     = tmp_vitality
-                    M.Agility      = tmp_agility
-                    M.Intelligence = tmp_intelligence
-                    M.Luck         = tmp_luck
+                    // Commit changes
+                    for(var/stat in tmp_stats)
+                        M.vars[stat] = tmp_stats[stat]
                     return STEP_STATS
+
+            else
+                if(local_points <= 0)
+                    M << output("You have no points left.", "Info")
+                else if(tmp_stats[choice] >= stat_cap)
+                    M << output("Starter stats are capped at [stat_cap]!", "Info")
+                else
+                    tmp_stats[choice]++
+                    local_points--
+                    M << output("You increased [choice] by 1", "Info")

@@ -33,6 +33,7 @@
 #include "Code\SmoothMovement.dm"
 #include "Code\SocialVerbs.dm"
 #include "Code\StatPanels.dm"
+#include "Code\StatsDatum.dm"
 #include "Code\Verbs.dm"
 #include "Code\ATOM\Area.dm"
 #include "Code\ATOM\Obj.dm"
