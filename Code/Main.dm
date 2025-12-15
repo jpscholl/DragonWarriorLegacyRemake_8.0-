@@ -72,10 +72,10 @@ mob/player_tmp
 
         if(client && client.save_mgr)
             if(client.save_mgr.load_character(src, 1))
-                src << "Character loaded from save slot 1."
+                src << output("Character loaded from save slot 1.", "Info")
                 finalize_player(src)   // turn tmp into real mob
             else
-                src << "No saved character found, please create one."
+                src << output("No saved character found, please create one.", "Info")
                 show_login_menu(src)   // <-- call your menu here
         else
             // If no SaveManager at all, fall back to menu
@@ -93,8 +93,7 @@ mob/player_tmp
 // -------------------- Command Control --------------------
 // Disable all verbs until login is complete
 mob/proc/DisableCommands()
-    for(var/v in src.verbs)
-        src.verbs -= v
+   src.verbs -= typesof(/mob/verb)
 
 // Enable verbs once the player has joined the world
 mob/proc/EnableCommands()
