@@ -2,13 +2,13 @@
 /*
 MAP_PLANE_MASTERS: 
 MAP_ZOOM: 1.500
-LAST_COMPILE_TIME: 1765821820
+LAST_COMPILE_TIME: 1765823656
 DIR: Code Code\ATOM Code\Combat Code\Moderators Code\PlayerCustomization Maps Maps\backup Player SaveFiles 
 AUTO_FILE_DIR: ON
 MAP_ICON_TYPE: 0
 LAST_COMPILE_VERSION: 516.1673
-WINDOW: Code\Main.dm;Code\LoginMenu.dm
-FILE: Code\LoginMenu.dm
+WINDOW: Code\Main.dm;Code\ClickableStats.dm
+FILE: Code\ClickableStats.dm
 MAP_INSTANCE_MODE: copy
 */
 // END_INTERNALS

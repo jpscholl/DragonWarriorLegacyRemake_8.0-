@@ -242,7 +242,7 @@ proc/finalize_player(mob/player_tmp/M)
     players += newplayer
 
     // Save immediately
-    if(M.client && M.client.save_mgr)
+    if(M.client.save_mgr)
         M.client.save_mgr.save_character(newplayer, 1)
 
     del M
@@ -264,7 +264,7 @@ proc/create_player_from_class(class_name)
 
     return null
 
-//copy temp stats to player stats
+//copy temp stats into player stats
 proc/copy_stats(mob/player_tmp/src, mob/player/dst)
     dst.Strength     = src.Strength
     dst.Vitality     = src.Vitality
