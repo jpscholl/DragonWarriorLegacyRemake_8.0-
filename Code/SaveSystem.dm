@@ -1,9 +1,15 @@
 datum/SaveManager
-    var/savefile/F
+    var/savefile/F  // File object for player save data
 
+    // -----------------------------
+    // Constructor: Open or create savefile for a given player key
+    // -----------------------------
     New(ckey)
         F = new("Player SaveFiles/[ckey].sav")
 
+    // -----------------------------
+    // Save a player's data to a specific slot
+    // -----------------------------
     proc/save_character(mob/player/M, slot)
         var/key = "char[slot]"
 
@@ -27,13 +33,19 @@ datum/SaveManager
         F["[key].main_color"]    << M.main_color
         F["[key].accent_color"]  << M.accent_color
 
+    // -----------------------------
+    // Load a player's data from a specific slot
+    // Returns 1 on success, 0 on failure
+    // -----------------------------
     proc/load_character(mob/player_tmp/M, slot)
         var/key = "char[slot]"
 
+        // Read class first to determine player type
         var/class_choice
         F["[key].class"] >> class_choice
         if(!class_choice) return 0
 
+        // Spawn the correct player template
         var/mob/player/newplayer
         switch(class_choice)
             if("Hero")    newplayer = new /mob/player/hero
@@ -41,7 +53,9 @@ datum/SaveManager
             if("Wizard")  newplayer = new /mob/player/wizard
         if(!newplayer) return 0
 
-        // Core identity/stats
+        // -----------------------------
+        // Restore core identity/stats
+        // -----------------------------
         F["[key].name"]         >> newplayer.name
         F["[key].level"]        >> newplayer.Level
         F["[key].exp"]          >> newplayer.Exp
@@ -53,7 +67,9 @@ datum/SaveManager
         F["[key].luck"]         >> newplayer.Luck
         F["[key].gold"]         >> newplayer.Gold
 
-        // Appearance
+        // -----------------------------
+        // Restore appearance
+        // -----------------------------
         F["[key].base_icon"]    >> newplayer.base_icon
         F["[key].hair_color"]   >> newplayer.hair_color
         F["[key].eye_color"]    >> newplayer.eye_color
@@ -70,10 +86,10 @@ datum/SaveManager
         if(newplayer.main_color)   newplayer.palette.SetZoneColor("Main", newplayer.main_color)
         if(newplayer.accent_color) newplayer.palette.SetZoneColor("Accent", newplayer.accent_color)
 
-
         // Rebuild final icon
         newplayer.RebuildIcon()
 
+        // Transfer control to client
         M.client.mob = newplayer
         newplayer.loc = locate(26,8,4)
         players += newplayer
@@ -81,6 +97,9 @@ datum/SaveManager
 
         return 1
 
+// -----------------------------
+// Rebuild the player's icon after loading or recoloring
+// -----------------------------
 mob/player/proc/RebuildIcon()
     if(!base_icon) return src
 
