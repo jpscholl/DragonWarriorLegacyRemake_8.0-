@@ -9,23 +9,22 @@
 //
 //    Author: Cerebella (Shorin88)
 //
-//    Last Update: 12/15/2025
+//    Last Update: 12/30/2025
 //
 //    Known Issues:
 //    - Attacks break when targeting off screen
-//    - Movement still feels janky
+//    - Movement still feels slightly janky, but I don't think I can solve that one
 //
 //    To do list:
-//    - Clean and refactor code as needed(for developer purposes)
 //    - Complete combat - players, enemies with AI, involving all the things below
 //    - Class templates - default player template and class specific skills and stat growth
 //    - Skills and abilities - so players can do cool battle stuff
-//    - Level up - figuring out character stat growth
 //    - Interact system - the basic .center interact with npcs, picking up items, open doors, etc.
 //    - Party System
 //    - Tweak roof controls
 //    - respawn at church
 //    - custom doors, custom keys that will unlock/lock doors or open when you interact while carrying the key
+//    - GM/Admin systems - building system
 */
 
 // -------------------- Global Settings --------------------
@@ -35,7 +34,7 @@ var/list/players = list()
 world
     name      = "Dragon Warrior Legacy Remake"
     fps       = 60
-    tick_lag  = 0.16
+    //tick_lag  = 0.16
     icon_size = 32
     turf      = /turf/ground/grass
     mob       = /mob/player_tmp
@@ -70,21 +69,26 @@ mob/player_tmp
         client << sound('dw3conti.mid', repeat = 1, volume = world_volume, channel = 1)
         src << output("Welcome to DWL Remake!!", "Info")
 
-        if(client && client.save_mgr)
-            if(client.save_mgr.load_character(src, 1))
-                src << output("Character loaded from save slot 1.", "Info")
-                finalize_player(src)   // turn tmp into real mob
-            else
-                src << output("No saved character found, please create one.", "Info")
-                show_login_menu(src)   // <-- call your menu here
-        else
-            // If no SaveManager at all, fall back to menu
+        if(!client || !client.save_mgr)
             show_login_menu(src)
+            return
+
+        var/loaded = client.save_mgr.load_character(src, 1)
+
+        if(loaded)
+            src << output("Character loaded from save slot 1.", "Info")
+            finalize_player(src)
+            return
+
+        // GUARANTEED to reach here now
+        src << output("No saved character found, please create one.", "Info")
+        show_login_menu(src)
 
         EnableCommands()
         players << output("[src.name] has joined the world!!", "Messages")
 
     Logout()
+        players << output("[src.name] has left the world!!", "Messages")
         if(client && client.save_mgr)
             client.save_mgr.save_character(src, 1)
         players -= client

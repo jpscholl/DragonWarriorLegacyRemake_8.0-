@@ -47,6 +47,8 @@ mob/player
     New()
         ..()  // call base constructor
 
+    pixel_y = 6
+
     // Skills
     var/list/skills = list()
     var/datum/Skill/active_skill

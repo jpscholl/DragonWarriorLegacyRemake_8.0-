@@ -88,7 +88,8 @@ proc/new_character(mob/player_tmp/M)
                 M << output("Allocate Stats","Info")
                 step = allocate_stats(M)     // must return STEP_STATS when done
                 if(step == STEP_STATS)
-                    finalize_player(M)
+                    if(M && M.client)
+                        finalize_player(M)
                     return
 
 // -----------------------------
@@ -218,7 +219,7 @@ mob/proc/customize_colors()
 // Finalize Player
 // -----------------------------
 proc/finalize_player(mob/player_tmp/M)
-    if(!M || !M.client) return
+    if(!M || !M.client)  return
 
     var/mob/player/newplayer = create_player_from_class(M.selected_class)
     if(!newplayer) return
@@ -242,7 +243,7 @@ proc/finalize_player(mob/player_tmp/M)
     players += newplayer
 
     // Save immediately
-    if(M.client.save_mgr)
+    if(M.client && M.client.save_mgr)
         M.client.save_mgr.save_character(newplayer, 1)
 
     del M
