@@ -51,52 +51,47 @@ window "Main"
 	elem "Main"
 		type = MAIN
 		pos = 291,0
-		size = 1920x1080
+		size = 1740x1080
 		anchor1 = -1,-1
 		anchor2 = -1,-1
 		background-color = none
-		is-default = true
 		saved-params = "pos;size;is-minimized;is-maximized"
 		title = "Dragon Warrior Legacy Remake v0.1"
+		statusbar = false
 		macro = "macro"
 		menu = "menu"
-		outer-size = 1936x1158
+		outer-size = 1756x1139
 		outer-pos = 291,0
-		inner-size = 1920x1080
+		inner-size = 1740x1080
 		inner-pos = 8,51
 		screen-size = 2560x1392
+	elem "Gameplay"
+		type = MAP
+		pos = 0,0
+		size = 1095x1080
+		anchor1 = 0,0
+		anchor2 = 63,100
+		saved-params = "zoom;letterbox;zoom-mode"
+	elem "Info"
+		type = INFO
+		pos = 1095,0
+		size = 645x336
+		anchor1 = 63,0
+		anchor2 = 100,31
+		saved-params = ""
+		tab-background-color = none
 	elem "Info"
 		type = OUTPUT
-		pos = 1344,359
-		size = 580x360
-		anchor1 = 70,33
-		anchor2 = 100,67
-		border = line
+		pos = 1095,340
+		size = 643x368
+		anchor1 = 63,31
+		anchor2 = 100,66
 		saved-params = "max-lines"
 	elem "Messages"
 		type = OUTPUT
-		pos = 1344,719
-		size = 580x360
-		anchor1 = 70,67
+		pos = 1095,712
+		size = 641x368
+		anchor1 = 63,66
 		anchor2 = 100,100
-		border = line
 		saved-params = "max-lines"
-	elem "StatsCommands"
-		type = INFO
-		pos = 1344,0
-		size = 580x359
-		anchor1 = 70,0
-		anchor2 = 100,33
-		border = line
-		saved-params = ""
-		tab-background-color = none
-	elem "GamePlay"
-		type = MAP
-		pos = 0,0
-		size = 1340x1080
-		anchor1 = 0,0
-		anchor2 = 70,100
-		border = line
-		saved-params = "\"zoom;letterbox=false;zoom-mode=fit\""
-		letterbox = false
 

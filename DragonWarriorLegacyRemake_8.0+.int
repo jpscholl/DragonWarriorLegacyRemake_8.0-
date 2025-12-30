@@ -2,13 +2,13 @@
 /*
 MAP_PLANE_MASTERS: 
 MAP_ZOOM: 1.500
-LAST_COMPILE_TIME: 1765824147
-DIR: Code Code\ATOM Code\Combat Code\Moderators Code\PlayerCustomization Maps Maps\backup Player SaveFiles 
+LAST_COMPILE_TIME: 1767131978
+DIR: Code Code\ATOM Code\Combat Code\Moderators Code\PlayerCustomization Maps Maps\backup 
 AUTO_FILE_DIR: ON
 MAP_ICON_TYPE: 0
 LAST_COMPILE_VERSION: 516.1673
-WINDOW: Code\PlayerTemplate.dm;Code\SaveSystem.dm;Code\SmoothMovement.dm;Code\SocialVerbs.dm;Code\StatPanels.dm;Code\StatsDatum.dm
-FILE: Code\SaveSystem.dm
+WINDOW: Code\Main.dm;Interface.dmf
+FILE: Code\Main.dm
 MAP_INSTANCE_MODE: copy
 */
 // END_INTERNALS
