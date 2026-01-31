@@ -1,12 +1,12 @@
 datum/Skill
     var
-        name = "Unnamed Skill"
+        skillName = "Unnamed Skill"
         description = "No description."
         icon_state = null
         cooldown = 0
         mana_cost = 0
         cast_time = 0
-        is_melee = FALSE
+        isMelee = FALSE
 
     proc/Activate(mob/user, mob/target) return
     // To be overridden by specific skills
@@ -15,14 +15,14 @@ datum/skill/Attack
 
     New()
         ..()
-        name = "Attack"
+        skillName = "Attack"
         description = "A basic melee strike."
         icon_state = "weapon"
-        is_melee = TRUE
+        isMelee = TRUE
 
     Activate(mob/user, mob/target)
-        if (!user.can_move) return
-        user.can_move = FALSE
+        if (!user.canMove) return
+        user.canMove = FALSE
 
         flick("attack", user)
         user << sound('attack.wav', volume = 60)
@@ -32,14 +32,14 @@ datum/skill/Attack
 
         flick("attack", target_tile)
 
-        var/icon/weapon_icon = icon(user.icon, icon_state, user.dir)
-        target_tile.overlays += weapon_icon
-        spawn(2) target_tile.overlays -= weapon_icon
+        var/icon/weaponIcon = icon(user.icon, icon_state, user.dir)
+        target_tile.overlays += weaponIcon
+        spawn(2) target_tile.overlays -= weaponIcon
 
         for (var/mob/M in target_tile.contents)
             if (M != user && M.HP > 0)
-                M.overlays += weapon_icon
-                spawn(2) M.overlays -= weapon_icon
+                M.overlays += weaponIcon
+                spawn(2) M.overlays -= weaponIcon
                 M.TakeDamage(user.Strength)
 
-        spawn(3) user.can_move = TRUE
+        spawn(3) user.canMove = TRUE

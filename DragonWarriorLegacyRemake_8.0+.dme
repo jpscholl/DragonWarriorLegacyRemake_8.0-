@@ -46,5 +46,4 @@
 #include "Code\PlayerCustomization\PaletteManager.dm"
 #include "Code\PlayerCustomization\PlayerIconColorPalette.dm"
 #include "Maps\OGDWLv8.0.dmm"
-#include "Maps\backup\OGDWLv8.0.dmm"
 // END_INCLUDE

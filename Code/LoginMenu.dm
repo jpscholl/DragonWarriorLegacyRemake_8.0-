@@ -10,120 +10,172 @@
 
 // Global list of active players
 //var/list/players = list()
+#define SAVE_PATH "players"
+#define MAX_CHARACTERS 3
+
 
 // Temporary mob used during character creation
 mob
     var
-        obj/preview_obj                // preview object for icon customization
-        icon/base_preview_icon         // for recoloring just in case
-        selected_name                  // chosen character name
-        selected_class                 // chosen class (Hero, Soldier, Wizard)
-        selected_icon                  // chosen icon file
-        selected_icon_name             // chosen icon label
+        obj/newCharPreview             // preview object for icon customization
+        icon/baseIconPreview           // for recoloring just in case
+        selectedName                   // chosen character name
+        selectedClass                  // chosen class (Hero, Soldier, Wizard)
+        selectedIcon                   // chosen icon file
+        selectedIconName               // chosen icon label
         datum/PaletteManager/palette   // palette manager for recoloring
 
-mob/player_tmp   // placeholder mob type for login/creation
+    proc/SavefileExists()
+        var/savePath = "Player SaveFiles/" + src.ckey + ".sav"
+        return fexists(savePath)
+
+mob/playerTemp   // placeholder mob type for login/creation
 
 // -----------------------------
 // Entry Point: Login Menu
 // -----------------------------
-proc/show_login_menu(mob/player_tmp/M)
-    var/list/options = list("Continue", "Create New Character", "Quit")
+proc/ShowLoginMenu(mob/playerTemp/M)
+    if(!M || !M.client || !M.client.saveManager)
+        return
+
+    var/list/slots = M.client.saveManager.GetCharacterSlots()
+    if(!slots)
+        slots = list()
+
+    var/list/options = list()
+
+    for(var/slot in slots)
+        options += "Load [slots[slot]] (Slot [slot])"
+
+    options += "Create New Character"
+
+    if(slots.len)
+        options += "Delete Character"
+
+    options += "Quit"
+
     var/choice = input(M, "Welcome to Dragon Warrior Legacy", "Login Menu") in options
 
-    switch(choice)
-        if("Continue")
-            if(M.client && M.client.save_mgr)
-                if(M.client.save_mgr.load_character(M, 1))
-                    M << output("Character loaded from save slot 1.", "Info")
-                    return
-                else
-                    M << "No saved character found."
-                    new_character(M)
+    if(findtext(choice, "Load "))
+        var/slot = text2num(copytext(choice, findtext(choice, "Slot ") + 5))
+        M.client.saveManager.loadCharacter(M, slot)
+        return
 
+    switch(choice)
         if("Create New Character")
-            M << output("Starting a new game...", "Info")
-            new_character(M)
+            NewCharacterMenu(M)
+
+        if("Delete Character")
+            DeleteCharacterMenu(M)
 
         if("Quit")
-            players << output("[M] has logged out", "Messages")
             del M
 
 
 // -----------------------------
 // Character Creation Flow
 // -----------------------------
-proc/new_character(mob/player_tmp/M)
+proc/NewCharacterMenu(mob/playerTemp/M)
     var/step = STEP_NAME
 
     while(step)
         switch(step)
             if(STEP_NAME)
                 // Prompt for name
-                M.selected_name = prompt_for_name(M)
-                if(!M.selected_name) return
-                M << output("[M.selected_name] is your chosen name", "Info")
+                M.selectedName = PromptForName(M)
+                if(!M.selectedName) return
+                M << output("[M.selectedName] is your chosen name", "Info")
                 step = STEP_CLASS
 
             if(STEP_CLASS)
                 // Prompt for class
-                var/class_choice = prompt_for_class(M)
-                M.selected_class = handle_class_selection(M, class_choice)
-                if(!M.selected_class) { step = STEP_NAME; continue }
-                M << output("[M.selected_class] is your chosen class", "Info")
+                var/selectedClass = PromptForClass(M)
+                M.selectedClass = ApplyClassSelection(M, selectedClass)
+                if(!M.selectedClass) { step = STEP_NAME; continue }
+                M << output("[M.selectedClass] is your chosen class", "Info")
                 step = STEP_ICON
 
             if(STEP_ICON)
                 M.palette = null
-                step = select_icon(M)
+                step = IconSelect(M)
                 continue
 
             if(STEP_CUSTOM)
                 // Icon customization
                 M.IconPreview()
-                step = M.customize_colors()  // must return STEP_STATS or STEP_ICON
+                step = M.CustomizeColors()  // must return STEP_STATS or STEP_ICON
 
             if(STEP_STATS)
                 // Stat allocation
                 M << output("Allocate Stats","Info")
-                step = allocate_stats(M)     // must return STEP_STATS when done
+                step = StatAllocation(M)     // must return STEP_STATS when done
                 if(step == STEP_STATS)
                     if(M && M.client)
-                        finalize_player(M)
+                        FinalizePlayer(M)
                     return
+
+
+proc/DeleteCharacterMenu(mob/playerTemp/M)
+    var/list/slots = M.client.saveManager.GetCharacterSlots()
+    if(!slots.len)
+        ShowLoginMenu(M)
+        return
+
+    var/list/options = list()
+    for(var/slot in slots)
+        options += "Delete [slots[slot]] (Slot [slot])"
+
+    options += "Cancel"
+
+    var/choice = input(M, "Delete which character?") in options
+    if(choice == "Cancel")
+        ShowLoginMenu(M)
+        return
+
+    var/slot = text2num(copytext(choice, findtext(choice, "Slot ") + 5))
+
+    var/confirm = alert(M, "Are you sure?", "Confirm Delete", "Yes", "No")
+    if(confirm != "Yes")
+        ShowLoginMenu(M)
+        return
+
+    if(!M.client.saveManager.delete_character(slot))
+        alert(M, "Delete failed.")
+
+    ShowLoginMenu(M)
 
 // -----------------------------
 // Prompts
 // -----------------------------
 
 //Name
-proc/prompt_for_name(mob/M)
-    var/selected_name
-    while(!selected_name || !length(trimtext(selected_name)))
-        selected_name = input(M, "Enter your name:", "New Character") as text|null
-        if(isnull(selected_name))
-            show_login_menu(M)
+proc/PromptForName(mob/M)
+    var/selectedName
+    while(!selectedName || !length(trimtext(selectedName)))
+        selectedName = input(M, "Enter your name:", "New Character") as text|null
+        if(isnull(selectedName))
+            ShowLoginMenu(M)
             return null
-    return trimtext(selected_name)
+    return trimtext(selectedName)
 //Class
-proc/prompt_for_class(mob/M)
+proc/PromptForClass(mob/M)
     var/list/classes = list("Hero", "Soldier", "Wizard", "Back")
     return input(M, "Choose your class:", "Class Selection") in classes
 
 //idk why this is in with prompts section but ok?
-proc/handle_class_selection(mob/M, class_choice)
-    if(class_choice == "Back")
-        if(M.preview_obj) del M.preview_obj
+proc/ApplyClassSelection(mob/M, selectedClass)
+    if(selectedClass == "Back")
+        if(M.newCharPreview) del M.newCharPreview
         return null
-    return class_choice
+    return selectedClass
 
 // -----------------------------
 // Icon Handling
 // -----------------------------
 
 //fetch list based on the class player chooses
-proc/get_class_icon_list(mob/M, class_choice)
-    switch(class_choice)
+proc/GetClassIcons(mob/M, selectedClass)
+    switch(selectedClass)
         if("Hero")
             return list("Dragon Warrior 1 Hero"='dw1hero.dmi',
                         "Dragon Warrior 2 Hero"='dw2hero.dmi',
@@ -142,38 +194,38 @@ proc/get_class_icon_list(mob/M, class_choice)
     return list()
 
 //icon selection and storage
-proc/select_icon(mob/player_tmp/M)
-    var/list/iconChoices = get_class_icon_list(M, M.selected_class)
+proc/IconSelect(mob/playerTemp/M)
+    var/list/iconChoices = GetClassIcons(M, M.selectedClass)
     var/iconChoice = input(M, "Choose your icon:", "Icon Selection") in iconChoices
 
     if(iconChoice == "Back")
         return STEP_CLASS
 
-    M.selected_icon      = iconChoices[iconChoice]
-    M.selected_icon_name = "[iconChoices[iconChoice]]"
+    M.selectedIcon      = iconChoices[iconChoice]
+    M.selectedIconName = "[iconChoices[iconChoice]]"
 
-    M << output("You've selected [M.selected_icon_name]", "Info")
+    M << output("You've selected [M.selectedIconName]", "Info")
     return STEP_CUSTOM
 
 //---------------------------------
 // Preview icon in a separate area
 //---------------------------------
 mob/proc/IconPreview(turf/T = locate(3,3,2))
-    if(preview_obj)
-        del preview_obj
+    if(newCharPreview)
+        del newCharPreview
 
-    if(!selected_icon)
+    if(!selectedIcon)
         return
 
     var/obj/preview = new /obj
-    preview.icon = icon(selected_icon)
+    preview.icon = icon(selectedIcon)
     preview.icon_state = "world"
     preview.loc = T
 
-    preview_obj = preview
+    newCharPreview = preview
 
     //Store pristine base icon ONCE
-    base_preview_icon = icon(selected_icon)
+    baseIconPreview = icon(selectedIcon)
 
     client.eye = preview
 
@@ -182,9 +234,9 @@ mob/proc/IconPreview(turf/T = locate(3,3,2))
 // -----------------------------
 // Icon Customization
 // -----------------------------
-mob/proc/customize_colors()
+mob/proc/CustomizeColors()
     // Build palette ONCE
-    palette = new /datum/PaletteManager(selected_class, selected_icon_name)
+    palette = new /datum/PaletteManager(selectedClass, selectedIconName)
 
     while(TRUE)
         var/list/options = list("Main", "Accent", "Hair", "Eyes", "Finish", "Back")
@@ -196,10 +248,10 @@ mob/proc/customize_colors()
             if("Hair")   Set_Hair()
             if("Eyes")   Set_Eyes()
             if("Finish")
-                src.hair_color   = palette.GetZoneColor("Hair")
-                src.eye_color    = palette.GetZoneColor("Eyes")
-                src.main_color   = palette.GetZoneColor("Main")
-                src.accent_color = palette.GetZoneColor("Accent")
+                src.hairColor   = palette.GetZoneColor("Hair")
+                src.eyeColor    = palette.GetZoneColor("Eyes")
+                src.mainColor   = palette.GetZoneColor("Main")
+                src.accentColor = palette.GetZoneColor("Accent")
 
                 client.eye = src
                 src << output("Icon colors applied!", "Info")
@@ -208,53 +260,84 @@ mob/proc/customize_colors()
 
             if("Back")
                 // CLEANUP PREVIEW STATE
-                base_preview_icon = null
-                if(preview_obj)
-                    del preview_obj
-                preview_obj = null
+                baseIconPreview = null
+                if(newCharPreview)
+                    del newCharPreview
+                newCharPreview = null
 
                 return STEP_ICON
 
 // -----------------------------
 // Finalize Player
 // -----------------------------
-proc/finalize_player(mob/player_tmp/M)
-    if(!M || !M.client)  return
+proc/FinalizePlayer(mob/playerTemp/M)
+    if(!M || !M.client)
+        return
 
-    var/mob/player/newplayer = create_player_from_class(M.selected_class)
-    if(!newplayer) return
+    var/client/C = M.client
+
+    var/mob/player/newPlayer = ApplyPlayerClass(M.selectedClass)
+    if(!newPlayer)
+        return
 
     // Identity
-    newplayer.name = M.selected_name
+    newPlayer.name = M.selectedName
 
     // Appearance & stats
-    copy_appearance(M, newplayer)
-    copy_stats(M, newplayer)
+    ApplyCustomColors(M, newPlayer)
+    ApplyCustomStats(M, newPlayer)
 
+    // -----------------------------
+    // Find first free character slot
+    // -----------------------------
+    var/slot = null
+
+    if(C.saveManager)
+        var/list/slots = C.saveManager.GetCharacterSlots()
+        if(!slots)
+            slots = list()
+
+        slot = 1
+        while(slot <= MAX_CHARACTERS && slots["[slot]"])
+            slot++
+
+    if(!slot || slot > MAX_CHARACTERS)
+        M << "No free character slots available."
+        del newPlayer
+        return
+
+    // Mark this mob as a real character
+    newPlayer.isCharacter = TRUE
+
+    // Save character BEFORE login commit
+    C.saveManager.saveCharacter(newPlayer, slot)
+
+    // -----------------------------
     // Transfer control
+    // -----------------------------
     M << output("Player finalized", "Info")
-    M << sound(null, channel=1)
+    M << sound(null, channel = 1)
 
-    newplayer << sound('dw4town.mid', repeat=1, channel=1, volume=world_volume)
+    C.mob = newPlayer
+    newPlayer.loc = locate(26, 8, 4)
 
-    M.client.mob = newplayer
-    newplayer.loc = locate(26, 8, 4)
+    newPlayer << sound('dw4town.mid', repeat = 1, channel = 1, volume = worldVolume)
 
-    players += newplayer
+    players += newPlayer
 
-    // Save immediately
-    if(M.client && M.client.save_mgr)
-        M.client.save_mgr.save_character(newplayer, 1)
-
+    // Remove temp mob LAST
     del M
-    players << output("[newplayer.name] has joined the world!", "Messages")
+
+    // Announce login
+    players << output("[newPlayer.name] has joined the world!", "Messages")
+
 
 //selects proper template based on class templates
-proc/create_player_from_class(class_name)
+proc/ApplyPlayerClass(class_name)
     switch(class_name)
-        if("Hero")    return new /mob/player/hero
-        if("Soldier") return new /mob/player/soldier
-        if("Wizard")  return new /mob/player/wizard
+        if("Hero")    return new /mob/player/Hero
+        if("Soldier") return new /mob/player/Soldier
+        if("Wizard")  return new /mob/player/Wizard
 
         // Future classes
         // if("Fighter") return new /mob/player/fighter
@@ -266,7 +349,7 @@ proc/create_player_from_class(class_name)
     return null
 
 //copy temp stats into player stats
-proc/copy_stats(mob/player_tmp/src, mob/player/dst)
+proc/ApplyCustomStats(mob/playerTemp/src, mob/player/dst)
     dst.Strength     = src.Strength
     dst.Vitality     = src.Vitality
     dst.Agility      = src.Agility
@@ -274,31 +357,31 @@ proc/copy_stats(mob/player_tmp/src, mob/player/dst)
     dst.Luck         = src.Luck
 
 //copy player appearance from preview
-proc/copy_appearance(mob/player_tmp/src, mob/player/dst)
-    if(src.preview_obj)
-        dst.icon = icon(src.preview_obj.icon)
-        dst.icon_state = src.preview_obj.icon_state
+proc/ApplyCustomColors(mob/playerTemp/src, mob/player/dst)
+    if(src.newCharPreview)
+        dst.icon = icon(src.newCharPreview.icon)
+        dst.icon_state = src.newCharPreview.icon_state
     else
-        dst.icon = icon(src.selected_icon)
+        dst.icon = icon(src.selectedIcon)
         dst.icon_state = "world"
 
-    dst.base_icon    = "[src.selected_icon]"
-    dst.hair_color   = "[src.hair_color]"
-    dst.eye_color    = "[src.eye_color]"
-    dst.main_color   = "[src.main_color]"
-    dst.accent_color = "[src.accent_color]"
+    dst.baseIcon    = "[src.selectedIcon]"
+    dst.hairColor   = "[src.hairColor]"
+    dst.eyeColor    = "[src.eyeColor]"
+    dst.mainColor   = "[src.mainColor]"
+    dst.accentColor = "[src.accentColor]"
 
 
 
 // -----------------------------
 // Stat Allocation
 // -----------------------------
-proc/allocate_stats(mob/player_tmp/M)
-    var/local_points = 14
-    var/stat_cap = 10
+proc/StatAllocation(mob/playerTemp/M)
+    var/remainingStatPoints = 14
+    var/statCap = 10
 
     // Temporary stat storage
-    var/list/tmp_stats = list(
+    var/list/tempStatPoints = list(
         "Strength"     = M.Strength,
         "Vitality"     = M.Vitality,
         "Agility"      = M.Agility,
@@ -310,16 +393,16 @@ proc/allocate_stats(mob/player_tmp/M)
         var/list/options = list()
 
         // Build menu dynamically
-        for(var/stat in tmp_stats)
-            if(tmp_stats[stat] < stat_cap)
-                options["[stat] [tmp_stats[stat]]"] = stat
+        for(var/stat in tempStatPoints)
+            if(tempStatPoints[stat] < statCap)
+                options["[stat] [tempStatPoints[stat]]"] = stat
 
         options["Back"]   = "Back"
         options["Finish"] = "Finish"
 
         var/choice = input(
             M,
-            "Allocate your stat points. Points left ([local_points])",
+            "Allocate your stat points. Points left ([remainingStatPoints])",
             "Stats"
         ) in options
 
@@ -330,20 +413,20 @@ proc/allocate_stats(mob/player_tmp/M)
                 return STEP_ICON
 
             if("Finish")
-                if(local_points > 0)
+                if(remainingStatPoints > 0)
                     M << output("You must spend all points before finishing.", "Info")
                 else
                     // Commit changes
-                    for(var/stat in tmp_stats)
-                        M.vars[stat] = tmp_stats[stat]
+                    for(var/stat in tempStatPoints)
+                        M.vars[stat] = tempStatPoints[stat]
                     return STEP_STATS
 
             else
-                if(local_points <= 0)
+                if(remainingStatPoints <= 0)
                     M << output("You have no points left.", "Info")
-                else if(tmp_stats[choice] >= stat_cap)
-                    M << output("Starter stats are capped at [stat_cap]!", "Info")
+                else if(tempStatPoints[choice] >= statCap)
+                    M << output("Starter stats are capped at [statCap]!", "Info")
                 else
-                    tmp_stats[choice]++
-                    local_points--
+                    tempStatPoints[choice]++
+                    remainingStatPoints--
                     M << output("You increased [choice] by 1", "Info")

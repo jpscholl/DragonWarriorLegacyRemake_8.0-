@@ -16,11 +16,11 @@ var/list/color_swatches = list(
 var/tmp/appearance_updating = FALSE
 
 mob/proc/UpdateAppearance()
-    if(!palette || !preview_obj || !base_preview_icon)
+    if(!palette || !newCharPreview || !baseIconPreview)
         return
 
     // ALWAYS start from pristine base icon
-    var/icon/base = icon(base_preview_icon)
+    var/icon/base = icon(baseIconPreview)
 
     for(var/zone in palette.colors)
         var/original = palette.originalColors[zone]
@@ -28,7 +28,7 @@ mob/proc/UpdateAppearance()
         if(original && custom)
             base.SwapColor(original, custom)
 
-    preview_obj.icon = base
+    newCharPreview.icon = base
 
 //these verbs bring up the list and allow players to select color
 mob/proc/Set_Main()

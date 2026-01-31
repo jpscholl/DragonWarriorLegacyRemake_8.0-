@@ -72,7 +72,7 @@ window "Main"
 		anchor1 = 0,0
 		anchor2 = 63,100
 		saved-params = "zoom;letterbox;zoom-mode"
-	elem "Info"
+	elem "StatsCommands"
 		type = INFO
 		pos = 1095,0
 		size = 645x336

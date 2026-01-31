@@ -31,13 +31,6 @@ mob
 
 mob
     verb
-        TestSave()
-            set category = "Debug"
-
-            if(client && client.save_mgr)
-                client.save_mgr.save_character(src, 1)
-                src << output("Saved character [name] with Strength=[Strength], Level=[Level]", "Info")
-
         Debug_ShowZoneColors()
             set category = "Debug"
             // Zones to check
@@ -47,9 +40,9 @@ mob
                 var/orig_color = palette?.originalColors[zone]
                 var/current_color = null
                 switch(zone)
-                    if("Hair")   current_color = hair_color
-                    if("Eyes")   current_color = eye_color
-                    if("Main")   current_color = main_color
-                    if("Accent") current_color = accent_color
+                    if("Hair")   current_color = hairColor
+                    if("Eyes")   current_color = eyeColor
+                    if("Main")   current_color = mainColor
+                    if("Accent") current_color = accentColor
 
-                src << "[zone]: Original=[orig_color]  Current=[current_color]"
+                usr << output("[zone]: Original=[orig_color]  Current=[current_color]", "Info")

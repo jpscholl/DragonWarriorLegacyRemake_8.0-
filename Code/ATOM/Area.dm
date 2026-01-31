@@ -25,7 +25,7 @@ area
 				var/mob/M = O
 				if(M.client)
 					if(M.current_music != 'dw4town.mid')
-						M.client << sound('dw4town.mid', repeat = 1, volume = world_volume, channel = 1)
+						M.client << sound('dw4town.mid', repeat = 1, volume = worldVolume, channel = 1)
 						M.current_music = 'dw4town.mid'
 
 
@@ -37,7 +37,7 @@ area
 				var/mob/M = O
 				if(M.client)
 					if(M.current_music != 'dw4town.mid')
-						M.client << sound('dw4town.mid', repeat = 1, volume = world_volume, channel = 1)
+						M.client << sound('dw4town.mid', repeat = 1, volume = worldVolume, channel = 1)
 						M.current_music = 'dw4town.mid'
 
 
@@ -64,7 +64,7 @@ area
 				var/mob/M = O
 				if(M.client)
 					if(M.current_music != 'dw3town.mid')
-						M.client << sound('dw3town.mid', repeat = 1, volume = world_volume, channel = 1)
+						M.client << sound('dw3town.mid', repeat = 1, volume = worldVolume, channel = 1)
 						M.current_music = 'dw3town.mid'
 
 		Exited(atom/movable/O)

@@ -8,7 +8,7 @@ mob
 
 mob/proc/ToggleGhostForm()
     // Play the spell sound for everyone nearby
-    view() << sound('spell.WAV', volume = world_volume)
+    view() << sound('spell.WAV', volume = worldVolume)
 
     if(in_ghostform)
         // --- Exit ghost form ---
