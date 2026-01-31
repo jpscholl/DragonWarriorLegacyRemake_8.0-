@@ -1,16 +1,22 @@
+// -----------------------------
+// SaveManager datum
+// Handles saving/loading/deleting up to 4 characters per player
+// -----------------------------
 datum/SaveManager
-    var/savefile/F  // File object for player save data
+    var/savefile/F  // BYOND savefile object
 
     // -----------------------------
     // Constructor: Open or create savefile for a given player key
     // -----------------------------
     New(ckey)
+        // Ensure the directory exists in your project: "Player SaveFiles/"
         F = new("Player SaveFiles/[ckey].sav")
 
     // -----------------------------
-    // Save a player's data to a specific slot
+    // Save a player's data to a specific slot (1-4)
     // -----------------------------
-    proc/save_character(mob/player/M, slot)
+    proc/saveCharacter(mob/player/M, slot)
+        if(slot < 1 || slot > 4) return 0
         var/key = "char[slot]"
 
         // Core identity/stats
@@ -27,85 +33,120 @@ datum/SaveManager
         F["[key].gold"]          << M.Gold
 
         // Appearance
-        F["[key].base_icon"]     << M.base_icon
-        F["[key].hair_color"]    << M.hair_color
-        F["[key].eye_color"]     << M.eye_color
-        F["[key].main_color"]    << M.main_color
-        F["[key].accent_color"]  << M.accent_color
+        F["[key].baseIcon"]     << M.baseIcon
+        F["[key].hairColor"]    << M.hairColor
+        F["[key].eyeColor"]     << M.eyeColor
+        F["[key].mainColor"]    << M.mainColor
+        F["[key].accentColor"]  << M.accentColor
+
+        return 1
 
     // -----------------------------
-    // Load a player's data from a specific slot
+    // Load a player's data from a specific slot (1-4)
     // Returns 1 on success, 0 on failure
     // -----------------------------
-    proc/load_character(mob/player_tmp/M, slot)
+    proc/loadCharacter(mob/playerTemp/M, slot)
+        if(slot < 1 || slot > 4) return 0
         var/key = "char[slot]"
 
-        // Read class first to determine player type
-        var/class_choice
-        F["[key].class"] >> class_choice
-        if(!class_choice) return 0
+        // Read class first to spawn correct template
+        var/selectedClass
+        F["[key].class"] >> selectedClass
+        if(!selectedClass) return 0
 
-        // Spawn the correct player template
-        var/mob/player/newplayer
-        switch(class_choice)
-            if("Hero")    newplayer = new /mob/player/hero
-            if("Soldier") newplayer = new /mob/player/soldier
-            if("Wizard")  newplayer = new /mob/player/wizard
-        if(!newplayer) return 0
+        var/mob/player/newPlayer
+        switch(selectedClass)
+            if("Hero")    newPlayer = new /mob/player/Hero
+            if("Soldier") newPlayer = new /mob/player/Soldier
+            if("Wizard")  newPlayer = new /mob/player/Wizard
+        if(!newPlayer) return 0
 
         // -----------------------------
-        // Restore core identity/stats
+        // Restore core stats
         // -----------------------------
-        F["[key].name"]         >> newplayer.name
-        F["[key].level"]        >> newplayer.Level
-        F["[key].exp"]          >> newplayer.Exp
-        F["[key].statpoints"]   >> newplayer.StatPoints
-        F["[key].strength"]     >> newplayer.Strength
-        F["[key].vitality"]     >> newplayer.Vitality
-        F["[key].agility"]      >> newplayer.Agility
-        F["[key].intelligence"] >> newplayer.Intelligence
-        F["[key].luck"]         >> newplayer.Luck
-        F["[key].gold"]         >> newplayer.Gold
+        F["[key].name"]         >> newPlayer.name
+        F["[key].level"]        >> newPlayer.Level
+        F["[key].exp"]          >> newPlayer.Exp
+        F["[key].statpoints"]   >> newPlayer.StatPoints
+        F["[key].strength"]     >> newPlayer.Strength
+        F["[key].vitality"]     >> newPlayer.Vitality
+        F["[key].agility"]      >> newPlayer.Agility
+        F["[key].intelligence"] >> newPlayer.Intelligence
+        F["[key].luck"]         >> newPlayer.Luck
+        F["[key].gold"]         >> newPlayer.Gold
 
         // -----------------------------
         // Restore appearance
         // -----------------------------
-        F["[key].base_icon"]    >> newplayer.base_icon
-        F["[key].hair_color"]   >> newplayer.hair_color
-        F["[key].eye_color"]    >> newplayer.eye_color
-        F["[key].main_color"]   >> newplayer.main_color
-        F["[key].accent_color"] >> newplayer.accent_color
+        F["[key].baseIcon"]    >> newPlayer.baseIcon
+        F["[key].hairColor"]   >> newPlayer.hairColor
+        F["[key].eyeColor"]    >> newPlayer.eyeColor
+        F["[key].mainColor"]   >> newPlayer.mainColor
+        F["[key].accentColor"] >> newPlayer.accentColor
 
-        // Build palette and push saved colors
-        newplayer.palette = new /datum/PaletteManager(
-            newplayer.class,
-            newplayer.base_icon
+        // Rebuild palette & apply saved colors
+        newPlayer.palette = new /datum/PaletteManager(
+            newPlayer.class,
+            newPlayer.baseIcon
         )
-        if(newplayer.hair_color)   newplayer.palette.SetZoneColor("Hair", newplayer.hair_color)
-        if(newplayer.eye_color)    newplayer.palette.SetZoneColor("Eyes", newplayer.eye_color)
-        if(newplayer.main_color)   newplayer.palette.SetZoneColor("Main", newplayer.main_color)
-        if(newplayer.accent_color) newplayer.palette.SetZoneColor("Accent", newplayer.accent_color)
+        if(newPlayer.hairColor)   newPlayer.palette.SetZoneColor("Hair", newPlayer.hairColor)
+        if(newPlayer.eyeColor)    newPlayer.palette.SetZoneColor("Eyes", newPlayer.eyeColor)
+        if(newPlayer.mainColor)   newPlayer.palette.SetZoneColor("Main", newPlayer.mainColor)
+        if(newPlayer.accentColor) newPlayer.palette.SetZoneColor("Accent", newPlayer.accentColor)
 
-        // Rebuild final icon
-        newplayer.RebuildIcon()
+        newPlayer.RebuildIcon()
 
-        // Transfer control to client
-        M.client.mob = newplayer
-        newplayer.loc = locate(26,8,4)
-        players += newplayer
+        // -----------------------------
+        // Transfer client control
+        // -----------------------------
+        M.client.mob = newPlayer
+        newPlayer.loc = locate(26,8,4)
+        players += newPlayer
         del M
 
         return 1
+
+    // -----------------------------
+    // Delete a character slot
+    // -----------------------------
+    proc/delete_character(slot)
+        if(slot < 1 || slot > 4) return 0
+
+        var/key_prefix = "char[slot]"
+        var/list/subkeys = list(
+            "name","class","level","exp","statpoints",
+            "strength","vitality","agility","intelligence",
+            "luck","gold","baseIcon","hairColor","eyeColor",
+            "mainColor","accentColor"
+        )
+
+        for(var/subkey in subkeys)
+            F["[key_prefix].[subkey]"] = null
+
+        F.Flush()
+        return 1
+
+    // -----------------------------
+    // Return a list of filled character slots with names
+    // -----------------------------
+    proc/GetCharacterSlots()
+        var/list/out = list()
+        for(var/i = 1 to 4)
+            var/name
+            F["char[i].name"] >> name
+            if(name)
+                out["[i]"] = name
+        return out
 
 // -----------------------------
 // Rebuild the player's icon after loading or recoloring
 // -----------------------------
 mob/player/proc/RebuildIcon()
-    if(!base_icon) return src
+    if(!baseIcon) return src
 
-    var/icon/my_icon = icon("Mob Icons/Player/" + base_icon)
+    var/icon/my_icon = icon("Mob Icons/Player/" + baseIcon)
     if(!my_icon)
-        src << output("ERROR: Failed to load icon [base_icon]", "Info")
+        src << output("ERROR: Failed to load icon [baseIcon]", "Info")
         return src
 
     var/list/zones = list("Hair","Eyes","Main","Accent")
@@ -113,10 +154,10 @@ mob/player/proc/RebuildIcon()
         var/orig_color = palette?.originalColors[zone]
         var/new_color  = null
         switch(zone)
-            if("Hair")   new_color = hair_color
-            if("Eyes")   new_color = eye_color
-            if("Main")   new_color = main_color
-            if("Accent") new_color = accent_color
+            if("Hair")   new_color = hairColor
+            if("Eyes")   new_color = eyeColor
+            if("Main")   new_color = mainColor
+            if("Accent") new_color = accentColor
 
         if(orig_color && new_color)
             my_icon.SwapColor(orig_color, new_color)

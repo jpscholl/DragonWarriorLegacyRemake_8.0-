@@ -2,10 +2,10 @@
 // Base Mob
 // -----------------------------
 mob
-    see_invisible = 1
+    see_invisible = 0
 
-    var/datum/stats/stats
-    var/can_move = 1
+    var/datum/stats/Stats
+    var/canMove = 1
 
     // Basic character info
     var
@@ -34,11 +34,11 @@ mob
 // Appearance
 mob
     var
-        base_icon
-        hair_color
-        eye_color
-        main_color
-        accent_color
+        baseIcon
+        hairColor
+        eyeColor
+        mainColor
+        accentColor
 
 // -----------------------------
 // Player Mob
@@ -47,25 +47,25 @@ mob/player
     New()
         ..()  // call base constructor
 
-    pixel_y = 6
+    pixel_y = 5
 
     // Skills
     var/list/skills = list()
-    var/datum/Skill/active_skill
+    var/datum/Skill/activeSkill
 
     // -----------------------------
     // Skill Methods
     // -----------------------------
     verb/UseSkill()
         set hidden = 1
-        if(!active_skill) return
-        active_skill.Activate(src, null)
+        if(!activeSkill) return
+        activeSkill.Activate(src, null)
 
     verb/EquipBasicAttack()
         set hidden = 1
         var/datum/skill/Attack/atk = new
         skills += atk
-        active_skill = atk
+        activeSkill = atk
 
     verb/Attack()
         set hidden = 1
@@ -75,14 +75,14 @@ mob/player
 // -----------------------------
 // Class Overrides
 // -----------------------------
-mob/player/hero
+mob/player/Hero
     class = "Hero"
     MaxMP = 15
 
-mob/player/soldier
+mob/player/Soldier
     class = "Soldier"
     MaxMP = 0
 
-mob/player/wizard
+mob/player/Wizard
     class = "Wizard"
     MaxMP = 30

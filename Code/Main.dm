@@ -1,4 +1,4 @@
-/*
+ /*
 //    Game: Dragon Warrior Legacy Remake
 //
 //    Description:
@@ -9,7 +9,7 @@
 //
 //    Author: Cerebella (Shorin88)
 //
-//    Last Update: 12/30/2025
+//    Last Update: 1/31/2026
 //
 //    Known Issues:
 //    - Attacks break when targeting off screen
@@ -28,7 +28,7 @@
 */
 
 // -------------------- Global Settings --------------------
-var/global/world_volume = 30   // I'm not going to have one of those games that deafens people on startup
+var/global/worldVolume = 10   // I'm not going to have one of those games that deafens people on startup
 var/list/players = list()
 
 world
@@ -37,14 +37,14 @@ world
     //tick_lag  = 0.16
     icon_size = 32
     turf      = /turf/ground/grass
-    mob       = /mob/player_tmp
+    mob       = /mob/playerTemp
     view      = "13x13"
 
 client
-    var/datum/SaveManager/save_mgr   // declare the variable
+    var/datum/SaveManager/saveManager   // declare the variable
     New()
         ..()                         // call parent constructor
-        save_mgr = new(ckey)         // attach SaveManager to this client
+        saveManager = new(ckey)         // attach SaveManager to this client
         var/zoom = 5.6
         winset(src, "GamePlay", "size=[world.view*world.icon_size*zoom]x[world.view*world.icon_size*zoom]")
         perspective = EDGE_PERSPECTIVE
@@ -54,6 +54,8 @@ obj
     step_size = 32
 
 mob
+    var/isCharacter = FALSE
+
     step_size = 32
 
     Move(loc, dir = 0)
@@ -63,34 +65,30 @@ mob
         return ..()
 
 // -------------------- Temporary Player (Login Phase) --------------------
-mob/player_tmp
+mob/playerTemp
     Login()
-        DisableCommands()
-        client << sound('dw3conti.mid', repeat = 1, volume = world_volume, channel = 1)
+        DisableCommands() //make sure you troublemakers can't do something while in the login menu
+        client << sound('dw3conti.mid', repeat = 1, volume = worldVolume, channel = 1)
         src << output("Welcome to DWL Remake!!", "Info")
 
-        if(!client || !client.save_mgr)
-            show_login_menu(src)
-            return
+        // The player exists in our database
+        if(SavefileExists())
+            src << output("Your savefile exists!", "Info")
+        else
+            src << output("No savefile found for your ckey.", "Info")
 
-        var/loaded = client.save_mgr.load_character(src, 1)
+        // Always show the login menu first
+        spawn(1)
+            ShowLoginMenu(src)
 
-        if(loaded)
-            src << output("Character loaded from save slot 1.", "Info")
-            finalize_player(src)
-            return
-
-        // GUARANTEED to reach here now
-        src << output("No saved character found, please create one.", "Info")
-        show_login_menu(src)
-
-        EnableCommands()
+        EnableCommands() //now you can cause trouble in the world
         players << output("[src.name] has joined the world!!", "Messages")
 
-    Logout()
+
+    Logout() //well fine...just leave then. See if I care!
         players << output("[src.name] has left the world!!", "Messages")
-        if(client && client.save_mgr)
-            client.save_mgr.save_character(src, 1)
+        if(client && client.saveManager)
+            client.saveManager.saveCharacter(src, 1)
         players -= client
         src.loc = null
 
@@ -102,3 +100,8 @@ mob/proc/DisableCommands()
 // Enable verbs once the player has joined the world
 mob/proc/EnableCommands()
     src.verbs += typesof(/mob/verb)
+
+client/proc/SaveFile()
+    // Each client has ONE savefile:
+    // players/[ckey].sav
+    return new /savefile("[SAVE_PATH]/[ckey].sav")

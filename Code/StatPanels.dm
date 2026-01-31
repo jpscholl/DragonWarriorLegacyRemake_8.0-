@@ -3,11 +3,11 @@ mob/player
         // -----------------------------
         // Clickable stat link objects
         // -----------------------------
-        obj/stat_link/str_display
-        obj/stat_link/vit_display
-        obj/stat_link/agi_display
-        obj/stat_link/int_display
-        obj/stat_link/luck_display
+        obj/StatLink/str_display
+        obj/StatLink/vit_display
+        obj/StatLink/agi_display
+        obj/StatLink/int_display
+        obj/StatLink/luck_display
 
     // -----------------------------
     // Display player stats
@@ -32,11 +32,11 @@ mob/player
 
         // ---------------- Battle Panel ----------------
         // Initialize clickable stat links once per player
-        if(!str_display)  str_display  = new /obj/stat_link("Strength", src)
-        if(!vit_display)  vit_display  = new /obj/stat_link("Vitality", src)
-        if(!agi_display)  agi_display  = new /obj/stat_link("Agility", src)
-        if(!int_display)  int_display  = new /obj/stat_link("Intelligence", src)
-        if(!luck_display) luck_display = new /obj/stat_link("Luck", src)
+        if(!str_display)  str_display  = new /obj/StatLink("Strength", src)
+        if(!vit_display)  vit_display  = new /obj/StatLink("Vitality", src)
+        if(!agi_display)  agi_display  = new /obj/StatLink("Agility", src)
+        if(!int_display)  int_display  = new /obj/StatLink("Intelligence", src)
+        if(!luck_display) luck_display = new /obj/StatLink("Luck", src)
 
         // Header panel for combat-related stats
         statpanel("Battle")
