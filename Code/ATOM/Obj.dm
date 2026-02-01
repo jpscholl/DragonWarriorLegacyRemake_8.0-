@@ -108,7 +108,7 @@ obj/ceiling
     icon = 'wall.dmi'
     icon_state = "ceiling"
     layer = 100
-    invisibility = 1   // hidden unless mob.see_invisible >= 1
+    invisibility = 1   // hidden unless mob.seeInvisible >= 1
 
     Crossed(mob/M)
         if(ismob(M) && M.client)

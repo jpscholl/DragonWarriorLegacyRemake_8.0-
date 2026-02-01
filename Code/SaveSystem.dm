@@ -15,7 +15,7 @@ datum/SaveManager
     // -----------------------------
     // Save a player's data to a specific slot (1-4)
     // -----------------------------
-    proc/saveCharacter(mob/player/M, slot)
+    proc/SaveCharacter(mob/player/M, slot)
         if(slot < 1 || slot > 4) return 0
         var/key = "char[slot]"
 
@@ -45,7 +45,7 @@ datum/SaveManager
     // Load a player's data from a specific slot (1-4)
     // Returns 1 on success, 0 on failure
     // -----------------------------
-    proc/loadCharacter(mob/playerTemp/M, slot)
+    proc/LoadCharacter(mob/playerTemp/M, slot)
         if(slot < 1 || slot > 4) return 0
         var/key = "char[slot]"
 
@@ -109,7 +109,7 @@ datum/SaveManager
     // -----------------------------
     // Delete a character slot
     // -----------------------------
-    proc/delete_character(slot)
+    proc/DeleteCharacter(slot)
         if(slot < 1 || slot > 4) return 0
 
         var/key_prefix = "char[slot]"
@@ -144,24 +144,24 @@ datum/SaveManager
 mob/player/proc/RebuildIcon()
     if(!baseIcon) return src
 
-    var/icon/my_icon = icon("Mob Icons/Player/" + baseIcon)
-    if(!my_icon)
+    var/icon/playerIcon = icon("Mob Icons/Player/" + baseIcon)
+    if(!playerIcon)
         src << output("ERROR: Failed to load icon [baseIcon]", "Info")
         return src
 
     var/list/zones = list("Hair","Eyes","Main","Accent")
     for(var/zone in zones)
-        var/orig_color = palette?.originalColors[zone]
-        var/new_color  = null
+        var/baseColor = palette?.originalColors[zone]
+        var/replaceColor  = null
         switch(zone)
-            if("Hair")   new_color = hairColor
-            if("Eyes")   new_color = eyeColor
-            if("Main")   new_color = mainColor
-            if("Accent") new_color = accentColor
+            if("Hair")   replaceColor = hairColor
+            if("Eyes")   replaceColor = eyeColor
+            if("Main")   replaceColor = mainColor
+            if("Accent") replaceColor = accentColor
 
-        if(orig_color && new_color)
-            my_icon.SwapColor(orig_color, new_color)
+        if(baseColor && replaceColor)
+            playerIcon.SwapColor(baseColor, replaceColor)
 
-    icon = my_icon
+    icon = playerIcon
     UpdateAppearance()
     return src

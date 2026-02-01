@@ -17,18 +17,18 @@
 //
 //    To do list:
 //    - Complete combat - players, enemies with AI, involving all the things below
-//    - Class templates - default player template and class specific skills and stat growth
+//    - Class templates - default player template and class specific skills
 //    - Skills and abilities - so players can do cool battle stuff
-//    - Interact system - the basic .center interact with npcs, picking up items, open doors, etc.
+//    - Interact system - the basic .center interact with npcs, picking up items, open doors, etc. *partially functional
 //    - Party System
 //    - Tweak roof controls
-//    - respawn at church
+//    - respawn at church after death
 //    - custom doors, custom keys that will unlock/lock doors or open when you interact while carrying the key
 //    - GM/Admin systems - building system
 */
 
 // -------------------- Global Settings --------------------
-var/global/worldVolume = 10   // I'm not going to have one of those games that deafens people on startup
+var/global/baseVolume = 10   // I'm not going to have one of those games that deafens people on startup
 var/list/players = list()
 
 world
@@ -43,7 +43,7 @@ world
 client
     var/datum/SaveManager/saveManager   // declare the variable
     New()
-        ..()                         // call parent constructor
+        ..()                            // call parent constructor
         saveManager = new(ckey)         // attach SaveManager to this client
         var/zoom = 5.6
         winset(src, "GamePlay", "size=[world.view*world.icon_size*zoom]x[world.view*world.icon_size*zoom]")
@@ -68,7 +68,7 @@ mob
 mob/playerTemp
     Login()
         DisableCommands() //make sure you troublemakers can't do something while in the login menu
-        client << sound('dw3conti.mid', repeat = 1, volume = worldVolume, channel = 1)
+        client << sound('dw3conti.mid', repeat = 1, volume = baseVolume, channel = 1)
         src << output("Welcome to DWL Remake!!", "Info")
 
         // The player exists in our database
@@ -88,7 +88,7 @@ mob/playerTemp
     Logout() //well fine...just leave then. See if I care!
         players << output("[src.name] has left the world!!", "Messages")
         if(client && client.saveManager)
-            client.saveManager.saveCharacter(src, 1)
+            client.saveManager.SaveCharacter(src, 1)
         players -= client
         src.loc = null
 

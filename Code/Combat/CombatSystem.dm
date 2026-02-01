@@ -1,7 +1,7 @@
 mob/proc
 	TakeDamage(damage)
 		flick("hit", src)
-		view() << sound("hit.wav", channel = 1, volume = worldVolume)
+		view() << sound("hit.wav", channel = 1, volume = baseVolume)
 		view(src) << output("[src] takes [usr.Strength] damage! (HP: [HP])", "Info")
 		HP -= usr.Strength
 		if (HP <= 0)
@@ -29,4 +29,4 @@ mob/proc
             src.Level += 1
             src.StatPoints += 5
             src << output("You are now Level [src.Level]", "Info")
-            src << sound('levelup.wav', channel = 2, volume = worldVolume)
+            src << sound('levelup.wav', channel = 2, volume = baseVolume)

@@ -7,7 +7,7 @@ datum/stats
         Luck = 1
         StatPoints = 0
 
-    proc/allocate(choice)
+    proc/Allocate(choice)
         if(StatPoints <= 0) return
         switch(choice)
             if("Strength")     Strength++
@@ -17,6 +17,6 @@ datum/stats
             if("Luck")         Luck++
         StatPoints--
 
-    proc/recalculate_vitals(mob/M)
+    proc/RecalculateVitals(mob/M)
         M.MaxHP = 20 + (Vitality * 2)
         M.MaxMP = 10 + (Intelligence * 2)

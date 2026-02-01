@@ -2,18 +2,18 @@
 // Clickable Stat Link
 // -----------------------------
 obj/StatLink
-    var/label        // Name of the stat, e.g., "Strength"
-    var/mob/player/P // Reference to owning player
-    var/statMap      // Maps labels to actual player vars
+    var/attributeName        // Name of the stat, e.g., "Strength"
+    var/mob/player/P         // Reference to owning player
+    var/statMap              // Maps attributeNames to actual player vars
 
     // -----------------------------
     // Constructor
     // -----------------------------
-    New(label, mob/player/P)
-        src.label = label
+    New(attributeName, mob/player/P)
+        src.attributeName = attributeName
         src.P = P
 
-        // Map labels to player vars
+        // Map attributeNames to player vars
         statMap = list(
             "Strength"     = "Strength",
             "Vitality"     = "Vitality",
@@ -28,10 +28,10 @@ obj/StatLink
     // -----------------------------
     proc/UpdateName()
         if(!P) return
-        if(!(label in statMap)) return
+        if(!(attributeName in statMap)) return
 
-        var/statVar = statMap[label]
-        name = "[label]: [P.vars[statVar]]"
+        var/statVar = statMap[attributeName]
+        name = "[attributeName]: [P.vars[statVar]]"
 
     // -----------------------------
     // Handle clicks
@@ -43,9 +43,9 @@ obj/StatLink
             P << output("No stat points left!", "Info")
             return
 
-        if(!(label in statMap)) return
+        if(!(attributeName in statMap)) return
 
-        var/statVar = statMap[label]
+        var/statVar = statMap[attributeName]
         P.vars[statVar]++   // Increment the actual stat
         P.StatPoints--       // Reduce available points
 

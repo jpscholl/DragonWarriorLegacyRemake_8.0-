@@ -27,16 +27,16 @@ datum/skill/Attack
         flick("attack", user)
         user << sound('attack.wav', volume = 60)
 
-        var/turf/target_tile = get_step(user, user.dir)
-        if (!target_tile) return
+        var/turf/targetTile = get_step(user, user.dir)
+        if (!targetTile) return
 
-        flick("attack", target_tile)
+        flick("attack", targetTile)
 
         var/icon/weaponIcon = icon(user.icon, icon_state, user.dir)
-        target_tile.overlays += weaponIcon
-        spawn(2) target_tile.overlays -= weaponIcon
+        targetTile.overlays += weaponIcon
+        spawn(2) targetTile.overlays -= weaponIcon
 
-        for (var/mob/M in target_tile.contents)
+        for (var/mob/M in targetTile.contents)
             if (M != user && M.HP > 0)
                 M.overlays += weaponIcon
                 spawn(2) M.overlays -= weaponIcon

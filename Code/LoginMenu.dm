@@ -1,6 +1,7 @@
 // -----------------------------
 // Character Creation Pipeline
 // -----------------------------
+
 // Step constants for the creation flow
 #define STEP_NAME   1
 #define STEP_CLASS  2
@@ -22,7 +23,7 @@ mob
         selectedName                   // chosen character name
         selectedClass                  // chosen class (Hero, Soldier, Wizard)
         selectedIcon                   // chosen icon file
-        selectedIconName               // chosen icon label
+        selectedIconName               // chosen icon attributeName
         datum/PaletteManager/palette   // palette manager for recoloring
 
     proc/SavefileExists()
@@ -58,7 +59,7 @@ proc/ShowLoginMenu(mob/playerTemp/M)
 
     if(findtext(choice, "Load "))
         var/slot = text2num(copytext(choice, findtext(choice, "Slot ") + 5))
-        M.client.saveManager.loadCharacter(M, slot)
+        M.client.saveManager.LoadCharacter(M, slot)
         return
 
     switch(choice)
@@ -139,7 +140,7 @@ proc/DeleteCharacterMenu(mob/playerTemp/M)
         ShowLoginMenu(M)
         return
 
-    if(!M.client.saveManager.delete_character(slot))
+    if(!M.client.saveManager.DeleteCharacter(slot))
         alert(M, "Delete failed.")
 
     ShowLoginMenu(M)
@@ -310,7 +311,7 @@ proc/FinalizePlayer(mob/playerTemp/M)
     newPlayer.isCharacter = TRUE
 
     // Save character BEFORE login commit
-    C.saveManager.saveCharacter(newPlayer, slot)
+    C.saveManager.SaveCharacter(newPlayer, slot)
 
     // -----------------------------
     // Transfer control
@@ -321,7 +322,7 @@ proc/FinalizePlayer(mob/playerTemp/M)
     C.mob = newPlayer
     newPlayer.loc = locate(26, 8, 4)
 
-    newPlayer << sound('dw4town.mid', repeat = 1, channel = 1, volume = worldVolume)
+    newPlayer << sound('dw4town.mid', repeat = 1, channel = 1, volume = baseVolume)
 
     players += newPlayer
 

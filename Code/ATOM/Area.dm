@@ -25,7 +25,7 @@ area
 				var/mob/M = O
 				if(M.client)
 					if(M.current_music != 'dw4town.mid')
-						M.client << sound('dw4town.mid', repeat = 1, volume = worldVolume, channel = 1)
+						M.client << sound('dw4town.mid', repeat = 1, volume = baseVolume, channel = 1)
 						M.current_music = 'dw4town.mid'
 
 
@@ -37,7 +37,7 @@ area
 				var/mob/M = O
 				if(M.client)
 					if(M.current_music != 'dw4town.mid')
-						M.client << sound('dw4town.mid', repeat = 1, volume = worldVolume, channel = 1)
+						M.client << sound('dw4town.mid', repeat = 1, volume = baseVolume, channel = 1)
 						M.current_music = 'dw4town.mid'
 
 
@@ -64,7 +64,7 @@ area
 				var/mob/M = O
 				if(M.client)
 					if(M.current_music != 'dw3town.mid')
-						M.client << sound('dw3town.mid', repeat = 1, volume = worldVolume, channel = 1)
+						M.client << sound('dw3town.mid', repeat = 1, volume = baseVolume, channel = 1)
 						M.current_music = 'dw3town.mid'
 
 		Exited(atom/movable/O)
@@ -87,11 +87,11 @@ area
 
 		Entered(mob/M) //when you enter the house you will not see the roof any more
 			if(ismob(M)) //if your a mob
-				M.see_invisible = 0 //keep these variables here or this will not work
+				M.seeInvisible = 0 //keep these variables here or this will not work
 
 		Exited(mob/M) //when you exit the house you will see the roof
 			if(ismob(M)) //if your a mob
-				M.see_invisible = 1 //keep these variables here or this will not work
+				M.seeInvisible = 1 //keep these variables here or this will not work
 
 	visible
 		icon_state = "visible"
