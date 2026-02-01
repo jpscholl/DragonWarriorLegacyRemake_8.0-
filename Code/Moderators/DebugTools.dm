@@ -37,7 +37,7 @@ mob
             var/list/zones = list("Hair", "Eyes", "Main", "Accent")
 
             for(var/zone in zones)
-                var/orig_color = palette?.originalColors[zone]
+                var/baseColor = palette?.originalColors[zone]
                 var/current_color = null
                 switch(zone)
                     if("Hair")   current_color = hairColor
@@ -45,4 +45,4 @@ mob
                     if("Main")   current_color = mainColor
                     if("Accent") current_color = accentColor
 
-                usr << output("[zone]: Original=[orig_color]  Current=[current_color]", "Info")
+                usr << output("[zone]: Original=[baseColor]  Current=[current_color]", "Info")

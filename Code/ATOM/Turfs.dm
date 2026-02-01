@@ -190,7 +190,7 @@ turf/table/longtablecenter
 					var/turf/new_loc = locate(M.x, M.y, M.z + 1)
 					if(new_loc)
 						M.loc = new_loc
-				view() << sound('stairs.wav', repeat = 0, volume = worldVolume)
+				view() << sound('stairs.wav', repeat = 0, volume = baseVolume)
 //walking over causes player to warp one Z level up
 
 		stairsdown
@@ -202,7 +202,7 @@ turf/table/longtablecenter
 					var/turf/new_loc = locate(M.x, M.y, M.z - 1)
 					if(new_loc)
 						M.loc = new_loc
-				view() << sound('stairs.wav', repeat = 0, volume = worldVolume)
+				view() << sound('stairs.wav', repeat = 0, volume = baseVolume)
 
 //walking over causes player to warp one Z level down
 

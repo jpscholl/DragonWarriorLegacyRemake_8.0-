@@ -1,37 +1,37 @@
 // Ghost form variables
 mob
-    var/image/ghost
-    var/in_ghostform = FALSE
-    var/icon/original_icon
+    var/image/ghostIcon
+    var/isGhostform = FALSE
+    var/icon/baseIcon
 
-// Toggle ghost form on/off
+// Toggle ghostIcon form on/off
 
 mob/proc/ToggleGhostForm()
     // Play the spell sound for everyone nearby
-    view() << sound('spell.WAV', volume = worldVolume)
+    view() << sound('spell.WAV', volume = baseVolume)
 
-    if(in_ghostform)
-        // --- Exit ghost form ---
-        in_ghostform   = FALSE
-        invisibility   = 0
-        density        = 1
-        overlays      -= ghost
-        if(client) client.images -= ghost
-        ghost          = null
-        icon           = original_icon
-        icon_state     = "world"
+    if(isGhostform)
+        // --- Exit ghostIcon form ---
+        isGhostform = FALSE
+        invisibility = 0
+        density = 1
+        overlays -= ghostIcon
+        if(client) client.images -= ghostIcon
+        ghostIcon = null
+        icon = baseIcon
+        icon_state = "world"
         src << output("You reappear!", "Info")
     else
-        // --- Enter ghost form ---
-        in_ghostform   = TRUE
-        original_icon  = icon
-        icon           = null
-        invisibility   = 1
-        density        = 0
-        ghost          = image('phase.dmi', src)
-        if(client) client.images += ghost
+        // --- Enter ghostIcon form ---
+        isGhostform = TRUE
+        baseIcon = icon
+        icon = null
+        invisibility = 1
+        density = 0
+        ghostIcon = image('phase.dmi', src)
+        if(client) client.images += ghostIcon
         src << output("You disappear!", "Info")
 
-// GM verb to toggle ghost form
-mob/verb/GMghostform()
+// GM verb to toggle ghostIcon form
+mob/verb/GMghostIconform()
     ToggleGhostForm()

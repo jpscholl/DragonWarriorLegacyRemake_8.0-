@@ -2,7 +2,7 @@
 // Base Mob
 // -----------------------------
 mob
-    see_invisible = 0
+    seeInvisible = 0
 
     var/datum/stats/Stats
     var/canMove = 1
