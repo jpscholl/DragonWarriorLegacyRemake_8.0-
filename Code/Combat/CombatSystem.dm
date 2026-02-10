@@ -1,27 +1,28 @@
 mob/proc
-	TakeDamage(damage)
-		flick("hit", src)
-		view() << sound("hit.wav", channel = 1, volume = baseVolume)
-		view(src) << output("[src] takes [usr.Strength] damage! (HP: [HP])", "Info")
-		HP -= usr.Strength
-		if (HP <= 0)
-			Die(usr)
-			CleanUpDead()
+    TakeDamage(damage, mob/attacker)
+        if(HP <= 0) return
 
-mob/proc
-	CleanUpDead()
-		spawn(100)	//async call that doesn't block future use of attacking
-		del src
+        flick("hit", src)
+        view() << sound("hit.wav", channel = 1, volume = baseVolume)
 
-mob/proc
-	Die(mob/M)
-		view(src) << output("[src] has been defeated!", "Info")
-		M.Exp += 10
-		M.LevelCheck()
-		src.density = 0
-		src.icon_state = "sleep"
+        HP -= damage
+        view(src) << output("[src] takes [damage] damage! (HP: [max(HP,0)])", "Info")
 
-mob/proc
+        if(HP <= 0)
+            Die(attacker)
+            CleanUpDead()
+
+    CleanUpDead()
+        spawn(100)//async call that doesn't block future use of attacking
+        del src
+
+    Die(mob/M)
+        view(src) << output("[src] has been defeated!", "Info")
+        M.Exp += 10
+        M.LevelCheck()
+        src.density = 0
+        src.icon_state = "sleep"
+
     LevelCheck()
         if(src.Exp >= src.Nexp)
             src.Exp = 0

@@ -2,7 +2,7 @@
 // Base Mob
 // -----------------------------
 mob
-    seeInvisible = 0
+    see_invisible = 0
 
     var/datum/stats/Stats
     var/canMove = 1
@@ -34,7 +34,7 @@ mob
 // Appearance
 mob
     var
-        baseIcon
+        basePlayerIcon
         hairColor
         eyeColor
         mainColor
@@ -47,7 +47,7 @@ mob/player
     New()
         ..()  // call base constructor
 
-    pixel_y = 5
+    pixel_y = 7
 
     // Skills
     var/list/skills = list()

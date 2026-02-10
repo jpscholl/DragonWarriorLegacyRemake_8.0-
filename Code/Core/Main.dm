@@ -9,7 +9,7 @@
 //
 //    Author: Cerebella (Shorin88)
 //
-//    Last Update: 1/31/2026
+//    Last Update: 2/8/2026
 //
 //    Known Issues:
 //    - Attacks break when targeting off screen
@@ -34,7 +34,6 @@ var/list/players = list()
 world
     name      = "Dragon Warrior Legacy Remake"
     fps       = 60
-    //tick_lag  = 0.16
     icon_size = 32
     turf      = /turf/ground/grass
     mob       = /mob/playerTemp
@@ -71,12 +70,6 @@ mob/playerTemp
         client << sound('dw3conti.mid', repeat = 1, volume = baseVolume, channel = 1)
         src << output("Welcome to DWL Remake!!", "Info")
 
-        // The player exists in our database
-        if(SavefileExists())
-            src << output("Your savefile exists!", "Info")
-        else
-            src << output("No savefile found for your ckey.", "Info")
-
         // Always show the login menu first
         spawn(1)
             ShowLoginMenu(src)
@@ -104,4 +97,4 @@ mob/proc/EnableCommands()
 client/proc/SaveFile()
     // Each client has ONE savefile:
     // players/[ckey].sav
-    return new /savefile("[SAVE_PATH]/[ckey].sav")
+    return new /savefile("players/" + ckey + ".sav")
