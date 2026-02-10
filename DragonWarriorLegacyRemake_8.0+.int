@@ -2,13 +2,21 @@
 /*
 MAP_PLANE_MASTERS: 
 MAP_ZOOM: 1.500
-LAST_COMPILE_TIME: 1769904378
-DIR: Code Code\ATOM Code\Combat Code\Moderators Code\PlayerCustomization Maps 
+LAST_COMPILE_TIME: 1770750871
+DIR: Code Code\Admin Code\Admin\Commands Code\Admin\Debug Code\Combat Code\Combat\NPCs Code\Combat\Skills Code\Core Code\Player Code\Player\Commands Code\Player\Customization Code\Save Code\UI Code\World Maps 
+PACKAGE_RSC_NAME: C:\Users\jpsch\Desktop\DragonWarriorLegacyRemake_8.0+_rsc.zip
 AUTO_FILE_DIR: ON
+PACKAGE_DMB_INFO: 
 MAP_ICON_TYPE: 0
-LAST_COMPILE_VERSION: 516.1673
-WINDOW: Code\Main.dm;Code\LoginMenu.dm
-FILE: Code\LoginMenu.dm
+PACKAGE_DME_NAME: C:\Users\jpsch\Desktop\DWLR Test\DragonWarriorLegacyRemake_8.0+_src.zip
+LAST_COMPILE_VERSION: 516.1677
+PACKAGE_TYPE: 0
+PACKAGE_DME_START: 
+WINDOW: Code\Combat\Skills\SkillDatum.dm;Code\Combat\CombatSystem.dm;Code\Player\PlayerTemplate.dm
+PACKAGE_DME_INFO: 
+FILE: Code\Player\PlayerTemplate.dm
 MAP_INSTANCE_MODE: copy
+PACKAGE_DMB_NAME: C:\Users\jpsch\Desktop\LoginTest1.zip
+PACKAGE_DME_DEMO: 
 */
 // END_INTERNALS

@@ -12,7 +12,7 @@
 // Global list of active players
 //var/list/players = list()
 #define SAVE_PATH "players"
-#define MAX_CHARACTERS 3
+#define MAX_CHARACTERS 4
 
 
 // Temporary mob used during character creation
@@ -26,9 +26,6 @@ mob
         selectedIconName               // chosen icon attributeName
         datum/PaletteManager/palette   // palette manager for recoloring
 
-    proc/SavefileExists()
-        var/savePath = "Player SaveFiles/" + src.ckey + ".sav"
-        return fexists(savePath)
 
 mob/playerTemp   // placeholder mob type for login/creation
 
@@ -71,7 +68,6 @@ proc/ShowLoginMenu(mob/playerTemp/M)
 
         if("Quit")
             del M
-
 
 // -----------------------------
 // Character Creation Flow
@@ -357,6 +353,7 @@ proc/ApplyCustomStats(mob/playerTemp/src, mob/player/dst)
     dst.Intelligence = src.Intelligence
     dst.Luck         = src.Luck
 
+
 //copy player appearance from preview
 proc/ApplyCustomColors(mob/playerTemp/src, mob/player/dst)
     if(src.newCharPreview)
@@ -366,12 +363,11 @@ proc/ApplyCustomColors(mob/playerTemp/src, mob/player/dst)
         dst.icon = icon(src.selectedIcon)
         dst.icon_state = "world"
 
-    dst.baseIcon    = "[src.selectedIcon]"
+    dst.baseIcon    = src.selectedIconName
     dst.hairColor   = "[src.hairColor]"
     dst.eyeColor    = "[src.eyeColor]"
     dst.mainColor   = "[src.mainColor]"
     dst.accentColor = "[src.accentColor]"
-
 
 
 // -----------------------------

@@ -87,11 +87,11 @@ area
 
 		Entered(mob/M) //when you enter the house you will not see the roof any more
 			if(ismob(M)) //if your a mob
-				M.seeInvisible = 0 //keep these variables here or this will not work
+				M.see_invisible = 0 //keep these variables here or this will not work
 
 		Exited(mob/M) //when you exit the house you will see the roof
 			if(ismob(M)) //if your a mob
-				M.seeInvisible = 1 //keep these variables here or this will not work
+				M.see_invisible = 1 //keep these variables here or this will not work
 
 	visible
 		icon_state = "visible"
@@ -109,7 +109,7 @@ area
 		icon_state = "deepwater"
 
 	water1
-		icon_state = "water1"
+		icon_state = "water1" 
 
 	water
 		icon_state = "water"

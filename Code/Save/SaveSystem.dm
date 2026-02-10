@@ -19,86 +19,62 @@ datum/SaveManager
         if(slot < 1 || slot > 4) return 0
         var/key = "char[slot]"
 
-        // Core identity/stats
-        F["[key].name"]          << M.name
-        F["[key].class"]         << M.class
-        F["[key].level"]         << M.Level
-        F["[key].exp"]           << M.Exp
-        F["[key].statpoints"]    << M.StatPoints
-        F["[key].strength"]      << M.Strength
-        F["[key].vitality"]      << M.Vitality
-        F["[key].agility"]       << M.Agility
-        F["[key].intelligence"]  << M.Intelligence
-        F["[key].luck"]          << M.Luck
-        F["[key].gold"]          << M.Gold
+        var/datum/CharacterSaveData/D = new
+        D.BuildFromCharacter(M)
 
-        // Appearance
-        F["[key].baseIcon"]     << M.baseIcon
-        F["[key].hairColor"]    << M.hairColor
-        F["[key].eyeColor"]     << M.eyeColor
-        F["[key].mainColor"]    << M.mainColor
-        F["[key].accentColor"]  << M.accentColor
+        // Save metadata separately (optional but nice)
+        F["[key].name"] << M.name
 
+        // Save whole blob
+        F["[key].data"] << D
+
+        F.Flush()
         return 1
 
-    // -----------------------------
-    // Load a player's data from a specific slot (1-4)
-    // Returns 1 on success, 0 on failure
-    // -----------------------------
+
+// -----------------------------
+// Load a player's data from a specific slot (1-4)
+// Returns 1 on success, 0 on failure
+// -----------------------------
     proc/LoadCharacter(mob/playerTemp/M, slot)
         if(slot < 1 || slot > 4) return 0
         var/key = "char[slot]"
 
-        // Read class first to spawn correct template
-        var/selectedClass
-        F["[key].class"] >> selectedClass
-        if(!selectedClass) return 0
+        // Load the saved snapshot
+        var/datum/CharacterSaveData/D
+        F["[key].data"] >> D
+        if(!D) return 0
 
+        // Spawn the correct player mob
         var/mob/player/newPlayer
-        switch(selectedClass)
+        switch(D.class)
             if("Hero")    newPlayer = new /mob/player/Hero
             if("Soldier") newPlayer = new /mob/player/Soldier
             if("Wizard")  newPlayer = new /mob/player/Wizard
         if(!newPlayer) return 0
 
-        // -----------------------------
-        // Restore core stats
-        // -----------------------------
-        F["[key].name"]         >> newPlayer.name
-        F["[key].level"]        >> newPlayer.Level
-        F["[key].exp"]          >> newPlayer.Exp
-        F["[key].statpoints"]   >> newPlayer.StatPoints
-        F["[key].strength"]     >> newPlayer.Strength
-        F["[key].vitality"]     >> newPlayer.Vitality
-        F["[key].agility"]      >> newPlayer.Agility
-        F["[key].intelligence"] >> newPlayer.Intelligence
-        F["[key].luck"]         >> newPlayer.Luck
-        F["[key].gold"]         >> newPlayer.Gold
+        // Apply saved snapshot to the mob
+        D.ApplyToCharacter(newPlayer)
 
-        // -----------------------------
-        // Restore appearance
-        // -----------------------------
-        F["[key].baseIcon"]    >> newPlayer.baseIcon
-        F["[key].hairColor"]   >> newPlayer.hairColor
-        F["[key].eyeColor"]    >> newPlayer.eyeColor
-        F["[key].mainColor"]   >> newPlayer.mainColor
-        F["[key].accentColor"] >> newPlayer.accentColor
+        // Make sure baseIcon is assigned
+        if(!newPlayer.baseIcon && newPlayer.basePlayerIcon)
+            newPlayer.baseIcon = newPlayer.basePlayerIcon
 
         // Rebuild palette & apply saved colors
         newPlayer.palette = new /datum/PaletteManager(
             newPlayer.class,
             newPlayer.baseIcon
         )
+
         if(newPlayer.hairColor)   newPlayer.palette.SetZoneColor("Hair", newPlayer.hairColor)
         if(newPlayer.eyeColor)    newPlayer.palette.SetZoneColor("Eyes", newPlayer.eyeColor)
         if(newPlayer.mainColor)   newPlayer.palette.SetZoneColor("Main", newPlayer.mainColor)
         if(newPlayer.accentColor) newPlayer.palette.SetZoneColor("Accent", newPlayer.accentColor)
 
+        // Finally, rebuild the icon with applied palette/colors
         newPlayer.RebuildIcon()
 
-        // -----------------------------
         // Transfer client control
-        // -----------------------------
         M.client.mob = newPlayer
         newPlayer.loc = locate(26,8,4)
         players += newPlayer
@@ -112,16 +88,11 @@ datum/SaveManager
     proc/DeleteCharacter(slot)
         if(slot < 1 || slot > 4) return 0
 
-        var/key_prefix = "char[slot]"
-        var/list/subkeys = list(
-            "name","class","level","exp","statpoints",
-            "strength","vitality","agility","intelligence",
-            "luck","gold","baseIcon","hairColor","eyeColor",
-            "mainColor","accentColor"
-        )
+        var/prefix = "char[slot]."
 
-        for(var/subkey in subkeys)
-            F["[key_prefix].[subkey]"] = null
+        for(var/key in F.dir)
+            if(findtext(key, prefix) == 1)
+                F[key] = null
 
         F.Flush()
         return 1
