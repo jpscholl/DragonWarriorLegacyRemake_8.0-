@@ -5,7 +5,9 @@ mob
     see_invisible = 0
 
     var/datum/stats/Stats
-    var/canMove = 1
+    var/canAct = 1
+    var/BattleModeEnabled = TRUE
+
 
     // Basic character info
     var
@@ -51,7 +53,7 @@ mob/player
 
     // Skills
     var/list/skills = list()
-    var/datum/Skill/activeSkill
+    var/datum/skill/activeSkill
 
     // -----------------------------
     // Skill Methods
@@ -59,11 +61,18 @@ mob/player
     verb/UseSkill()
         set hidden = 1
         if(!activeSkill) return
-        activeSkill.Activate(src, null)
+
+        var/mob/target = null
+        var/turf/stepTile = get_step(src, src.dir)
+        if(stepTile)
+            target = stepTile.contents.Find(target)  // pick first mob in front
+
+        activeSkill.OnUse(src, target)
+
 
     verb/EquipBasicAttack()
         set hidden = 1
-        var/datum/skill/Attack/atk = new
+        var/datum/skill/atk = new
         skills += atk
         activeSkill = atk
 
