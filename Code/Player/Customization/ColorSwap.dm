@@ -1,3 +1,7 @@
+// -----------------------------
+// Character Color Customization
+// -----------------------------
+
 //In depth list of colors
 var/list/color_swatches = list(
 		"Red" = rgb(255,0,0),
@@ -13,8 +17,12 @@ var/list/color_swatches = list(
 		"Black" = rgb(0,0,0),
 		"Brown" = rgb(88,57,39))
 
-var/tmp/appearance_updating = FALSE
+var/tmp/appearance_updating = FALSE   // declared but never read/set anywhere — currently dead
 
+// Repaints the LIVE character-creation preview object (newCharPreview) using the
+// current palette. Only meaningful during creation — a loaded/finalized character
+// never has newCharPreview/baseIconPreview set, so this is a no-op for them; their
+// icon is rebuilt separately by RebuildIcon() in Code/Save/SaveSystem.dm.
 mob/proc/UpdateAppearance()
     if(!palette || !newCharPreview || !baseIconPreview)
         return

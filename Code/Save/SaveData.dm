@@ -2,7 +2,7 @@
 // Character Save Snapshot Datum
 // ------------------------------------
 datum/CharacterSaveData
-    var/save_version = 1
+    var/save_version = 1   // bump if the save format changes, to gate future migrations
     var/name
 
     // Basic character info
@@ -27,19 +27,19 @@ datum/CharacterSaveData
     var/StatPoints
 
     // Appearance
-    var/baseIcon
+    var/baseIcon         // the actual /icon resource (template sprite)
+    var/basePlayerIcon   // that icon's bare filename, e.g. "dw3hero.dmi" — used to look up default zone colors
     var/hairColor
     var/eyeColor
     var/mainColor
     var/accentColor
 
     // Skills
-    var/list/skill_ids
+    var/list/skill_ids   // not populated yet — reserved for once skill loadouts are persisted
 
 // ------------------------------------
 // Build snapshot from runtime player
 // ------------------------------------
-// Build snapshot from runtime player
 datum/CharacterSaveData/proc/BuildFromCharacter(mob/player/P)
     name = P.name
     class = P.class
@@ -61,6 +61,7 @@ datum/CharacterSaveData/proc/BuildFromCharacter(mob/player/P)
     StatPoints = P.StatPoints
 
     baseIcon = P.baseIcon        // <- save the base icon here
+    basePlayerIcon = P.basePlayerIcon
     hairColor = P.hairColor
     eyeColor = P.eyeColor
     mainColor = P.mainColor
@@ -87,9 +88,9 @@ datum/CharacterSaveData/proc/ApplyToCharacter(mob/player/P)
     P.StatPoints = StatPoints
 
     P.baseIcon = baseIcon       // <- restore the base icon
+    P.basePlayerIcon = basePlayerIcon
     P.hairColor = hairColor
     P.eyeColor = eyeColor
     P.mainColor = mainColor
     P.accentColor = accentColor
-
-    P.RebuildIcon()             // <- make sure icon is rebuilt
+    // Icon is rebuilt by LoadCharacter() once the palette is set up (see SaveSystem.dm)

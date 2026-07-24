@@ -34,15 +34,18 @@ datum/skill/Attack
 
         user.canAct = FALSE
 
-        // Play melee animation & sound
-        user.PlayAttackAnimation(user, target)
+        // Play melee animation & sound (src is this skill datum, matching
+        // PlayAttackAnimation's real signature: mob/user, datum/skill/S, mob/target)
+        user.PlayAttackAnimation(user, src, target)
 
-        // Apply damage after cast_time
+        // Apply damage after cast_time (PerformMeleeHit expects a skill datum, not a
+        // target mob — it already finds whoever's on the tile in front of user itself)
         spawn(cast_time)
-            user.PerformMeleeHit(target)
+            user.PerformMeleeHit(src)
 
-        // Re-enable action based on stats
-        spawn(user.GetAttackDelay(user))
+        // Re-enable action based on stats (src is this skill datum, which is what
+        // GetAttackDelay actually needs to check isMelee/isSpell against)
+        spawn(user.GetAttackDelay(src))
             user.canAct = TRUE
 
 // -----------------------------
@@ -65,13 +68,15 @@ datum/skill/Fireball
 
         user.canAct = FALSE
 
-        // Play spell animation & sound
-        user.PlayAttackAnimation(user, target)
+        // Play spell animation & sound (src is this skill datum, matching
+        // PlayAttackAnimation's real signature: mob/user, datum/skill/S, mob/target)
+        user.PlayAttackAnimation(user, src, target)
 
         // Apply damage after cast_time
         spawn(cast_time)
             user.ApplySpellDamage(target, 10, "fire")
 
-        // Re-enable action based on stats
-        spawn(user.GetAttackDelay(user))
+        // Re-enable action based on stats (src is this skill datum, which is what
+        // GetAttackDelay actually needs to check isMelee/isSpell against)
+        spawn(user.GetAttackDelay(src))
             user.canAct = TRUE

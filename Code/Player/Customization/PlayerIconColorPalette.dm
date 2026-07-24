@@ -15,10 +15,12 @@ datum/DefaultIconColors
             "Main"   = rgb(0,124,255),
             "Accent" = rgb(255,255,255)
         )
-        // Soldier, Wizard, etc.
+        // Soldier, Wizard, etc. — empty for now, so those classes/icons render with
+        // their plain template sprite and no custom-color support until filled in.
+        // Add an entry per icon filename, sampled from the actual .dmi pixel colors
+        // (not guessed), same shape as the Hero/dw3hero.dmi block above.
         colors_by_class["Soldier"] = list()
         colors_by_class["Wizard"] = list()
-        // Add more icons as needed
 
     proc/GetIconColors(class, icon_id)
         if(!(class in colors_by_class))

@@ -31,22 +31,35 @@ obj/StatLink
         if(!(attributeName in statMap)) return
 
         var/statVar = statMap[attributeName]
-        name = "[attributeName]: [P.vars[statVar]]"
+        var/currentStat = P.vars[statVar]
+        // "+0" is a placeholder for a future equipment/buff stat-bonus system (no such
+        // system exists yet — see TODOList.md Phase 5) — matches the confirmed OG
+        // Battle-tab format ("Strength: 14+0") even though the bonus is always 0 for now.
+        name = "[attributeName]: [currentStat]+0    [GetCost(currentStat)] points to increase"
+
+    // Confirmed OG cost formula (ClassReference.md): 2 base, +1 per 5 points already
+    // invested. round(x) with one argument floors in DM.
+    proc/GetCost(currentStat)
+        return 2 + round(currentStat / 5)
 
     // -----------------------------
     // Handle clicks
     // -----------------------------
     Click()
         if(!P || !ismob(P)) return
-
-        if(P.StatPoints <= 0)
-            P << output("No stat points left!", "Info")
-            return
-
         if(!(attributeName in statMap)) return
 
         var/statVar = statMap[attributeName]
-        P.vars[statVar]++   // Increment the actual stat
-        P.StatPoints--       // Reduce available points
+        var/currentStat = P.vars[statVar]
+        var/cost = GetCost(currentStat)
 
+        if(P.StatPoints < cost)
+            P << output("Not enough stat points! (need [cost])", "Info")
+            return
+
+        P.vars[statVar]++   // Increment the actual stat
+        P.StatPoints -= cost // Reduce available points by the real cost
+
+        P.RecalculateVitals()  // Vitality/Intelligence changes affect MaxHP/MaxMP —
+                                // see Code/Player/StatsDatum.dm
         UpdateName()

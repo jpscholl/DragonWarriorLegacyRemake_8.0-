@@ -1,0 +1,60 @@
+[OGDWL]
+/turf/tree{icon_state="tree"}
+/turf/ground{name="brush"; icon_state="brush"}
+/turf/ground{name="grass"; icon_state="grass"}
+/turf/furniture/bedhead{icon_state="woodbedright"}
+/turf/ground{name="flowers"; icon_state="flowers"}
+/turf/ground{name="sand"; icon_state="sand"}
+/area/playerStart
+/turf/ground{name="path"; icon='floor.dmi'; icon_state="path"}
+/turf/furniture{name="plant"; icon_state="plant"}
+/turf/furniture{name="table"; icon_state="table"}
+/turf/furniture{name="tub"; icon_state="tub"}
+/turf/furniture{name="stove"; icon_state="stove"}
+/turf/furniture/counter
+/turf/furniture/bedleft
+/turf/furniture/bedhead{icon_state="bedright"}
+/turf/furniture/woodbedleft
+/turf/floor{name="stool"; icon_state="stool"}
+/turf/floor{name="chair"; icon_state="chair"}
+/turf/floor{name="cobble"; icon_state="redcobble"}
+/turf/wall{icon_state="stoneedge"}
+/turf/wall{icon_state="stone"}
+/turf/fence{icon_state="sandfence"}
+/turf/fence{icon_state="fence"}
+/turf/ground{name="farmland"; icon_state="farmland"}
+/turf/furniture{name="table"; icon_state="woodtableleft"}
+/turf/furniture{name="table"; icon_state="woodtableright"}
+/turf/floor{icon_state="woodfloor"}
+/turf/furniture/bedhead{name="table"; icon_state="woodtable"}
+/turf/wall{icon_state="wooddown"}
+/turf/wall{icon_state="wooddownright"}
+/turf/wall{icon_state="woodupright"}
+/turf/wall{icon_state="wooddownleft"}
+/turf/wall{icon_state="woodupleft"}
+/turf/wall{icon_state="wood"}
+/turf/wall{icon_state="woodedge"}
+/turf/stairs{icon_state="caveup"}
+/turf/ground{name="cavedirt"; icon_state="cavedirt"}
+/turf/water{icon_state="water"}
+/turf/bridge{icon_state="bridge"}
+/turf/bridge{icon_state="stonebridge"}
+/turf/bridge{icon_state="bridgeh"}
+/turf/wall{icon_state="cavewall"}
+/turf/wall{icon_state="cavewallnight"}
+/turf/wall{icon_state="void"}
+/turf/wall{icon_state="curtains"}
+/turf/furniture{name="statue"; icon_state="statue"}
+/turf/furniture{name="throne"; icon_state="evilthrone"}
+/turf/floor{name="carpet"; icon_state="carpet"}
+/turf/wall{icon_state="pillarup"}
+/turf/wall{icon_state="pillardown"}
+/turf/furniture{name="table"; icon_state="stonetable"}
+/turf/sky{icon_state="sky"}
+/turf/stairs{name="stairsdown"; icon_state="stonedown"}
+/turf/stairs{icon_state="stoneup"}
+/turf/furniture{name="table"; icon_state="woodtable"}
+/turf/furniture{name="throne"; icon_state="thronedown"}
+/turf/furniture{name="throne"; icon_state="throneright"}
+/turf/furniture{name="throne"; icon_state="throneleft"}
+/area/town

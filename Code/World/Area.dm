@@ -2,47 +2,59 @@
 mob/var
 		current_music = null
 
+// Plays background music for this mob if it isn't already playing, used by
+// area/Entered() below so area subtypes only need to set their areaMusic var.
+mob/proc/PlayAreaMusic(music_file)
+	if(!client) return
+	if(current_music == music_file) return
+	client << sound(music_file, repeat = 1, volume = baseVolume, channel = 1)
+	current_music = music_file
+
 area
 	icon = 'environment.dmi'
+	var/areaMusic   // set on a subtype to auto-play music when a mob enters
+
+	// Scaffolding for the GMbattlemode/GMcoopmode/GMindestructablemode/GMweather GM
+	// verbs -- each toggles one of these per specific area instance, not globally.
+	// GMbattlemode (GMCommands.dm) can still flip battleModeOn at runtime per instance;
+	// this is just each type's starting value on compile.
+	var/battleModeOn = FALSE       // FALSE = peaceful area, no attacks/skills allowed --
+	                                // overridden TRUE below on battle/dungeon/boss/temple
+	var/battleAllowsPvP = FALSE    // TRUE = players can hurt each other here (OG: only the Arena defaults TRUE -- which area that maps to isn't confirmed yet)
+	var/indestructibleMode = TRUE  // FALSE = fire/ice attacks damage terrain here
+	var/weather = null             // GM-set weather state, outside areas only
+
+	Entered(atom/movable/O)
+		..()
+		if(areaMusic && ismob(O))
+			var/mob/M = O
+			M.PlayAreaMusic(areaMusic)
 
 	casino
 		icon_state = "casino"
 
 	dungeon
 		icon_state = "dungeon"
+		battleModeOn = TRUE
 
 	boss
 		icon_state = "boss"
+		battleModeOn = TRUE
 
 	forest
 		icon_state = "forest"
 
 	townrain
 		icon_state = "townrain"
-		Entered(atom/movable/O)
-			..()
-			if(ismob(O))
-				var/mob/M = O
-				if(M.client)
-					if(M.current_music != 'dw4town.mid')
-						M.client << sound('dw4town.mid', repeat = 1, volume = baseVolume, channel = 1)
-						M.current_music = 'dw4town.mid'
-
+		areaMusic = 'dw4town.mid'
 
 	town
 		icon_state = "town"
-		Entered(atom/movable/O)
-			..()
-			if(ismob(O))
-				var/mob/M = O
-				if(M.client)
-					if(M.current_music != 'dw4town.mid')
-						M.client << sound('dw4town.mid', repeat = 1, volume = baseVolume, channel = 1)
-						M.current_music = 'dw4town.mid'
-
+		areaMusic = 'dw4town.mid'
 
 	battle
 		icon_state = "battle"
+		battleModeOn = TRUE
 
 	castle
 		icon_state = "castle"
@@ -58,14 +70,7 @@ area
 
 	bar
 		icon_state = "bar"
-		Entered(atom/movable/O)
-			..()
-			if(ismob(O))
-				var/mob/M = O
-				if(M.client)
-					if(M.current_music != 'dw3town.mid')
-						M.client << sound('dw3town.mid', repeat = 1, volume = baseVolume, channel = 1)
-						M.current_music = 'dw3town.mid'
+		areaMusic = 'dw3town.mid'
 
 		Exited(atom/movable/O)
 			..()
@@ -101,6 +106,7 @@ area
 
 	temple
 		icon_state = "temple"
+		battleModeOn = TRUE
 
 	deepwater1
 		icon_state = "deepwater1"
@@ -109,7 +115,7 @@ area
 		icon_state = "deepwater"
 
 	water1
-		icon_state = "water1" 
+		icon_state = "water1"
 
 	water
 		icon_state = "water"

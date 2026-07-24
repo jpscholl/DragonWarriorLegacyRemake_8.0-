@@ -9,11 +9,6 @@
 #define STEP_CUSTOM 4
 #define STEP_STATS  5
 
-// Global list of active players
-//var/list/players = list()
-#define SAVE_PATH "players"
-#define MAX_CHARACTERS 4
-
 
 // Temporary mob used during character creation
 mob
@@ -22,8 +17,8 @@ mob
         icon/baseIconPreview           // for recoloring just in case
         selectedName                   // chosen character name
         selectedClass                  // chosen class (Hero, Soldier, Wizard)
-        selectedIcon                   // chosen icon file
-        selectedIconName               // chosen icon attributeName
+        selectedIcon                   // chosen icon file (/icon resource)
+        selectedIconName               // that icon's bare filename, e.g. "dw3hero.dmi" (for palette color lookups)
         datum/PaletteManager/palette   // palette manager for recoloring
 
 
@@ -148,18 +143,34 @@ proc/DeleteCharacterMenu(mob/playerTemp/M)
 //Name
 proc/PromptForName(mob/M)
     var/selectedName
-    while(!selectedName || !length(trimtext(selectedName)))
-        selectedName = input(M, "Enter your name:", "New Character") as text|null
+    var/prompt = "Enter your name:"
+    while(TRUE)
+        selectedName = input(M, prompt, "New Character") as text|null
         if(isnull(selectedName))
             ShowLoginMenu(M)
             return null
-    return trimtext(selectedName)
+
+        selectedName = trimtext(selectedName)
+
+        if(!length(selectedName))
+            prompt = "Enter your name:"
+            continue
+
+        if(length(selectedName) > MAX_NAME_LENGTH)
+            prompt = "Name is too long (max [MAX_NAME_LENGTH] characters). Enter your name:"
+            continue
+
+        if(IsTextFiltered(selectedName))
+            prompt = "That name isn't allowed. Enter your name:"
+            continue
+
+        return selectedName
 //Class
 proc/PromptForClass(mob/M)
     var/list/classes = list("Hero", "Soldier", "Wizard", "Back")
     return input(M, "Choose your class:", "Class Selection") in classes
 
-//idk why this is in with prompts section but ok?
+// Turns a class choice into either the class name or null (on "Back")
 proc/ApplyClassSelection(mob/M, selectedClass)
     if(selectedClass == "Back")
         if(M.newCharPreview) del M.newCharPreview
@@ -174,21 +185,27 @@ proc/ApplyClassSelection(mob/M, selectedClass)
 proc/GetClassIcons(mob/M, selectedClass)
     switch(selectedClass)
         if("Hero")
-            return list("Dragon Warrior 1 Hero"='dw1hero.dmi',
-                        "Dragon Warrior 2 Hero"='dw2hero.dmi',
-                        "Dragon Warrior 3 Hero"='dw3hero.dmi',
+            return list("Dragon Warrior 1 Hero"='Mob Icons/Player/dw1hero.dmi',
+                        "Dragon Warrior 2 Hero"='Mob Icons/Player/dw2hero.dmi',
+                        "Dragon Warrior 3 Hero"='Mob Icons/Player/dw3hero.dmi',
                         "Back")
         if("Soldier")
-            return list("Dragon Warrior 1 Soldier"='dw1soldier.dmi',
-                        "Dragon Warrior 2 Soldier"='dw2soldier.dmi',
-                        "Dragon Warrior 3 Guard"='dw3guard.dmi',
+            return list("Dragon Warrior 1 Soldier"='Mob Icons/Player/dw1soldier.dmi',
+                        "Dragon Warrior 2 Soldier"='Mob Icons/Player/dw2soldier.dmi',
+                        "Dragon Warrior 3 Guard"='Mob Icons/Player/dw3guard.dmi',
                         "Back")
         if("Wizard")
-            return list("Dragon Warrior 1 Wizard"='dw1wizard.dmi',
-                        "Dragon Warrior 2 Wizard"='dw2wizard.dmi',
-                        "Dragon Warrior 3 Wizard"='dw3malewizard.dmi',
+            return list("Dragon Warrior 1 Wizard"='Mob Icons/Player/dw1wizard.dmi',
+                        "Dragon Warrior 2 Wizard"='Mob Icons/Player/dw2wizard.dmi',
+                        "Dragon Warrior 3 Wizard"='Mob Icons/Player/dw3malewizard.dmi',
                         "Back")
     return list()
+
+//strips a compiled icon reference down to its bare filename, e.g. "dw1hero.dmi",
+//so it can be matched against DefaultIconColors' lookup keys
+proc/GetIconFilename(icon_path)
+    var/list/parts = splittext("[icon_path]", "/")
+    return parts[parts.len]
 
 //icon selection and storage
 proc/IconSelect(mob/playerTemp/M)
@@ -198,8 +215,8 @@ proc/IconSelect(mob/playerTemp/M)
     if(iconChoice == "Back")
         return STEP_CLASS
 
-    M.selectedIcon      = iconChoices[iconChoice]
-    M.selectedIconName = "[iconChoices[iconChoice]]"
+    M.selectedIcon = iconChoices[iconChoice]
+    M.selectedIconName = GetIconFilename(M.selectedIcon)
 
     M << output("You've selected [M.selectedIconName]", "Info")
     return STEP_CUSTOM
@@ -305,6 +322,7 @@ proc/FinalizePlayer(mob/playerTemp/M)
 
     // Mark this mob as a real character
     newPlayer.isCharacter = TRUE
+    newPlayer.saveSlot = slot
 
     // Save character BEFORE login commit
     C.saveManager.SaveCharacter(newPlayer, slot)
@@ -316,9 +334,13 @@ proc/FinalizePlayer(mob/playerTemp/M)
     M << sound(null, channel = 1)
 
     C.mob = newPlayer
-    newPlayer.loc = locate(26, 8, 4)
+    newPlayer.loc = PLAYER_SPAWN
 
-    newPlayer << sound('dw4town.mid', repeat = 1, channel = 1, volume = baseVolume)
+    // Start whatever music belongs to the spawn area (mob -> turf -> area)
+    // right away, rather than waiting for the player's first step to trigger it.
+    var/area/spawnArea = newPlayer.loc?.loc
+    if(spawnArea && spawnArea.areaMusic)
+        newPlayer.PlayAreaMusic(spawnArea.areaMusic)
 
     players += newPlayer
 
@@ -331,19 +353,23 @@ proc/FinalizePlayer(mob/playerTemp/M)
 
 //selects proper template based on class templates
 proc/ApplyPlayerClass(class_name)
+    var/mob/player/newPlayer
     switch(class_name)
-        if("Hero")    return new /mob/player/Hero
-        if("Soldier") return new /mob/player/Soldier
-        if("Wizard")  return new /mob/player/Wizard
+        if("Hero")    newPlayer = new /mob/player/Hero
+        if("Soldier") newPlayer = new /mob/player/Soldier
+        if("Wizard")  newPlayer = new /mob/player/Wizard
 
         // Future classes
-        // if("Fighter") return new /mob/player/fighter
-        // if("Pilgrim") return new /mob/player/pilgrim
-        // if("Goof-off") return new /mob/player/goofoff
-        // if("Sage")     return new /mob/player/sage
-        // if("Custom")   return new /mob/player/GM
+        // if("Fighter") newPlayer = new /mob/player/fighter
+        // if("Pilgrim") newPlayer = new /mob/player/pilgrim
+        // if("Goof-off") newPlayer = new /mob/player/goofoff
+        // if("Sage")     newPlayer = new /mob/player/sage
+        // if("Custom")   newPlayer = new /mob/player/GM
 
-    return null
+    // Skills aren't persisted in save data (Code/Save/SaveData.dm) — every fresh
+    // character needs the base Attack skill equipped to Numpad 9 from scratch.
+    if(newPlayer) newPlayer.EquipBasicAttack()
+    return newPlayer
 
 //copy temp stats into player stats
 proc/ApplyCustomStats(mob/playerTemp/src, mob/player/dst)
@@ -363,12 +389,12 @@ proc/ApplyCustomColors(mob/playerTemp/src, mob/player/dst)
         dst.icon = icon(src.selectedIcon)
         dst.icon_state = "world"
 
-    dst.baseIcon    = src.selectedIconName
+    dst.baseIcon        = src.selectedIcon
+    dst.basePlayerIcon  = src.selectedIconName
     dst.hairColor   = "[src.hairColor]"
     dst.eyeColor    = "[src.eyeColor]"
     dst.mainColor   = "[src.mainColor]"
     dst.accentColor = "[src.accentColor]"
-
 
 // -----------------------------
 // Stat Allocation
@@ -376,6 +402,7 @@ proc/ApplyCustomColors(mob/playerTemp/src, mob/player/dst)
 proc/StatAllocation(mob/playerTemp/M)
     var/remainingStatPoints = 14
     var/statCap = 10
+    var/lastStat = null   // which stat was picked last, so the dialog can re-highlight it
 
     // Temporary stat storage
     var/list/tempStatPoints = list(
@@ -388,11 +415,17 @@ proc/StatAllocation(mob/playerTemp/M)
 
     while(TRUE)
         var/list/options = list()
+        var/defaultLabel = null
 
-        // Build menu dynamically
+        // Build menu dynamically. Labels include the current point count, so they
+        // change every allocation — look up lastStat's current label instead of
+        // remembering the old (now-stale) label text.
         for(var/stat in tempStatPoints)
             if(tempStatPoints[stat] < statCap)
-                options["[stat] [tempStatPoints[stat]]"] = stat
+                var/label = "[stat] [tempStatPoints[stat]]"
+                options[label] = stat
+                if(stat == lastStat)
+                    defaultLabel = label
 
         options["Back"]   = "Back"
         options["Finish"] = "Finish"
@@ -400,7 +433,8 @@ proc/StatAllocation(mob/playerTemp/M)
         var/choice = input(
             M,
             "Allocate your stat points. Points left ([remainingStatPoints])",
-            "Stats"
+            "Stats",
+            defaultLabel
         ) in options
 
         choice = options[choice]
@@ -413,12 +447,13 @@ proc/StatAllocation(mob/playerTemp/M)
                 if(remainingStatPoints > 0)
                     M << output("You must spend all points before finishing.", "Info")
                 else
-                    // Commit changes
+                    // Commit changes (dynamic lookup: "Strength" etc. match mob var names directly)
                     for(var/stat in tempStatPoints)
                         M.vars[stat] = tempStatPoints[stat]
                     return STEP_STATS
 
             else
+                lastStat = choice   // keep this stat highlighted next time regardless of outcome
                 if(remainingStatPoints <= 0)
                     M << output("You have no points left.", "Info")
                 else if(tempStatPoints[choice] >= statCap)

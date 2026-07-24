@@ -41,12 +41,38 @@ mob/player
         // Header panel for combat-related stats
         statpanel("Battle")
 
-        // Display clickable stat links for allocation
+        // Display clickable stat links for allocation — order matches the confirmed OG
+        // Battle tab layout (Str, Agi, Vit, Int, Luck).
         stat(strStatPanel)
-        stat(vitStatPanel)
         stat(agiStatPanel)
+        stat(vitStatPanel)
         stat(intStatPanel)
         stat(luckStatPanel)
 
         // Show remaining stat points available for allocation
         stat("Stat Points: [StatPoints]")
+
+        // ---------------- Skills (numpad slots + Free Skills) ----------------
+        // Text-only readout matching the confirmed OG layout — no drag-and-drop
+        // equip/unequip yet, see TODOList.md.
+        stat("Numpad 9: [GetEquippedSkillName(9)]")
+        stat("Numpad 7: [GetEquippedSkillName(7)]")
+        stat("Numpad 3: [GetEquippedSkillName(3)]")
+        stat("Numpad 1: [GetEquippedSkillName(1)]")
+        stat("Numpad 0: [GetEquippedSkillName(0)]")
+        stat("Free Skills -")
+        stat("")
+        for(var/datum/skill/S in skills)
+            if(IsSkillEquipped(S)) continue
+            stat(S.skillName)
+
+        // ---------------- Inventory Panel ----------------
+        // Header panel for carried items
+        statpanel("Inventory")
+
+        stat("Capacity: [GetInventoryCount()]/[GetInventoryCapacity()]")
+
+        // Each item shows its own icon+name and routes clicks to its own Click()
+        // (Code/Player/Inventory.dm) — same mechanism as the Battle tab's StatLinks above.
+        for(var/obj/item/I in contents)
+            stat(I)
