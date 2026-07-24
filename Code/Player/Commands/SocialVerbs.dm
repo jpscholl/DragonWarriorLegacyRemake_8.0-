@@ -8,10 +8,11 @@ mob
             set desc = "Chat to players in view"
 
             if(trimtext(msg) == "") return  // ignore empty messages
+            msg = CensorText(msg)
 
             // Send an emote to all players in view
             // Styled in black, shows the player icon and emote text
-            view() << output("<font color='black'> \icon[src]<[src.name] *[msg]*</font>", "Messages")
+            view() << output("<font color='black'> \icon[src]&lt;[src.name] [msg]&gt;</font>", "Messages")
 
 
         // -----------------------------
@@ -22,10 +23,11 @@ mob
             set desc = "Talk to players in view"
 
             if(trimtext(msg) == "") return  // ignore empty messages
+            msg = CensorText(msg)
 
             // Send a spoken message to all players in view
             // Styled in blue, includes "says:" prefix
-            view() << output("<font color='blue'> \icon[src]<[src.name] says: [msg]</font>", "Messages")
+            view() << output("<font color='blue'> \icon[src]&lt;[src.name] says:&gt; [msg]</font>", "Messages")
 
 
         // -----------------------------
@@ -36,12 +38,13 @@ mob
             set desc = "Directly talk to another player"
 
             if(trimtext(msg) == "") return  // ignore empty messages
+            msg = CensorText(msg)
             if(M != src)
                 // Message to the recipient, styled in navy
-                M << output("<font color='navy'> \icon[src]<[src] tells you: [msg]</font>", "Messages")
+                M << output("<font color='navy'> \icon[src]&lt;[src] tells you:&gt; [msg]</font>", "Messages")
 
                 // Confirmation back to the sender
-                src << output("<font color='navy'> \icon[M]<You tell [M]: [msg]</font>", "Messages")
+                src << output("<font color='navy'> \icon[M]&lt;You tell [M]:&gt; [msg]</font>", "Messages")
 
 
         // -----------------------------
@@ -57,7 +60,7 @@ mob
             // List each player in the global players list
             for(var/mob/M in players)
                 // Currently hard-coded class, level, party info
-                src << output("<font color='blue'> \icon[M] [M.name] ([M.key]) Class: Hero Level: 1 Party: None</font>", "Info")
+                src << output("<font color='blue'> \icon[M] [M.name]([M.key]) <b>Class:</b> Hero <b>Level:</b> 1 <b>Party:</b> None</font>", "Info")
 
 
         // -----------------------------
@@ -68,10 +71,11 @@ mob
             set desc = "Emote to all players in the world"
 
             if(trimtext(msg) == "") return  // ignore empty messages
+            msg = CensorText(msg)
 
             // Send an emote to every player in the world
             // Styled in maroon
-            players << output("<font color='maroon'> \icon[src]<[src.name] [msg]</font>", "Messages")
+            players << output("<font color='maroon'> \icon[src]&lt;[src.name] [msg] to the world&gt;</font>", "Messages")
 
 
         // -----------------------------
@@ -82,7 +86,8 @@ mob
             set desc = "Chat to all players in the world"
 
             if(trimtext(msg) == "") return  // ignore empty messages
+            msg = CensorText(msg)
 
             // Send a spoken message to every player in the world
-            // Styled in purple, includes "says:" prefix
-            players << output("<font color='purple'> \icon[src]<[src.name] says: [msg]</font>", "Messages")
+            // Styled in purple, "wsays:" prefix distinguishes it from local Say
+            players << output("<font color='purple'> \icon[src]&lt;[src.name] wsays:&gt; [msg]</font>", "Messages")

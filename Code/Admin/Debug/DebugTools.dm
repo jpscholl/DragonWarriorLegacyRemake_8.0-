@@ -1,3 +1,7 @@
+// -----------------------------
+// Debug Verbs
+// -----------------------------
+// Also unrestricted for now, same caveat as GMCommands.dm.
 mob
 	verb
 		DebugMovement()
@@ -10,8 +14,19 @@ mob
 			usr << output("Frames per Step: [round(step_delay / (1 / world.fps))]", "Info")
 
 		Test_Leveling()
+			set category = "Debug"
 			usr.Exp+=100000
 			spawn() usr.LevelCheck()
+
+		// Spawns a placeholder /mob/enemy/slime (Code/Combat/NPCs/EnemyNPCs.dm) on
+		// the tile in front of you, for testing AI/combat without a real monster
+		// placement tool yet (TODOList.md Phase 10, GMmakemob).
+		Test_SpawnSlime()
+			set category = "Debug"
+			var/turf/T = get_step(usr, usr.dir)
+			if(!T) T = usr.loc
+			new /mob/enemy/slime(T)
+			usr << output("Spawned a test slime.", "Info")
 
 		S_World()
 			set category = "Debug"
@@ -29,6 +44,8 @@ mob
 			set category = "Debug"
 			icon_state = "defend"
 
+// Prints each color zone's default vs. currently-applied color — handy for
+// checking whether an icon actually has DefaultIconColors data wired up.
 mob
     verb
         Debug_ShowZoneColors()

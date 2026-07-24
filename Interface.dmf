@@ -1,41 +1,56 @@
 macro "macro"
-	elem 
+	elem
 		name = "Center"
 		command = "Interact"
-	elem 
+	elem
 		name = "Northeast+REP"
-		command = ".northeast"
-	elem 
+		command = "UseSkillKey 9"
+	elem
 		name = "Southeast+REP"
-		command = ".southeast"
-	elem 
+		command = "UseSkillKey 3"
+	elem
 		name = "Southwest+REP"
-		command = ".southwest"
-	elem 
+		command = "UseSkillKey 1"
+	elem
 		name = "Northwest+REP"
-		command = ".northwest"
-	elem 
-		name = "West+REP"
-		command = ".west"
-	elem 
-		name = "North+REP"
-		command = ".north"
-	elem 
-		name = "East+REP"
-		command = ".east"
-	elem 
-		name = "South+REP"
-		command = ".south"
-	elem 
+		command = "UseSkillKey 7"
+	elem
+		name = "Insert+REP"
+		command = "UseSkillKey 0"
+	elem
+		name = "West"
+		command = "onMoveKey 8 1"
+	elem
+		name = "West+UP"
+		command = "onMoveKey 8 0"
+	elem
+		name = "North"
+		command = "onMoveKey 1 1"
+	elem
+		name = "North+UP"
+		command = "onMoveKey 1 0"
+	elem
+		name = "East"
+		command = "onMoveKey 4 1"
+	elem
+		name = "East+UP"
+		command = "onMoveKey 4 0"
+	elem
+		name = "South"
+		command = "onMoveKey 2 1"
+	elem
+		name = "South+UP"
+		command = "onMoveKey 2 0"
+	elem
 		name = "Add"
 
 
 menu "menu"
-	elem 
+	elem
 		name = "&File"
 		command = ""
 		saved-params = "is-checked"
-	elem 
+	elem
 		name = "&Quit"
 		command = ".quit"
 		category = "&File"
@@ -45,10 +60,10 @@ menu "menu"
 window "Main"
 	elem "Main"
 		type = MAIN
-		pos = 291,0
-		size = 1740x1080
+		size = 1400x860
 		anchor1 = -1,-1
 		anchor2 = -1,-1
+		can-resize = true
 		saved-params = "pos;size;is-minimized;is-maximized"
 		title = "Dragon Warrior Legacy Remake v0.1"
 		statusbar = false
@@ -57,29 +72,32 @@ window "Main"
 	elem "Gameplay"
 		type = MAP
 		pos = 0,0
-		size = 1095x1080
+		size = 832x832
 		anchor1 = 0,0
-		anchor2 = 63,100
-		saved-params = "zoom;letterbox;zoom-mode"
+		anchor2 = 52,100
+		zoom = 0
+		zoom-mode = normal
+		letterbox = false
+		saved-params = ""
 	elem "StatsCommands"
 		type = INFO
-		pos = 1095,0
-		size = 645x336
-		anchor1 = 63,0
+		pos = 832,0
+		size = 750x279
+		anchor1 = 52,0
 		anchor2 = 100,31
 		saved-params = ""
 	elem "Info"
 		type = OUTPUT
-		pos = 1095,340
-		size = 643x368
-		anchor1 = 63,31
+		pos = 832,279
+		size = 750x310
+		anchor1 = 52,31
 		anchor2 = 100,66
 		saved-params = "max-lines"
 	elem "Messages"
 		type = OUTPUT
-		pos = 1095,712
-		size = 641x368
-		anchor1 = 63,66
+		pos = 832,589
+		size = 750x311
+		anchor1 = 52,66
 		anchor2 = 100,100
 		saved-params = "max-lines"
 

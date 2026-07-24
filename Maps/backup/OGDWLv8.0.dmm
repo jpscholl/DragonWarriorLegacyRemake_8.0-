@@ -2,27 +2,26 @@
 "ab" = (/turf/wall{icon_state = "stone"},/area/town)
 "ac" = (/turf/wall{icon_state = "stoneedge"},/area/town)
 "ad" = (/turf/ground,/area/townrain)
-"ae" = (/obj/stat/door{icon_state = "jail"; closed_icon_state = "jail"},/turf/ground{name = "sand"; icon_state = "sand"},/area/castle)
 "af" = (/turf/ground{icon_state = "grass"},/turf/ground,/area/townrain)
 "ag" = (/turf/wall{icon_state = "void"},/area)
 "ah" = (/turf/wall{icon_state = "void"},/area/cave)
-"ai" = (/obj/stat/bookcase,/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
-"aj" = (/obj/stat/door,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/town)
+"ai" = (/obj/stat/bookcase/bookcase,/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
+"aj" = (/obj/stat/door/wooden,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/town)
 "ak" = (/turf/ground{name = "grass"; icon_state = "grass"},/area/townrain)
-"al" = (/obj/stat/sign,/obj/stat/sign{icon_state = "sign"},/turf/ground{name = "brush"; icon_state = "brush"},/area/townrain)
+"al" = (/obj/stat/sign/wooden,/turf/ground{name = "brush"; icon_state = "brush"},/area/townrain)
 "am" = (/turf/ground{name = "path"; icon = 'floor.dmi'; icon_state = "path"},/area/townrain)
-"an" = (/obj/stat/bookcase,/obj/stat/bookcase,/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
+"an" = (/obj/stat/bookcase,/obj/stat/bookcase/bookcase,/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
 "ao" = (/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
-"ap" = (/obj/stat/door,/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
+"ap" = (/obj/stat/door/wooden,/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
 "aq" = (/turf/tree{icon_state = "tree"},/area/wilderness)
-"ar" = (/turf/ground,/turf/tree{icon_state = "tree"},/area/wilderness)
+"ar" = (/obj/stat/pot/woodpot,/turf/ground{icon = 'floor.dmi'; icon_state = "woodfloor"},/area/town)
 "as" = (/turf/wall{icon_state = "cavewall"},/area/cave)
-"at" = (/obj/stat/drawers,/turf/ground{icon = 'floor.dmi'; icon_state = "woodfloor"},/area/town)
+"at" = (/obj/stat/drawers/wooden,/turf/ground{icon = 'floor.dmi'; icon_state = "woodfloor"},/area/town)
 "au" = (/turf/ground{icon = 'floor.dmi'; icon_state = "woodfloor"},/area/town)
 "av" = (/turf/water{icon_state = "upleftedge"},/area/wilderness)
 "aw" = (/turf/wall{icon_state = "stone"},/area/townrain)
 "ax" = (/turf/ground{icon = 'floor.dmi'; icon_state = "path"},/area/townrain)
-"ay" = (/obj/stat/drawers,/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
+"ay" = (/obj/stat/drawers/wooden,/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
 "az" = (/turf/water{icon_state = "upedge"},/area/wilderness)
 "aA" = (/turf/stairs/stairsdown,/area/town)
 "aB" = (/turf/ground,/turf/ground{icon = 'floor.dmi'; icon_state = "path"},/area/townrain)
@@ -30,19 +29,19 @@
 "aD" = (/turf/wall{icon_state = "stoneedge"},/area/townrain)
 "aE" = (/turf/ground{name = "flowers"; icon_state = "flowers"},/area/townrain)
 "aF" = (/turf/furniture{name = "throne"; icon_state = "throneleft"},/area/town)
-"aG" = (/obj/stat/pot{icon_state = "pot"},/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
+"aG" = (/obj/stat/pot/pot,/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
 "aH" = (/turf/water{icon_state = "uprightedge"},/area/wilderness)
 "aI" = (/turf/furniture{name = "throne"; icon_state = "thronecenter"},/area/town)
-"aJ" = (/obj/stat/door,/turf/floor{icon_state = "woodfloor"},/area/town)
+"aJ" = (/obj/stat/door/wooden,/turf/floor{icon_state = "woodfloor"},/area/town)
 "aK" = (/turf/water{icon_state = "water"},/area/townrain)
-"aL" = (/obj/stat/chest,/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
+"aL" = (/obj/stat/chest/wooden,/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
 "aM" = (/turf/wall{icon_state = "stone"},/area/bar)
 "aN" = (/turf/wall{icon_state = "stoneedge"},/area/bar)
 "aO" = (/turf/ground{name = "brush"; icon_state = "brush"},/area/wilderness)
 "aP" = (/turf/wall{icon_state = "cavewallnight"},/area/cave)
 "aQ" = (/turf/water{icon_state = "leftedge"},/area/wilderness)
-"aR" = (/obj/stat/sign,/obj/stat/sign{icon_state = "sign"},/turf/ground,/area/townrain)
-"aS" = (/obj/stat/drawers{step_x = 0},/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
+"aR" = (/obj/stat/sign/church,/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
+"aS" = (/obj/stat/drawers/wooden{step_x = 0},/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
 "aT" = (/turf/stairs/stairsdown,/area/townrain)
 "aU" = (/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/wilderness)
 "aV" = (/turf/ground{name = "cavedirt"; icon_state = "cavedirt"},/area/cave)
@@ -50,13 +49,13 @@
 "aX" = (/turf/water{icon_state = "rightedge"},/area/wilderness)
 "aY" = (/turf/furniture/bedleft,/area/wilderness)
 "aZ" = (/turf/furniture/bedhead{icon_state = "bedright"},/area/wilderness)
-"ba" = (/obj/stat/sign,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/wilderness)
+"ba" = (/obj/stat/sign/grave,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/wilderness)
 "bb" = (/turf/water{icon_state = "downleftedge"},/area/wilderness)
 "bc" = (/turf/water{icon_state = "water"},/area/cave)
 "bd" = (/turf/water{icon_state = "downedge"},/area/wilderness)
 "be" = (/turf/water{icon_state = "downrightedge"},/area/wilderness)
 "bf" = (/turf/ground{name = "grass"; icon_state = "grass"},/area/wilderness)
-"bg" = (/obj/stat/door,/turf/bridge{icon_state = "bridge"},/area/townrain)
+"bg" = (/obj/stat/door/wooden,/turf/bridge{icon_state = "bridge"},/area/townrain)
 "bh" = (/turf/bridge{icon_state = "bridge"},/area/townrain)
 "bi" = (/turf/wall{icon_state = "cobble"},/area/town)
 "bj" = (/turf/wall{icon_state = "cobbleedge"},/area/town)
@@ -66,54 +65,52 @@
 "bn" = (/turf/wall{icon_state = "woodedge"},/area/town)
 "bo" = (/turf/stairs{icon_state = "caveup"},/area/cave)
 "bp" = (/turf/wall{icon_state = "woodupright"},/area/town)
-"bq" = (/obj/stat/drawers,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/town)
+"bq" = (/obj/stat/drawers/wooden,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/town)
 "br" = (/obj/stat/bookcase,/turf/floor{icon_state = "woodfloor"},/area/town)
-"bs" = (/obj/stat/pot,/turf/floor{icon_state = "woodfloor"},/area/town)
-"bt" = (/obj/stat/drawers,/turf/floor{icon_state = "woodfloor"},/area/town)
+"bs" = (/obj/stat/pot/woodpot,/turf/floor{icon_state = "woodfloor"},/area/town)
+"bt" = (/obj/stat/drawers/wooden,/turf/floor{icon_state = "woodfloor"},/area/town)
 "bu" = (/turf/wall{icon_state = "wood"},/area/town)
 "bv" = (/turf/furniture{name = "throne"; icon_state = "throneright"},/area/town)
-"bw" = (/obj/stat/door,/turf/ground{name = "grass"; icon_state = "grass"},/area/town)
+"bw" = (/obj/stat/door/wooden,/turf/ground{name = "grass"; icon_state = "grass"},/area/town)
 "bx" = (/turf/furniture{name = "table"; icon_state = "woodtable"},/area/town)
 "by" = (/turf/wall{icon_state = "wooddownleft"},/area/town)
 "bz" = (/turf/bridge{icon_state = "stonebridge"},/area/townrain)
 "bA" = (/turf/wall{icon_state = "wooddownright"},/area/town)
-"bB" = (/obj/stat/bookcase,/obj/stat/bookcase,/turf,/area/town)
+"bB" = (/obj/stat/bookcase,/obj/stat/bookcase/bookcase,/turf,/area/town)
 "bC" = (/turf/furniture{icon_state = "plant"},/area/town)
 "bD" = (/turf/wall{icon_state = "wooddown"},/area/town)
-"bE" = (/obj/stat/door,/turf/floor{icon_state = "redcobble"},/area/town)
-"bF" = (/obj/stat/door,/turf/ground,/area/cave)
+"bE" = (/obj/stat/door/wooden,/turf/floor{icon_state = "redcobble"},/area/town)
+"bF" = (/obj/stat/door/wooden,/turf/ground,/area/cave)
 "bG" = (/turf/bridge{icon_state = "bridge"},/area/cave)
 "bH" = (/turf/bridge{icon_state = "bridgeh"},/area/cave)
-"bI" = (/obj/stat/door,/turf/bridge{icon_state = "bridgeh"},/area/townrain)
+"bI" = (/obj/stat/door/wooden,/turf/bridge{icon_state = "bridgeh"},/area/townrain)
 "bJ" = (/turf/bridge{icon_state = "bridgeh"},/area/townrain)
 "bK" = (/turf/warp{icon_state = "warp"},/area/cave)
 "bL" = (/turf/wall{icon_state = "stone"},/area/castle)
 "bM" = (/turf/floor{name = "carpet"; icon_state = "carpet"},/area/town)
 "bN" = (/turf/warp{icon_state = "warp"},/area/townrain)
-"bO" = (/obj/stat/sign,/turf/ground{name = "grass"; icon_state = "grass"},/area/townrain)
+"bO" = (/obj/stat/sign/inn,/turf/ground{name = "grass"; icon_state = "grass"},/area/townrain)
 "bP" = (/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/castle)
 "bQ" = (/turf/fence{icon_state = "sandfence"},/area/townrain)
 "bR" = (/turf/wall{icon_state = "stoneedge"},/area/castle)
 "bS" = (/turf/furniture{name = "throne"; icon_state = "thronedown"},/area/town)
 "bT" = (/turf/furniture{name = "tub"; icon_state = "tub"},/area/castle)
 "bU" = (/turf/furniture{name = "stove"; icon_state = "stove"},/area/castle)
-"bV" = (/obj/stat/drawers,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/bar)
+"bV" = (/obj/stat/drawers/wooden,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/bar)
 "bW" = (/turf/ground{name = "brush"; icon_state = "brush"},/area/townrain)
 "bX" = (/turf/furniture{name = "plant"; icon_state = "plant"},/area/town)
 "bY" = (/turf/furniture{name = "tub"; icon_state = "tub"},/area/town)
 "bZ" = (/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/bar)
-"ca" = (/obj/stat/door,/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/bar)
+"ca" = (/obj/stat/door/wooden,/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/bar)
 "cb" = (/obj/stat/bookcase,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/bar)
 "cc" = (/obj/stat/bookcase,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/town)
-"cd" = (/obj/stat/door{icon_state = "jail"; closed_icon_state = "jail"},/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/castle)
-"ce" = (/turf/furniture{name = "tub"; icon_state = "tub"},/area/bar)
 "cf" = (/turf/furniture/counter,/area/town)
 "cg" = (/turf/floor{name = "stool"; icon_state = "stool"},/area/town)
 "ch" = (/turf/furniture/bedleft,/area/town)
 "ci" = (/turf/furniture/bedhead{icon_state = "bedright"},/area/town)
 "cj" = (/turf/furniture{name = "table"; icon_state = "table"},/area/town)
-"ck" = (/obj/stat/drawers,/turf/floor,/area/town)
-"cl" = (/turf/furniture{name = "stove"; icon_state = "stove"},/area/bar)
+"ck" = (/obj/stat/drawers/wooden,/turf/floor,/area/town)
+"cl" = (/obj/stat/sign/wooden,/turf/ground,/area/townrain)
 "cm" = (/turf/stairs/stairsup,/area/bar)
 "cn" = (/turf/furniture/counter,/area/bar)
 "co" = (/turf/floor{name = "stool"; icon_state = "stool"},/area/bar)
@@ -123,14 +120,14 @@
 "cs" = (/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/town)
 "ct" = (/turf/furniture{name = "table"; icon_state = "woodtableleft"},/area/bar)
 "cu" = (/turf/ground{name = "farmland"; icon_state = "farmland"},/area/townrain)
-"cv" = (/obj/stat/sign,/obj/stat/sign{icon_state = "inn"},/turf/ground,/area/townrain)
+"cv" = (/obj/stat/sign/inn,/turf/ground,/area/townrain)
 "cw" = (/turf/furniture{name = "stove"; icon_state = "stove"},/area/town)
 "cx" = (/turf/furniture{name = "table"; icon_state = "woodtableright"},/area/bar)
 "cy" = (/turf/furniture{name = "plant"; icon_state = "plant"},/area/bar)
-"cz" = (/obj/stat/drawers,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/castle)
-"cA" = (/obj/stat/bookcase,/obj/stat/bookcase,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/castle)
+"cz" = (/obj/stat/drawers/wooden,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/castle)
+"cA" = (/obj/stat/bookcase,/obj/stat/bookcase/bookcase,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/castle)
 "cB" = (/turf/wall{icon_state = "curtains"},/area/castle)
-"cC" = (/obj/stat/pot,/obj/stat/pot{icon_state = "woodpot"},/turf/ground{icon = 'floor.dmi'; icon_state = "woodfloor"},/area/town)
+"cC" = (/obj/stat/door/wooden,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/castle)
 "cD" = (/turf/furniture{name = "table"; icon_state = "woodtableleft"},/area/town)
 "cE" = (/turf/furniture{name = "table"; icon_state = "woodtableright"},/area/town)
 "cF" = (/turf/floor{name = "stool"; icon_state = "stool"},/area/castle)
@@ -146,17 +143,14 @@
 "cP" = (/turf/furniture/bedhead{icon_state = "bedright"},/area/castle)
 "cQ" = (/turf/ground{name = "sand"; icon_state = "sand"},/area/castle)
 "cR" = (/turf/wall{icon_state = "pillarup"},/area/castle)
-"cS" = (/obj/stat/sign{icon_state = "church"},/turf/wall{icon_state = "stoneedge"},/area/town)
+"cS" = (/obj/stat/door/jail,/turf/ground{name = "sand"; icon_state = "sand"},/area/castle)
 "cT" = (/turf/furniture{name = "table"; icon_state = "stonetable"},/area/castle)
 "cU" = (/turf/wall{icon_state = "pillardown"},/area/castle)
-"cV" = (/obj/stat/door,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/castle)
+"cV" = (/obj/stat/door/jail,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/castle)
 "cW" = (/turf/furniture{name = "plant"; icon_state = "plant"},/area/castle)
 "cX" = (/turf/furniture{name = "table"; icon_state = "woodtableleft"},/area/castle)
 "cY" = (/turf/furniture{name = "table"; icon_state = "woodtableright"},/area/castle)
-"cZ" = (/obj/stat/sign,/obj/stat/sign{icon_state = "church"},/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
-"da" = (/obj/stat/pot,/turf/furniture{name = "tub"; icon_state = "tub"},/area/town)
 "db" = (/turf/ground{icon_state = "grass"},/area/townrain)
-"dc" = (/obj/stat/pot,/obj/stat/pot{icon_state = "woodpot"},/turf/floor{icon_state = "woodfloor"},/area/town)
 
 (1,1,1) = {"
 akakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakak
@@ -233,7 +227,7 @@ aqaqaqaqaqaqaQaWaUaUaUaWaWaUaUaXaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaq
 aqaqaqaqaqaqbbbdbdbdbdbdbdbdbdbeaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaqaqaqaqaq
 aqaqaqaqaqaqaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaqaqaqaqaqaq
 aqaqaqaqaqaqaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaqaqaqaqaqaq
-aqaqaqaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaraqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaqaqaq
+aqaqaqaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaqaqaq
 aqaqaqaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaqaqaq
 aqaqaqaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaOaqaqaqaqaqaq
 aqaqaqaqaqaqaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaOaqaOaOaqaqaqaqaqaq
@@ -300,22 +294,22 @@ ahahahahahahahahahahahahahasasaVaVasasahahahahahahahahahahahahahaPaPaPaPaPaPaPaP
 ahahahahahahahahahahahahahbLbLbPbPbLbLahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahah
 ahahahahahahbLbRbRbRbRbRbLbRbRbPbPbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbLbRbRbRbRbRbRbRbRbRbRbRbRbRbLagahahahahah
 ahahahahahahbLbTbUczczcAbRbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbLcBcBcBcBcBcBcBcBcBcBcBcBcBbLagahahahahah
-ahahahahahahbLbPbPbPbPbPcVbPbPbPbPbPbPcFcFcFcFcFcFcFcFcFcFbPbPbPbLbPcGcGcGcAcMcMcMcAcGcGcGbPbLagahahahahah
+ahahahahahahbLbPbPbPbPbPcCbPbPbPbPbPbPcFcFcFcFcFcFcFcFcFcFbPbPbPbLbPcGcGcGcAcMcMcMcAcGcGcGbPbLagahahahahah
 ahahahahahahbLbPbPbPbPbPbLbPbPbPbPbPbLbRbRbRbRbRbRbRbRbRbRbLbPbPbLbPbPbPbPbPcMcNcMbPbPbPbPbPbLagahahahahah
 ahahahahahahbLcOcPbPcOcPbLbPbPbPbPbPbLcQcQcQcQcQcQcQcQcQcQbLbPbPbLbPbPbPbPbPcNcNcNbPbPbPbPbPbLagahahahahah
 ahahahahahahbLbRbRbRbRbRbLbPbPbPbPbPbLcQcQcQcQcQcQcQcQcQcQbLbPbPbLbPcFbPbPcRcNcNcNcRbPbPcFbPbLagahahahahah
-ahahahahahahbLbTbUczczcAbRbPbPbPbPbPaecQcQcQcQcQcQcQcQcQcQaebPbPbLcFcTcFbPcUcNcNcNcUbPcFcTcFbLagahahahahah
-ahahahahahahbLbPbPbPbPbPcVbPbPbPbPbPbLcQcQcQcQcQcQcQcQcQcQbLbPbPbLbPcFbPbPbPcNcNcNbPbPbPcFbPbLagahahahahah
+ahahahahahahbLbTbUczczcAbRbPbPbPbPbPcScQcQcQcQcQcQcQcQcQcQcSbPbPbLcFcTcFbPcUcNcNcNcUbPcFcTcFbLagahahahahah
+ahahahahahahbLbPbPbPbPbPcCbPbPbPbPbPbLcQcQcQcQcQcQcQcQcQcQbLbPbPbLbPcFbPbPbPcNcNcNbPbPbPcFbPbLagahahahahah
 ahahahahahahbLbPbPbPbPbPbLbPbPbPbPbPbLcQcQcQcQcQcQcQcQcQcQbLbPbPbLbPbPbPbPbPcNcNcNbPbPbPbPbPbLagahahahahah
 ahahahahahahbLcOcPbPcOcPbLbPbPbPbPbPbLcQcQcQcQcQcQcQcQcQcQbLbPbPbRbRbRbRbRbRcNcNcNbRbRbRbRbRbLagahahahahah
 ahahahahahahbLbRbRbRbRbRbRbPbPbPbPbPbRbRbRbRbRbRbRbRbRbRbRbRbPbPbPbPbPbPbPbPcNcNcNbPbPbPbPbPbLagahahahahah
 ahahahahahahbLbPbPbPbPbPbPbPbPbPbPbPbPcFcFcFcFcFcFcFcFcFcFbPbPbPbPbPbPbPbPbPcNcNcNbPbPbPbPbPbLagahahahahah
 ahahahahahahbLbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPcNcNcNbPbPbPbPbPbLagahahahahah
-ahahahahahahbLbRbRcdbRbRbLbRbRcdbRbRbLbRbRcdbRbRbLbRbRcdbRbRbLbPbPbPbPbPbLbRbRbRbRbRbRbRbRbRbLagahahahahah
+ahahahahahahbLbRbRcVbRbRbLbRbRcVbRbRbLbRbRcVbRbRbLbRbRcCbRbRbLbPbPbPbPbPbLbRbRbRbRbRbRbRbRbRbLagahahahahah
 ahahahahahahbLcWbPbPbPbPbLcWbPbPbPbPbLcWbPbPbPbPbLczczbPbPbPbLbPbPbPbPbPbLcRcGcGcMcMcMcGcGcRbLagahahahahah
 ahahahahahahbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPbPbPbLcUbPbPcMbPcMbPbPcUbLagahahahahah
 ahahahahahahbLbPbPbPbPbPbLbPbPbPbPbPbLbPbPbPbPbPbLbPbPbPbPbPbLbPbPbPbPbPbLbPcFcFbPbPbPcFcFbPbLagahahahahah
-ahahahahahahbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPbPbPcVcFcXcYcFbPcFcXcYcFbLagahahahahah
+ahahahahahahbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPbPbPcCcFcXcYcFbPcFcXcYcFbLagahahahahah
 ahahahahahahbLbTbPbPbPbPbLbTbPbPbPbPbLbTbPbPbPbPbLcGcGbPbPbPbLbPbPbPbPbPbLbPcFcFbPbPbPcFcFbPbLagahahahahah
 ahahahahahahbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRagahahahahah
 ahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahah
@@ -335,7 +329,7 @@ dbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdb
 dbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdb
 dbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdb
 dbdbdbdbdbdbaMaNaNaNaNaNaNaNaNaNaNaNaNaNaNaMaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDawdbdbdbdbdbdbdb
-dbdbdbdbdbdbaMbVceclclbZcabZbZcbcbcbbZbZcmaMamamamamamamamamamamamamalbWaEbWbWaEbWbWaEaEaTawdbdbdbdbdbdbdb
+dbdbdbdbdbdbaMbVbZbZbZbZcabZbZcbcbbZbZbZcmaMamamamamamamamamamamamamalbWaEbWbWaEbWbWaEaEaTawdbdbdbdbdbdbdb
 dbdbdbdbdbdbaMbZbZbZbZbZcncobZbZbZbZbZbZbZaMamaEaEaEaEamamaEaEaEaEamabacacacacacacabacacacabdbdbdbdbdbdbdb
 dbdbdbdbdbdbaMbZbZbZbZbZcncobZbZbZbZbZbZbZaMamaEcucuaEamamaEcucuaEamacananbYcwcwcwabcsaoaCabdbdbdbdbdbdbdb
 dbdbdbdbdbdbaMcncncncncncncobZbZbZbZbZcobZaMamaEcucuaEamamaEcucuaEamajaoaoaoaoaoaoabcsaoaoabdbdbdbdbdbdbdb
@@ -345,14 +339,14 @@ dbdbdbdbdbdbaMbZcocobZbZbZbZcobZbZbZbZbZbZaMamaEcucuaEamamaEcucuaEamabcgcDcEcgao
 dbdbdbdbdbdbaMcoctcxcobZbZcocpcobZbZbZbZcyaMamaEaEaEaEamamaEaEaEaEamabaocgcgaoaoaoaoaoaoaoabdbdbdbdbdbdbdb
 dbdbdbdbdbdbaMbZcocobZbZbZbZcobZbZbZbZbZcyaMamamamamamamamamamamamamabaoaoaoaoaoaoaoaoaoaoabdbdbdbdbdbdbdb
 dbdbdbdbdbdbaMaNaMaNaNaNaNaNaMaNaNaNbZbZaNaNcqcqcqcqcqamcqcqcqcqcqcqabaoaocgaoaoaoaoaoaoaoabdbdbdbdbdbdbdb
-dbdbdbdbdbdbawcrabcCcCatatatabcradaRaxaxdbdbdbdbdbdbdbaxdbdbdbdbdbbWabaocgcjcgabacacajacacabdbdbdbdbdbdbdb
+dbdbdbdbdbdbawcrabararatatatabcradclaxaxdbdbdbdbdbdbdbaxdbdbdbdbdbbWabaocgcjcgabacacajacacabdbdbdbdbdbdbdb
 dbdbdbdbdbdbawcrabauauauauauabbWaddbaxaxdbdbdbdbdbdbdbaxdbdbdbdbdbcrabaoaocgaoabayayaoayayabdbdbdbdbdbdbdb
 dbdbdbdbdbdbawaEabauauaucHcIabaEaddbaxaxdbdbdbdbdbdbdbaBdbdbdbdbdbbWabaoaoaoaoabaoaoaoaoaoabdbdbdbdbdbdbdb
 dbdbdbdbdbdbawaEabacacauacacabaEaddbaxaxdbdbdbdbdbdbdbaxdbdbdbdbdbdbacaoaoaoaoabaoaoaochciabdbdbdbdbdbdbdb
 dbdbdbdbdbdbawaEabbXbXaucwbYabbWaddbaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxajaoaoaoaoabbXaoaoaoaoabdbdbdbdbdbdbdb
 dbdbdbdbdbdbawbWabcJauauaucKabcraddbaxaxaxaxaxaxaxaxaxdbdbdbdbdbdbdbabaoaoaoaoabbXbXaochciabdbdbdbdbdbdbdb
 dbdbdbdbdbdbawaEabcLcJauaucKabbWaddbdbdbdbdbdbdbdbaxaxdbdbdbdbdbdbdbacacacacabacacacacacacabdbdbdbdbdbdbdb
-dbdbdbdbdbdbawbWacacacaJacacacaEadakdbdbdbdbdbdbdbaxaxbWbWaEaEbWbWdbdbbWaEcrabananaGaGcwdaabdbdbdbdbdbdbdb
+dbdbdbdbdbdbawbWacacacaJacacacaEadakdbdbdbdbdbdbdbaxaxbWbWaEaEbWbWdbdbbWaEcrabananaGaGcwaoabdbdbdbdbdbdbdb
 dbdbdbdbdbakawakakdbdbaxdbdbdbdbdbdbdbdbdbdbdbdbdbaxaxaEawaDaDawaEdbdbdbdbdbacaoaoaoaoaoaoabdbdbdbdbdbdbdb
 dbdbdbdbdbakawcrakakdbaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxbWawaKaKawbWdbaxaxaxaxajaoaocgaoaoaoabdbdbdbdbdbdbdb
 dbdbdbdbdbdbawaEdbakdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbaxaxbWawaKaKawbWdbaxdbdbdbabbXcgcjcgchciabdbdbdbdbdbdbdb
@@ -360,15 +354,15 @@ dbdbdbdbdbdbawbWdbcrbWbWaEcrbWbWaEaEcrcrdbdbdbdbdbaxaxaEaDaDaDaDaEdbaxdbdbbWacac
 dbdbdbdbdbdbabacajacacacacacacacacacacabdbdbdbdbdbaxaxbWbWaEbWbWbWdbaxdbdbbWcrbWaEaEbWcraEawdbdbdbdbdbdbdb
 dbdbdbdbdbdbabbXaocfaoaoaoaoaoaoaoaoaoaccvakakakakaxaxdbdbdbdbdbdbdbaxdbdbakakakakakakakbWawdbdbdbdbdbdbdb
 dbdbdbdbdbdbabaLaocfaoaoaoaoaoaoaoaoaoaoaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxamamamamakakakbWawdbdbdbdbdbdbdb
-dbdbafdbdbdbabaLaocfaoaoaoaoaoaoaoaoaoaoaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxadaEcrcrawdbdbdbdbdbdbdb
-dbdbdbdbdbdbabbXaocfaoaoaoaoaoaoaoaoaoabaEakakakakaxaxdbdbdbdbaxdbdbbWabacaccSaoaocSacacacabdbdbdbdbdbdbdb
+dbdbafdbdbdbabaLaocfaoaoaoaoaoaoaoaoaoaoaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxclaEcrcrawdbdbdbdbdbdbdb
+dbdbdbdbdbdbabbXaocfaoaoaoaoaoaoaoaoaoabaEakakakakaxaxdbdbdbdbaxdbdbbWabacacacaoaoacacacacabdbdbdbdbdbdbdb
 dbdbdbdbdbdbabacacacacabaoaoabacacacacabcrakakakakaxaxdbdbdbdbaxdbdbbWabbYcgcgaoaoaocgcgaoabdbdbdbdbdbdbdb
 dbdbdbdbdbdbabckckckbBabaoaoacbYanayayabbWakakakakaxaxdbdbdbdbaxdbdbaEabaocgcgaoaoaocgcgaoabdbdbdbdbdbdbdb
 dbdbdbdbdbdbabaoaoaoaoacaoaoajaoaoaoaoabbWakakakakaxaxdbdbdbdbaxdbdbcrabaocgcgaoaoaocgcgaoabdbdbdbdbdbdbdb
 dbdbdbdbdbdbabaoaoaoaoajaoaoabaoaochciabbWakakakakaxaxbWaEbWdbaxdbbWcrabaoaoaoaoaoaoaoaoaoabdbdbdbdbdbdbdb
 dbdbdbdbdbdbabchciaobYabaoaoabacacacacabaEakakakakaxaxbWabacacapacacacabaoaoaocfcfcfaoaoaoabdbdbdbdbdbdbdb
 dbdbdbdbdbdbabacacacacabaoaoacbYayayayabbWakakakakaxaxaEabbYcwaoaSaSaiabaoaoaoaoaoaoaoaoaoabdbdbdbdbdbdbdb
-dbdbdbdbdbdbabanbXayayabaoaoajaoaoaoaoabcrakakakakaxaxbWabaoaoaoaoaoaoabaoaocZcZcZcZcZaoaoabdbdbdbdbdbdbdb
+dbdbdbdbdbdbabanbXayayabaoaoajaoaoaoaoabcrakakakakaxaxbWabaoaoaoaoaoaoabaoaoaRaRaRaRaRaoaoabdbdbdbdbdbdbdb
 dbdbdbdbdbdbabcgaoaoaoacaoaoabaoaochciabbWakakakakaxaxbWabaoaoaoaoaoaoabapacacacabacacacapabdbdbdbdbdbdbdb
 dbdbdbdbdbdbabcjcgaoaoajaoaoacacacacacabaEakakakakaxaxcrabaocgaoaochciabaoaoaSaSabaSaSaoaoabdbdbdbdbdbdbdb
 dbdbdbdbdbdbabcgaoaoaoabaoaocscscscscsabbWakakakakamambWabcgcjcgaoaoaoabaoaoaoaoabaoaoaoaoabdbdbdbdbdbdbdb
@@ -391,7 +385,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaaaaaaaaaaaaaabacacacabacacacacacacacacabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-aaaaaaaaaaaaaaaaabbtbtbtabdccKcKcKcKcKcKaAabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaabbtbtbtabbscKcKcKcKcKcKaAabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaaaaaaaaaaaaaabcKcKcKabcKcKcJbxcJcKcKcKabaaaaaaaaaaaaaaaaaaaaaaaaaaabacacacacacacacacacabaaaaaaaaaaaaaa
 aaaaaaaaaaaaaaaaabcKcKcKabcKcKcKcKcKcKcKcKabaaaaaaaaaaaaaaaaaaaaaaaaaaabbXbXbXaFaIbvbXbXaAabaaaaaaaaaaaaaa
 aaaaaaaaaaaaaaaaabcHcIcKaccKcKcKcKcKcKcKcKabaaaaaaaaaaaaaaaaaaaaaaaaaaabcscsbMbSbMbSbMcscsabaaaaaaaaaaaaaa
@@ -421,7 +415,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaaaaaaaaaabacacacacacacabacacacacacabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaaaaaaaaaabcjcgccbqbqbYabbYccbqbqbqabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaaaaaaaaaabcgcscscscscsabcscscscscsabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-aaaaaaaaaaaaabcscscscschciabbXcscschciabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaabcscscscscsciabbXcscschciabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaaaaaaaaaabacajacacacacacacajacacacabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaaaaaaaaaabcscscscscscscscscscscscsabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaaaaaaaaaabcscscscscscscscscscscscsabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa

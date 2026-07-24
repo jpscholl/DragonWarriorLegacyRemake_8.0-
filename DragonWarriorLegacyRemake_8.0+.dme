@@ -15,15 +15,28 @@
 #define FILE_DIR "Sound & Music"
 #define FILE_DIR "UI & Effects"
 #define FILE_DIR "World Icons"
+#define FILE_DIR "World Icons/Items"
 // END_FILE_DIR
 
 // BEGIN_PREFERENCES
 // END_PREFERENCES
 #define TILE_WIDTH 32
 #define TILE_HEIGHT 32
+// Shared vertical sprite offset (players AND enemies) — defined here, not in a .dm
+// file, so it's available regardless of #include order below (Combat/NPCs/EnemyNPCs.dm
+// compiles before Core/Main.dm alphabetically, same reason TILE_WIDTH/TILE_HEIGHT live here).
+#define SPRITE_PIXEL_Y_OFFSET 7
+
+// Dedicated channel for one-shot combat/event SFX (attack/hit/dodge/stairs/fall, etc.)
+// — area background music (PlayAreaMusic(), Area.dm) plays on channel 1, and playing
+// any other sound on that same channel interrupts/replaces the music. Also defined
+// here rather than Main.dm for the same #include-order reason as SPRITE_PIXEL_Y_OFFSET
+// above (Combat/CombatSystem.dm needs this and compiles before Core/Main.dm too).
+#define SFX_CHANNEL 3
 
 // BEGIN_INCLUDE
 #include "Interface.dmf"
+#include "Code\Admin\AdminLevels.dm"
 #include "Code\Admin\Commands\GMCommands.dm"
 #include "Code\Admin\Debug\DebugTools.dm"
 #include "Code\Combat\CombatSystem.dm"
@@ -31,7 +44,9 @@
 #include "Code\Combat\Skills\SkillDatum.dm"
 #include "Code\Core\Main.dm"
 #include "Code\Core\SmoothMovement.dm"
+#include "Code\Core\TextFilter.dm"
 #include "Code\Player\ClickableStats.dm"
+#include "Code\Player\Inventory.dm"
 #include "Code\Player\PlayerTemplate.dm"
 #include "Code\Player\StatPanels.dm"
 #include "Code\Player\StatsDatum.dm"
@@ -44,6 +59,7 @@
 #include "Code\UI\LoginMenu.dm"
 #include "Code\UI\PaletteManager.dm"
 #include "Code\World\Area.dm"
+#include "Code\World\Interaction.dm"
 #include "Code\World\Obj.dm"
 #include "Code\World\Turfs.dm"
 #include "Maps\OGDWLv8.0.dmm"

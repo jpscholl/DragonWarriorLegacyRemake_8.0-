@@ -16,7 +16,7 @@ datum/SaveManager
     // Save a player's data to a specific slot (1-4)
     // -----------------------------
     proc/SaveCharacter(mob/player/M, slot)
-        if(slot < 1 || slot > 4) return 0
+        if(slot < 1 || slot > MAX_CHARACTERS) return 0
         var/key = "char[slot]"
 
         var/datum/CharacterSaveData/D = new
@@ -37,7 +37,7 @@ datum/SaveManager
 // Returns 1 on success, 0 on failure
 // -----------------------------
     proc/LoadCharacter(mob/playerTemp/M, slot)
-        if(slot < 1 || slot > 4) return 0
+        if(slot < 1 || slot > MAX_CHARACTERS) return 0
         var/key = "char[slot]"
 
         // Load the saved snapshot
@@ -53,17 +53,20 @@ datum/SaveManager
             if("Wizard")  newPlayer = new /mob/player/Wizard
         if(!newPlayer) return 0
 
+        newPlayer.isCharacter = TRUE
+        newPlayer.saveSlot = slot
+
+        // Skills aren't part of the save blob (Code/Save/SaveData.dm) — re-equip the
+        // base Attack skill to Numpad 9 every load, same as a fresh character.
+        newPlayer.EquipBasicAttack()
+
         // Apply saved snapshot to the mob
         D.ApplyToCharacter(newPlayer)
-
-        // Make sure baseIcon is assigned
-        if(!newPlayer.baseIcon && newPlayer.basePlayerIcon)
-            newPlayer.baseIcon = newPlayer.basePlayerIcon
 
         // Rebuild palette & apply saved colors
         newPlayer.palette = new /datum/PaletteManager(
             newPlayer.class,
-            newPlayer.baseIcon
+            newPlayer.basePlayerIcon
         )
 
         if(newPlayer.hairColor)   newPlayer.palette.SetZoneColor("Hair", newPlayer.hairColor)
@@ -74,9 +77,17 @@ datum/SaveManager
         // Finally, rebuild the icon with applied palette/colors
         newPlayer.RebuildIcon()
 
+        // Stop the login-menu music before handing control to the real character
+        M << sound(null, channel = 1)
+
         // Transfer client control
         M.client.mob = newPlayer
-        newPlayer.loc = locate(26,8,4)
+        newPlayer.loc = PLAYER_SPAWN
+
+        var/area/spawnArea = newPlayer.loc?.loc
+        if(spawnArea && spawnArea.areaMusic)
+            newPlayer.PlayAreaMusic(spawnArea.areaMusic)
+
         players += newPlayer
         del M
 
@@ -86,7 +97,7 @@ datum/SaveManager
     // Delete a character slot
     // -----------------------------
     proc/DeleteCharacter(slot)
-        if(slot < 1 || slot > 4) return 0
+        if(slot < 1 || slot > MAX_CHARACTERS) return 0
 
         var/prefix = "char[slot]."
 
@@ -102,7 +113,7 @@ datum/SaveManager
     // -----------------------------
     proc/GetCharacterSlots()
         var/list/out = list()
-        for(var/i = 1 to 4)
+        for(var/i = 1 to MAX_CHARACTERS)
             var/name
             F["char[i].name"] >> name
             if(name)
@@ -113,26 +124,46 @@ datum/SaveManager
 // Rebuild the player's icon after loading or recoloring
 // -----------------------------
 mob/player/proc/RebuildIcon()
-    if(!baseIcon) return src
+    if(!baseIcon)
+        return src
 
-    var/icon/playerIcon = icon("Mob Icons/Player/" + baseIcon)
+    // NOTE: must be "new /icon(...)" with the leading slash, not "new icon(...)".
+    // Every atom has a built-in var also named "icon" (this mob's own sprite, set
+    // below) — without the slash, DM resolves the bare word to that var (null on a
+    // freshly loaded mob) instead of the /icon type, and crashes trying to
+    // instantiate type null.
+    var/icon/playerIcon = new /icon(baseIcon)
+
     if(!playerIcon)
         src << output("ERROR: Failed to load icon [baseIcon]", "Info")
         return src
 
-    var/list/zones = list("Hair","Eyes","Main","Accent")
+    // Recoloring only takes effect for icons that have real default-color data in
+    // DefaultIconColors (Code/Player/Customization/PlayerIconColorPalette.dm) — right
+    // now that's just Hero's dw3hero.dmi. Everything else just shows its plain sprite.
+    var/list/zones = list("Hair", "Eyes", "Main", "Accent")
+
     for(var/zone in zones)
         var/baseColor = palette?.originalColors[zone]
-        var/replaceColor  = null
+        var/replaceColor = null
+
         switch(zone)
-            if("Hair")   replaceColor = hairColor
-            if("Eyes")   replaceColor = eyeColor
-            if("Main")   replaceColor = mainColor
-            if("Accent") replaceColor = accentColor
+            if("Hair")
+                replaceColor = hairColor
+
+            if("Eyes")
+                replaceColor = eyeColor
+
+            if("Main")
+                replaceColor = mainColor
+
+            if("Accent")
+                replaceColor = accentColor
 
         if(baseColor && replaceColor)
             playerIcon.SwapColor(baseColor, replaceColor)
 
     icon = playerIcon
     UpdateAppearance()
+
     return src

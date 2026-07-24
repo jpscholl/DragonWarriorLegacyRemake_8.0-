@@ -1,6 +1,7 @@
 datum/PaletteManager
     var/class
-    var/icon_id
+    var/icon_id               // bare icon filename (e.g. "dw3hero.dmi") — NOT an /icon object,
+                               // must match a key in DefaultIconColors.colors_by_class
     var/list/originalColors   // defaults
     var/list/colors           // current/custom
 
