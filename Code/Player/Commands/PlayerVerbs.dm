@@ -18,6 +18,10 @@ mob/verb/Interact()
         MP = MaxMP
         density = 1
         icon_state = "world"
+        isDefending = FALSE  // clear a stale defend stance from before death — icon_state
+                               // above already resets visually, this resets the actual
+                               // damage-reduction flag (Defend, SkillDatum.dm) to match
+        ClearStatusEffects()  // don't respawn still poisoned (StatusEffects.dm)
         loc = PLAYER_SPAWN
         canAct = TRUE  // re-enable movement — see Die()'s player branch in
                         // Code/Combat/CombatSystem.dm for where this gets locked

@@ -26,10 +26,52 @@
 // automatically — see Step() in Code/Core/SmoothMovement.dm.
 mob/var/isSleeping = FALSE
 
+// TEMPORARY VALUES — confirmed as "restore 1 of each per half second" for a BED,
+// explicitly expected to be retuned later. Real resting balance (rate, whether it
+// should scale with anything, whether an inn bed differs from one found in the world)
+// is still an open design question.
+#define BED_RESTORE_INTERVAL 5  // deciseconds — 0.5s
+#define BED_RESTORE_AMOUNT 1    // HP and MP each, per interval
+
+// The confirmed-planned **Rest** skill (sleep in place, anywhere) should recover
+// SLOWER than a bed — it's sleeping on the ground, not in an actual bed. That's why
+// SleepRestoreLoop() below takes its rate as arguments instead of reading the defines
+// directly: Rest just calls it with a longer interval (and/or smaller amount) rather
+// than needing its own duplicate loop. Numbers for that aren't decided yet.
+
+// Guards against two restore loops running at once, which would silently double the
+// heal rate: waking and immediately re-sleeping starts a second loop while the first
+// is still mid-sleep(), and that first loop's `isSleeping` check would pass again by
+// the time it wakes. Same session-counter pattern used by open_session (Obj.dm),
+// pendingSession (SmoothMovement.dm), and defendToggleSession (CombatSystem.dm).
+mob/var/sleepSession = 0
+
 mob/proc/WakeUp()
 	if(isSleeping)
 		isSleeping = FALSE
+		sleepSession++  // invalidates any in-flight SleepRestoreLoop()
 		icon_state = "world"
+
+// Started by bedhead's OnInteract() (below) when a mob lies down. Self-terminates on
+// wake — no need for anything to stop it explicitly. Deliberately a mob proc (rather
+// than something owned by the bed turf) that takes its rate as arguments, so the
+// confirmed-planned **Rest** skill can reuse it directly for slower on-the-ground
+// recovery: set isSleeping/icon_state, call this with a longer interval, done.
+// Defaults are the bed rate.
+mob/proc/SleepRestoreLoop(interval = BED_RESTORE_INTERVAL, amount = BED_RESTORE_AMOUNT)
+	set waitfor = 0
+	sleepSession++
+	var/mySession = sleepSession
+
+	while(src && isSleeping && sleepSession == mySession)
+		sleep(interval)
+		// Re-check after the sleep — the mob may have woken (or died, or started a
+		// fresh sleep session) while this was waiting.
+		if(!isSleeping || sleepSession != mySession) return
+		if(isDead) return
+
+		HP = min(MaxHP, HP + amount)
+		MP = min(MaxMP, MP + amount)
 
 //grass: dis is ground...you walk on it
 //was: grass, brush, flowers, farmland, cavedirt, sand — all now instances of this type
@@ -77,8 +119,8 @@ turf/table/longtablecenter
 // -----------------------------
 // Interacting with the head/pillow side of a bed (bedleft/woodbedleft below) moves the
 // player onto it and puts them in the "sleep" icon_state. Moving at all wakes them back
-// up automatically (see Step() in Code/Core/SmoothMovement.dm).
-// TODO: gradually restore HP/MP while sleeping — interval not decided yet, not built.
+// up automatically (see Step() in Code/Core/SmoothMovement.dm). Sleeping gradually
+// restores HP/MP — see SleepRestoreLoop() above (temporary rate, expected to be retuned).
 		bedhead
 			// Not meant to be placed directly on a map — bedleft/woodbedleft below point
 			// to this via parent_type so both share the same behavior without duplicating it.
@@ -89,6 +131,7 @@ turf/table/longtablecenter
 				user.loc = src
 				user.icon_state = "sleep"
 				user.isSleeping = TRUE
+				user.SleepRestoreLoop()
 				return TRUE
 
 		bedleft

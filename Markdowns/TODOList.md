@@ -40,6 +40,36 @@ as a **map-editor instance** of one generic type (right-click the type in the ob
   hardcoded type default or an instance override.
 - Reminder comments left at the top of both `Turfs.dm` and `Obj.dm`.
 
+## Code Cleanup Pass (2026-07-28)
+
+Full-codebase sweep for duplication/dead code, at your request. All behavior-preserving
+(clean recompile after each change), nothing here changes gameplay:
+- `GMdaynight()` (`GMCommands.dm`) — the 4 near-identical night-suffix
+  add/strip blocks (turf x2 directions, obj x2 directions) collapsed into one
+  `ToggleNightIconState()` helper.
+- Attack/Blaze's identical "drop defend stance for the swing/cast, restore it after
+  unless manually toggled" dance (`SkillDatum.dm`) extracted into two shared mob procs,
+  `DropDefendForAction()`/`RestoreDefendIfUntouched()` (`CombatSystem.dm`) — was
+  duplicated inline in both skills, now a single implementation either can call
+  (Fireball still applies the same restore check without the drop, unchanged).
+- `mob/playerTemp/Logout()` and `mob/player/Logout()` (`Main.dm`) had byte-identical
+  bodies (they're sibling types, neither inherits the other) — both now just call a
+  shared `SaveAndLogout()`.
+- `ColorSwap.dm`'s `Set_Main()`/`Set_Accent()`/`Set_Hair()`/`Set_Eyes()` — four
+  otherwise-identical procs differing only by which palette zone string they passed —
+  collapsed into one `SetZoneColorPrompt(zone)`; call sites in `LoginMenu.dm` updated.
+  Also removed `appearance_updating` (declared but never read/set anywhere, already
+  flagged dead in its own comment) and `IsColorUsed()` (never called anywhere).
+- `ClickableStats.dm`'s `obj/StatLink` had a `statMap` list mapping each attribute name
+  to itself (`"Strength" = "Strength"`, etc.) — pure identity mapping, since every
+  construction site (`StatPanels.dm`) already passes a real mob var name. Removed the
+  indirection entirely; `attributeName` is used directly as the var name now.
+- `PaletteManager.dm`'s `GetAllZones()` — never called anywhere, removed.
+Left alone on purpose: `AdminLevels.dm`'s `TestBuilderVerb()`/`TestAdminVerb()` (still
+useful for confirming permission tiers, not accidental bloat) and the bug-history
+comments throughout every file (load-bearing context from real playtest fixes, not
+fluff — see this file's own intro about that).
+
 ---
 
 ## Phase 1 — Login & Character Creation (mostly done, polish remains)
@@ -112,6 +142,40 @@ as a **map-editor instance** of one generic type (right-click the type in the ob
       (`CombatSystem.dm`, after a level-up). Derives `MaxHP`/`MaxMP` from Vitality/
       Intelligence + Level via placeholder `#define`d coefficients (tune later); a
       `hasMana` flag keeps 0-MP classes (Soldier) at 0 regardless of Intelligence.
+- [x] **Fixed — full HP/MP on login, every login.** `FinalizePlayer()` (`LoginMenu.dm`)
+      now calls `RecalculateVitals()` once right after stats are applied, then tops
+      `HP`/`MP` to their new max — this also resolved the deeper inconsistency where
+      the static per-class `MaxMP` literals (`PlayerTemplate.dm`, 15/30) were silently
+      overwritten the moment any stat point was later spent anyway; those literals are
+      now deleted, `RecalculateVitals()`'s formula is the single source of truth from
+      creation onward. `LoadCharacter()` (`SaveSystem.dm`) also now sets `MP = MaxMP`
+      after restoring the save snapshot, so a returning character logs in with full
+      mana too, not just whatever was saved. `FullRestore()` debug verb kept (still
+      useful for general testing), comment trimmed since the bug it was working around
+      is gone.
+- [ ] **TEMPORARY TESTING STATE — three things currently in the code that are NOT
+      meant to ship as-is.** Grouped here so none of them quietly become permanent:
+      1. `FullRestore()` debug verb (`DebugTools.dm`) — tops HP/MP to max. Exists to
+         work around the 0-MP bug above; remove once that's actually fixed.
+      2. `TESTING_CHEAP_SPELLS` (`SkillDatum.dm`, currently `TRUE`) — forces **every**
+         spell to cost 1 MP regardless of its real `mana_cost`, so spells can be spammed
+         while tuning. Flip to `FALSE` to restore real costs; deliberately built as one
+         flag + one `GetManaCost()` accessor rather than editing each spell's number, so
+         reverting is a one-line change and future spells inherit the behavior for free.
+      3. Bed restore rate (`BED_RESTORE_INTERVAL`/`BED_RESTORE_AMOUNT`, `Turfs.dm`) —
+         currently 1 HP + 1 MP per 0.5s, confirmed as a placeholder explicitly expected
+         to be retuned. Open questions when it is: should the rate scale with anything
+         (Vitality? level? inn quality?), and should an inn bed differ from a random bed
+         found in the world?
+- [ ] **Rest skill — confirmed planned, not built.** Lets a player sleep in place
+      anywhere (no bed required) to recover HP/MP. **Confirmed design point**: it
+      should recover *slower* than a bed, since it's sleeping on the ground rather
+      than in an actual bed — exact numbers not decided. The groundwork is already
+      in place for this: `SleepRestoreLoop()` (`Turfs.dm`) is a mob proc that takes
+      its interval/amount as arguments (defaulting to the bed rate), so Rest just
+      needs to set `isSleeping`/`icon_state` and call it with a longer interval —
+      no duplicate loop, and it inherits the existing wake-on-move behavior
+      (`Step()`, `SmoothMovement.dm`) and double-loop session guard for free.
 
 ## Phase 3 — Stat Panels & UI
 
@@ -347,7 +411,10 @@ as a **map-editor instance** of one generic type (right-click the type in the ob
       (`Turfs.dm`), `door.wav` (`Obj.dm`), and `GMghostIconform`'s `spell.WAV`
       (`GMCommands.dm`). `levelup.wav` already had its own channel (2), so it was
       never part of this bug and was left alone.
-- [x] Skill datum base + 2 skills (Attack, Fireball) (`SkillDatum.dm`)
+- [x] Skill datum base + 2 skills (Attack, Fireball) (`SkillDatum.dm`) — **both are
+      placeholder stubs, not the real spell system** (see the real spell design
+      below). Fireball specifically isn't equipped to any class by default yet, so
+      nothing in-game can currently cast it either way.
 - [ ] **Minor visual bug, found during an end-of-night code review, not yet tested**:
       Fireball's spell overlay (`PlayAttackAnimation()`, `CombatSystem.dm`) still uses
       a plain `/icon` added to `target.overlays`, unlike the melee weapon overlay right
@@ -356,20 +423,175 @@ as a **map-editor instance** of one generic type (right-click the type in the ob
       it. `/icon` has no `.layer` property, so the spell overlay likely has the same
       "renders behind the target" bug the melee one had before that fix — just
       unconfirmed, since no enemy casts spells yet and it hasn't come up in player
-      testing. Give it the same `/image` treatment once it does.
-- [ ] Status effects — **confirmed not implemented at all**, no poison/paralysis/buff/
-      debuff system exists anywhere in the code. (The only "sleep" references anywhere
-      are the unrelated bed-rest mechanic in `Turfs.dm`/`SmoothMovement.dm` — moving
-      wakes you up, nothing to do with combat.) Already a confirmed dependency, not just
-      a hypothetical: `ClassReference.md` lists a `Sleep` **spell** for Hero/Pilgrim/
-      Wizard, presumably meant to inflict this status on enemies once it exists.
+      testing. Give it the same `/image` treatment once it does — though this whole
+      concern may be moot once the real projectile spell system below replaces the
+      current instant-hit placeholder entirely.
+- [x] **Real spell system — built.** `datum/skill/Fireball` stays as the old
+      placeholder (instant-hit, melee-range only, never equipped to any class by
+      default) — `datum/skill/Blaze` (`SkillDatum.dm`) is the first spell actually
+      built against the real projectile system:
+      1. **On use**: checks MP against `mana_cost` (5, low placeholder), fails with a
+         message if insufficient, otherwise deducts it and proceeds.
+      2. `spell.wav` plays (`SFX_CHANNEL`, same as everything else combat-related).
+      3. Movement locks for the whole cast (`canAct = FALSE`, same gate as everything
+         else).
+      4. A **cast meter** overlay (`castmeter.dmi`, icon_states `"1"`-`"10"`) animates
+         on the caster via a `for` loop with `sleep()` between frames — the projectile
+         never launches before all 10 finish.
+      5. Both the cast-meter frame delay AND the projectile's own travel speed
+         (`stepDelay`) reuse the same `GetAttackDelay()` Agility+Intelligence formula
+         (`CombatSystem.dm`), scaled by a made-up `/5` divisor — no reference point
+         for how this should feel yet, so treat this scaling factor as the first
+         thing to retune once you've actually watched it fly.
+      6. **Facing locks the instant the cast starts** — captured into a local
+         `castDir` before the windup, not re-read at launch, since turning itself
+         isn't blocked by `canAct` (only stepping is). Confirmed default; may change
+         to let the caster keep redirecting aim during the windup later.
+      7. The projectile is a new `/obj/projectile` base type (`Code/Combat/
+         Projectiles.dm`, added to the `.dme`), with `/obj/projectile/blaze` as
+         Blaze's specific instance (`icon_state = "blaze"`, impact icon_state
+         `"blazehit"`, both in `spells.dmi`). `Launch()` steps it forward one tile at
+         a time (`stepDelay` between steps) until: it finds a mob on the opposing
+         side from its caster (`FindTarget()` — player-fired hits enemies, enemy-
+         fired hits players, same-side mobs are skipped entirely so it passes
+         harmlessly through friendlies, matching the confirmed coop-by-default rule),
+         it hits a dense turf, or `get_step()` returns null (fell off the edge of the
+         map) — the last case just deletes it silently, no impact effect.
+      8. On impact (mob or wall), `Impact()` shows the `"blazehit"` overlay at the
+         point of impact, then — for a mob hit — calls the CASTER's own
+         `ApplySpellDamage()` (`CombatSystem.dm`), which already runs the full
+         existing pipeline for free: the elemental weakness/resistance modifier
+         (Blaze sets `element = "fire"`), `RollDodge()`, `TakeDamage()`'s hit sound
+         split, and death/`Die()` handling. No new damage-application code needed —
+         this reuses everything already built.
+      9. **Piercing is per-skill, via `/obj/projectile`'s `pierces` var** (`FALSE` by
+         default) — Blaze leaves it `FALSE` (stops on first hit). A future piercing
+         skill like Thornwhip would set `pierces = TRUE` on its own projectile
+         subtype instead of needing an entirely separate moving-entity system.
+      10. **Cast interruption**: not implemented — taking damage mid-cast doesn't
+          cancel the spell. `if(user.isDead) return` after the windup at least stops
+          a dead caster from launching a projectile or stomping `Die()`'s own
+          `canAct` lock (same class of bug found and fixed in Attack/Fireball's
+          recovery callbacks earlier), but there's no broader interruption system.
+      11. **Defend interaction**: Blaze uses the exact same auto-drop/resume dance as
+          Attack (`wasDefending`/`defendToggleSession`) — relevant because Hero can
+          have both Defend and Blaze equipped, unlike Wizard/Fireball. Fireball
+          doesn't get this (no class currently has both it and Defend).
+      12. **Starting kits wired up** (`EquipBasicBlaze()`, `PlayerTemplate.dm`, called
+          alongside `EquipBasicAttack()`/`EquipBasicDefend()` from both character
+          creation and load): Hero gets Attack/Defend/Blaze (Numpad 9/7/3). Wizard
+          gets Attack/Blaze (Numpad 9/3) — **IceSpear is not built**, just a
+          confirmed name for later; Wizard doesn't have a third skill yet.
+      **Still open**: IceSpear itself (no code at all yet, just the name and that
+      Wizard gets it by default), whether cast interruption ever gets added, whether
+      facing-lock-at-cast-start changes to allow redirecting during the windup, and
+      retuning the remaining placeholder numbers (mana cost, damage) once this has
+      actually been played with.
+      **First playtest found 4 bugs — all four now have fixes written. Compile
+      verified clean (0 errors/warnings, BYOND 516.1685) and castmeter.dmi confirmed
+      to contain icon_states "1"-"10" (it's an old-format binary DMI, not a PNG —
+      which is why the earlier zlib/PNG-chunk read failed; strings dumped directly
+      from the binary instead). Still needs an actual in-game playtest to confirm
+      the fixes behave:**
+      1. **Projectile too slow — fixed.** Confirmed with real numbers: a player moves
+         one tile per 1.36 deciseconds (~7.4 tiles/sec, `step_delay` in
+         `SmoothMovement.dm`) while the projectile was running ~3 deciseconds/tile
+         (~3.3 tiles/sec) — less than half player speed, hence outrunnable. Root cause
+         was that the cast windup and the projectile flight shared ONE derived number.
+         Split into separate constants (`CAST_METER_SPEED_DIVISOR` vs
+         `PROJECTILE_SPEED_DIVISOR`/`PROJECTILE_MIN_STEP_DELAY`), putting flight at
+         roughly 2-4x player speed. Also dropped the `round()` that was forcing whole
+         deciseconds, since `sleep()` handles fractions fine.
+      2. **Cast meter invisible — fixed, and the cause was NOT the layer guess.** The
+         real problem: BYOND's `overlays` list stores an immutable *snapshot* of an
+         appearance at the moment you add it. The old code added one image (with no
+         icon_state set at all, so it rendered nothing) and then mutated
+         `meter.icon_state` in the animation loop — updating an object the overlay list
+         no longer had any connection to. Now builds a fresh image per frame and
+         removes the previous one, never mutating an image after it's been added (which
+         also matters for removal: `overlays -=` matches on appearance, so a mutated
+         image can fail to match and silently strand itself). An explicit `.layer` was
+         added too, since that guess was cheap insurance regardless.
+         **Resolved**: `castmeter.dmi` confirmed to contain icon_states `"1"`-`"10"`
+         (see the note above — old-format binary DMI, states read straight from the
+         file's strings).
+      3. **Lingering `"blazehit"` overlay — fixed.** The earlier "code looks correct on
+         inspection" read was wrong; there IS a real ownership bug. The cleanup ran in
+         a `spawn(3)` block inside `Impact()`, whose `src` is the projectile — and
+         `Launch()` calls `del src` immediately after impact, which kills that object's
+         pending spawned blocks before they can fire. Moved the whole effect into a
+         free-standing `FlashTurfEffect()` proc (`Projectiles.dm`), which has no `src`
+         to delete, so its cleanup always runs. This also explains why it was seen on
+         wall hits — mob hits had the identical bug, just less noticeable.
+      4. **Adjacent-target passthrough — fixed** as described: `Launch()` now checks the
+         tile it's standing on at the top of each iteration (catching a target on the
+         spawn tile, i.e. directly adjacent to the caster) before looking ahead to the
+         next tile. Point-blank-into-a-wall is handled too, and a same-tile safety
+         guard prevents a stuck projectile from looping forever as an undeletable
+         object if `travelDir` were ever invalid.
+      **Playtest #2 found a 5th bug — fixed**: Blaze flew straight through closed doors
+      and signs. `Launch()`'s obstacle check only ever looked at `turf.density` — but
+      doors/signs are dense **objs** sitting on a non-dense floor turf (`Obj.dm`), never
+      dense turfs themselves, so they were invisible to that check. Doors also toggle
+      `density` at runtime (open/close), so a static check wouldn't have been safe
+      anyway. New `IsTileBlocked(turf/T)` helper (`Projectiles.dm`) checks the turf
+      itself AND scans for any dense obj on it, used at both the point-blank and
+      look-ahead check sites.
+- [x] **Status effect framework — built** (`Code/Combat/StatusEffects.dm`), with
+      **Poison** as the first effect. Built as a small real system rather than a
+      one-off, since there are already two effects planned (Poison, Sleep) and more
+      expected. `datum/status_effect` base handles duration, tick interval, and
+      expiry; each effect overrides `OnApply()`/`OnTick()`/`OnExpire()` and runs its
+      own polling loop (same shape as `AILoop()`/`SleepRestoreLoop()` elsewhere).
+      Mob-side interface: `ApplyStatusEffect()`, `RemoveStatusEffect()`,
+      `HasStatusEffect()`, `GetStatusEffect()`, `ClearStatusEffects()`. Re-applying an
+      active effect **refreshes its duration rather than stacking** a second copy.
+      Cleared on both death (`Die()`) and respawn (`Interact()`) so nothing survives
+      either. Active effects show on the Status tab (`StatPanels.dm`) only when
+      present.
+      **Poison specifics** (all placeholder numbers): 2% of MaxHP per tick, every 2
+      seconds, for 30 seconds (~30% total). Percent of **MaxHP, not current HP** —
+      percent-of-current shrinks every tick and asymptotically does nothing, which
+      makes poison feel pointless. Damage is applied directly rather than through
+      `TakeDamage()` on purpose: that would roll `RollDodge()`, and you shouldn't be
+      able to dodge poison already in you. The hit flick **and**
+      `hit.wav`/`enemyhit.wav` **are** played every tick though (confirmed wanted),
+      just triggered explicitly rather than as a side effect of `TakeDamage()`. Death
+      handling likewise mirrors `TakeDamage()` so nothing is skipped by going around
+      it.
+      **Decision worth revisiting**: `POISON_CAN_KILL` is `FALSE` — poison floors at 1
+      HP instead of killing, matching classic Dragon Warrior and avoiding death by a
+      ticking number you can't respond to. The lethal path is already wired if you flip
+      it. **Nothing inflicts poison yet** — no monster attack, trap, or spell applies
+      it; `Test_PoisonSelf()` (`DebugTools.dm`) is currently the only trigger.
+      **Still open**: stacking rules beyond refresh-don't-stack (intensity tiers?),
+      and any cure item/spell (nothing can remove an effect early right now except
+      code calling `RemoveStatusEffect()` directly).
+- [ ] **Sleep** as a status effect — still not built; the framework above is ready for
+      it. `ClassReference.md` lists a `Sleep` **spell** for Hero/Pilgrim/Wizard.
       **Confirmed OG scope**: Sleep is the *only* status effect in the OG — no burn,
       freeze, or shock/paralysis despite fire/ice/lightning-named spells existing
       (Fireball, Icebolt, Lightning, etc. are just damage, no elemental ailment attached).
       Sleep itself is a timed state: target is incapacitated until a duration expires.
-      You want to eventually expand beyond just this one effect — worth designing as a
-      real system (effect list, duration, stacking rules, cleanse/resist) rather than
-      one-off hacks per skill, but Sleep alone is the only OG behavior to reference.
+      **Confirmed design for the Sleep spell specifically** — it's a third variant of
+      the same underlying "asleep" state that beds and the planned Rest skill use, not
+      a separate system:
+      - Behaves *like Rest*, but the target **does not wake immediately** — unlike
+        bed/Rest sleep, where any movement wakes you (`Step()` calling `WakeUp()`,
+        `SmoothMovement.dm`). This is the key architectural difference: the existing
+        sleep state is *voluntary* (wake-on-move), while spell-inflicted sleep is
+        *forced* (timed, movement-locked via `canAct` rather than wake-on-move). Both
+        the sleep state and `SleepRestoreLoop()` will need to distinguish the two.
+      - Target is **susceptible to damage** while asleep (can be attacked freely).
+      - Target **recovers slowly** while asleep — slower than a bed, presumably in the
+        same ballpark as Rest.
+      - Likely a **short initial grace period before any healing starts**, so putting
+        something to sleep isn't instantly rewarding it with HP.
+      **Open question worth deciding before building**: since a slept target heals,
+      Sleep is a net *benefit* to the victim unless the attacker out-damages the regen
+      during the window. That may be exactly the intent (Sleep as a utility/escape or
+      burst-window tool rather than free damage), but it's worth confirming — the grace
+      period above is presumably the main lever for tuning that balance.
 - [x] Enemy AI (`EnemyNPCs.dm`): sees through walls (`range()`, not `view()`), locks
       onto the nearest player, chases, attacks once cardinally adjacent, and flees
       instead of attacking at/below `fleeHealthPercent` (10%, placeholder) of MaxHP —
@@ -408,20 +630,72 @@ as a **map-editor instance** of one generic type (right-click the type in the ob
       Confirmed design for when spellcasters get built: every monster keeps a melee
       fallback, and casters additionally get their own personal MP pool that gates
       spellcasting once it runs out.
-- [ ] Defend / Flee actions
+- [x] **Defend** (`datum/skill/Defend`, `SkillDatum.dm`) — a toggle, not a one-shot
+      action: flips `icon_state` to "defend" (player holding up their shield) and sets
+      `isDefending = TRUE`, which `TakeDamage()` (`CombatSystem.dm`) checks to reduce
+      incoming damage by `DEFEND_DAMAGE_REDUCTION_PERCENT` (50%, placeholder — you
+      weren't sure of the real number either, no OG data for it). Equipped to Numpad 7
+      by default for Hero and Soldier only (confirmed kit difference, not Wizard) via
+      `EquipBasicDefend()` (`PlayerTemplate.dm`), same creation/load wiring as
+      `EquipBasicAttack()`. Not gated on `canAct` like Attack/Fireball are — it's a
+      passive stance, not a wind-up action, so nothing stops you toggling it mid-swing.
+      **Found and fixed a real bug**: holding the Numpad 7 key fires `UseSkillKey`
+      repeatedly (the same OS key-repeat behavior that lets you hold-to-attack), and
+      unlike Attack (whose `canAct` cooldown happens to swallow those repeats),
+      nothing gated Defend the same way — every repeat flipped the toggle again,
+      so holding the key looked like rapid on/off/on/off instead of one clean toggle.
+      Fixed with a short `DEFEND_TOGGLE_COOLDOWN` (0.3s) debounce.
+      **Attacking while defending** — decided you can (sword-and-shield is
+      plausible), but not for free: `Attack.OnUse()` drops the defend stance for the
+      swing+recovery window (`canAct`'s window), then auto-resumes it afterward
+      *unless* the player manually toggled Defend themselves in the meantime
+      (`defendToggleSession`, bumped only by a real manual toggle, guards against the
+      auto-resume stomping a deliberate mid-swing toggle-off). This is the actual
+      balance lever, not a separate speed/damage penalty number: attack a lot while
+      defending and you spend most of your time in the dropped window (faster kills,
+      less mitigation); attack rarely and you stay shielded most of the time (slower
+      kills, more mitigation) — falls out of the interaction itself. On top of that,
+      `GetAttackDelay()` (`CombatSystem.dm`) now also takes a `wasDefending` param and
+      adds a small flat `DEFEND_ATTACK_SPEED_PENALTY` (3 deciseconds, placeholder) when
+      true — attacking out of a braced stance is a little slower to throw regardless,
+      not just less protected. Fireball picks this up too (`user.isDefending` directly,
+      since it doesn't auto-drop/resume the stance the way Attack does — no class
+      currently has both Defend and Fireball equipped anyway, and a spellcaster
+      gesturing one-handed with a shield up is more plausible than swinging a sword
+      through one). While fixing
+      this, also found and fixed a **pre-existing, unrelated bug** in the exact same
+      recovery callback (both Attack and Fireball): if a player died while an
+      attack's cooldown timer was still pending, the callback unconditionally set
+      `canAct = TRUE` afterward, silently undoing `Die()`'s intentional death-lock —
+      a "dead" player could move again before actually respawning. Guarded both with
+      an `if(user.isDead) return`.
+      **"Flee" is not a player action** — this is real-time action combat, not
+      turn-based, so a player just runs away using normal movement; there's no verb to
+      build here. (Enemies fleeing at low HP, EnemyNPCs.dm, is a separate, already-
+      built AI behavior — see Phase 6's Enemy AI entry.)
 - [ ] Skill/spell equip UI (drag or double-click to numpad slots — depends on Phase 3)
-- [ ] **Elemental weakness/resistance system — expanded remake idea, not OG-derived.**
-      The OG's elemental spells (Fireball, Icebolt, Lightning, etc.) are just flavored
-      damage with no elemental interaction at all — no weaknesses/resistances tied to
-      element on either side. You want elements to actually matter:
-      - Per-enemy weaknesses/strengths against specific elements (the "per enemy" half
-        of this was already planned)
-      - **New idea**: players could also have an elemental affinity — floated choosing a
-        strong/weak element pair at character creation, not confirmed as final, just an
-        idea to weigh against simplicity for v1
-      This is a bigger design question than a simple lookup table — needs deciding how
-      many elements exist, whether player affinity is a creation-time choice or something
-      earned/changed later, and how it interacts with the class/skill system.
+- [x] **Elemental weakness/resistance — basic scaffolding built** (expanded remake
+      idea, not OG-derived — the OG's elemental spells like Fireball/Icebolt/Lightning
+      are just flavored damage with no elemental interaction at all). `datum/skill`
+      now has an `element` var (`SkillDatum.dm`, e.g. Fireball sets `"fire"`), and
+      every mob has `elementalWeakness`/`elementalResistance` vars plus a real damage
+      modifier in `ApplySpellDamage()` (`CombatSystem.dm`,
+      `ELEMENTAL_WEAKNESS_BONUS_PERCENT`/`ELEMENTAL_RESISTANCE_REDUCTION_PERCENT`,
+      both 50%, placeholder). **This is genuinely working code, just currently
+      inert** — nothing anywhere yet actually assigns a weakness/resistance to any
+      player or monster, so the modifier never triggers in practice until something
+      does; same "plumbing now, behavior later" pattern as `Area.dm`'s
+      `battleModeOn`/`weather` vars before `GMbattlemode` wired them up.
+      **Still open, bigger design questions this scaffolding doesn't answer**:
+      - Per-enemy weaknesses/strengths against specific elements (the "per enemy"
+        half of this was already planned, just not populated yet)
+      - **Your idea**: players could also have an elemental affinity — floated
+        choosing a strong/weak element pair at character creation, not confirmed as
+        final, just an idea to weigh against simplicity for v1
+      - How many elements exist, whether player affinity is a creation-time choice or
+        something earned/changed later, and how it interacts with the class/skill
+        system — the scaffolding doesn't force any of these answers, it just needed
+        somewhere for the eventual data to live.
 - [ ] Monster roster — the *names* can likely be recovered from playing/documenting the
       OG. Confirmed so far via `GMglobalrespawn`/`GMkillallmonsters`'s monster-type
       pickers: cat, slime, dog, redslime, bat, fox, babble, skeleton, drakee, healer,
@@ -630,8 +904,13 @@ as a **map-editor instance** of one generic type (right-click the type in the ob
       entry) toggling that area's `battleModeOn`, **plus** an "All Areas" entry that
       instead does a global toggle (same shape as `GMdaynight`), overriding every area's
       own default while active; see Phase 8's per-area scaffolding note.
+- [x] `GMlevelincrease` (`GMCommands.dm`, GM-Host tier) — was `Test_Leveling()`
+      (`DebugTools.dm`), an unrestricted debug stub that added a huge pile of Exp and
+      hoped `LevelCheck()` would trigger off it. Now directly applies the same
+      side effects a real level-up does (`Level += 1`, `StatPoints += 5`,
+      `RecalculateVitals()`), not just a roundabout way to reach them.
 - [ ] GM verbs: `GMblaze`, `GMcoopmode`, `GMglobalrespawn`,
-      `GMkillallmonsters`, `GMlevelincrease`, `GMnamechange`, `GMplayerstatus`,
+      `GMkillallmonsters`, `GMnamechange`, `GMplayerstatus`,
       `GMplaymusic`, `GMroleplaymode`, `GMsavelocation`, `GMswitchicon`, `GMweather`,
       `GMworldreboot`
 - [ ] GM ability to designate Builder/Admin/GM status persistently (needs its own storage
@@ -696,6 +975,14 @@ as a **map-editor instance** of one generic type (right-click the type in the ob
 ## Quality of Life (no fixed phase — pull these in wherever they fit)
 
 - [ ] Prevent other players from stealing loot drops
+- [ ] **Reorganize verb categories/tabs — explicitly deferred, pick up next session.**
+      You flagged it was "a little bit of a mess to find the right ones" — verbs are
+      currently grouped by whatever `set category = "..."` each one happened to get as
+      it was written (seen so far: `"Action"`, `"Debug"`, `"Admin"`, `"Builder"`,
+      `"GM"`), not a deliberately designed layout. Needs an actual pass across every
+      verb file (`PlayerVerbs.dm`, `SocialVerbs.dm`, `GMCommands.dm`, `DebugTools.dm`,
+      etc.) to decide on a sensible category scheme and re-tag verbs consistently, not
+      just a quick rename.
 - [ ] General interface polish pass
 - [ ] Character select screen polish
 - [ ] Menu polish (creation flow, stat allocation, etc.)

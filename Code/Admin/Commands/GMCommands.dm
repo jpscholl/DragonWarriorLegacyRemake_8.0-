@@ -136,6 +136,18 @@ mob/verb/GM_Create_Lockable()
 // -----------------------------
 // GM Day/Night Toggle
 // -----------------------------
+// Appends/strips the "night" suffix on one atom's icon_state — shared by both the
+// turf and obj loops below, which used to each duplicate this logic once per
+// direction (4 near-identical blocks total).
+proc/ToggleNightIconState(atom/A, toNight)
+    if(!A.icon_state) return
+    if(toNight)
+        A.icon_state += "night"
+    else
+        var/len = length(A.icon_state)
+        if(len > 5 && copytext(A.icon_state, len - 4, len + 1) == "night")
+            A.icon_state = copytext(A.icon_state, 1, len - 4)
+
 // Swaps every turf/obj's icon_state to its night variant and back. Confirmed OG
 // convention: night states are just the day icon_state with "night" appended directly
 // (e.g. "redcobble" -> "redcobblenight"), no separator, and it's world-icons only —
@@ -151,24 +163,35 @@ mob/verb/GMdaynight()
 
     isNight = !isNight
 
-    if(isNight)
-        for(var/turf/T in world)
-            if(T.icon_state) T.icon_state += "night"
-        for(var/obj/O in world)
-            if(istype(O, /obj/StatLink)) continue
-            if(O.icon_state) O.icon_state += "night"
-        world << output("[src] has turned it to night.", "Info")
-    else
-        for(var/turf/T in world)
-            var/len = length(T.icon_state)
-            if(len > 5 && copytext(T.icon_state, len - 4, len + 1) == "night")
-                T.icon_state = copytext(T.icon_state, 1, len - 4)
-        for(var/obj/O in world)
-            if(istype(O, /obj/StatLink)) continue
-            var/len = length(O.icon_state)
-            if(len > 5 && copytext(O.icon_state, len - 4, len + 1) == "night")
-                O.icon_state = copytext(O.icon_state, 1, len - 4)
-        world << output("[src] has turned it to day.", "Info")
+    for(var/turf/T in world)
+        ToggleNightIconState(T, isNight)
+    for(var/obj/O in world)
+        if(istype(O, /obj/StatLink)) continue
+        ToggleNightIconState(O, isNight)
+
+    world << output("[src] has turned it to [isNight ? "night" : "day"].", "Info")
+
+// -----------------------------
+// GM Level Increase
+// -----------------------------
+// Was Test_Leveling() (DebugTools.dm) — added a huge pile of Exp and hoped
+// LevelCheck() (CombatSystem.dm) would trigger. Directly applies the same
+// side effects LevelCheck() does on a real level-up (StatPoints, RecalculateVitals())
+// instead, so this actually increases Level rather than just being a shortcut to it.
+// GM-tier power, matching the confirmed OG command name.
+mob/verb/GMlevelincrease()
+    set category = "GM"
+    set desc = "Increases your level by one, same as leveling up normally"
+
+    if(!client || client.adminLevel < LEVEL_GM_HOST)
+        src << output("You don't have GM access.", "Info")
+        return
+
+    Level += 1
+    StatPoints += 5
+    RecalculateVitals()  // Code/Player/StatsDatum.dm — Level affects MaxHP/MaxMP too
+    src << output("You are now Level [Level]", "Info")
+    src << sound('levelup.wav', channel = 2, volume = baseVolume)
 
 // -----------------------------
 // GM Battle Mode Toggle

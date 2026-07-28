@@ -37,6 +37,40 @@
 mob/var/isDead = FALSE
 mob/var/deathTime = 0
 
+// Toggled by datum/skill/Defend (SkillDatum.dm) — TRUE while a mob is holding up its
+// shield (icon_state = "defend"), reducing incoming damage. No duration/cooldown, just
+// an on/off stance the player controls directly.
+mob/var/isDefending = FALSE
+// Placeholder — you weren't sure what the real reduction should be, so this is a
+// starting guess, not OG-derived (no confirmed number for it). Tune by feel.
+#define DEFEND_DAMAGE_REDUCTION_PERCENT 50
+
+// Bumped every time isDefending is toggled BY THE PLAYER (Defend.OnUse(), SkillDatum.dm)
+// — lets Attack.OnUse() auto-restore a defend stance it dropped mid-swing without
+// stomping an explicit manual toggle that happened in the meantime (e.g. the player
+// lowered their shield themselves while an attack was still resolving).
+mob/var/defendToggleSession = 0
+
+mob/proc
+    // Drops an active defend stance for the duration of an attack/cast (a mob can't
+    // hold a steady shield and swing/gesture at the same instant) — shared by
+    // Attack/Blaze (SkillDatum.dm), both of which had this exact drop-then-restore
+    // dance duplicated inline. Returns whether it was actually defending, which the
+    // caller must hold onto and pass to RestoreDefendIfUntouched() afterward.
+    DropDefendForAction()
+        if(!isDefending) return FALSE
+        isDefending = FALSE
+        icon_state = "world"
+        return TRUE
+
+    // Re-raises the defend stance dropped by DropDefendForAction(), but only if the
+    // player hasn't manually toggled Defend themselves in the meantime — mySession
+    // should be defendToggleSession as captured right before the drop.
+    RestoreDefendIfUntouched(wasDefending, mySession)
+        if(wasDefending && defendToggleSession == mySession)
+            isDefending = TRUE
+            icon_state = "defend"
+
 // Dodge chance is new — no such mechanic existed before, so this is a placeholder
 // formula, not OG-derived. Agility-based, capped so it's never a sure thing even at
 // high Agility. Tune by feel.
@@ -76,6 +110,11 @@ mob/proc
         // used to interrupt/kill it every hit.
         view(src) << sound(isEnemy ? 'enemyhit.wav' : 'hit.wav', channel = SFX_CHANNEL, volume = baseVolume)  // see usr note above
 
+        // Applied after the dodge roll (a dodge avoids damage entirely, unrelated to
+        // defending) but before HP is reduced.
+        if(isDefending)
+            damage = round(damage * (100 - DEFEND_DAMAGE_REDUCTION_PERCENT) / 100)
+
         HP -= damage
         view(src) << output("[src] takes [damage] damage! (HP: [max(HP,0)])", "Info")
 
@@ -97,6 +136,10 @@ mob/proc
     // whether this was a player or an enemy.
     Die(mob/attacker)
         view(src) << output("[src] has been defeated!", "Info")
+
+        // Poison etc. shouldn't keep ticking on a corpse, or survive a player's
+        // respawn (Interact() clears them again there too, belt and braces).
+        ClearStatusEffects()
 
         if(attacker)
             attacker.Exp += 10
@@ -147,12 +190,32 @@ mob/proc
             var/damage = Strength
             M.TakeDamage(damage, src)
 
+// Elemental scaffolding — real, working code, but currently inert: nothing anywhere
+// yet actually sets elementalWeakness/elementalResistance on a player or monster, so
+// these checks never trigger in practice until something does. Same pattern as
+// Area.dm's battleModeOn/weather vars before GMbattlemode wired them up — the
+// plumbing exists now, behavior gets populated later. Confirmed remake idea (not
+// OG-derived) — see TODOList.md Phase 6 for the bigger open questions this doesn't
+// answer yet (how many elements, whether player affinity is a creation-time choice).
+mob/var/elementalWeakness = null    // e.g. "ice" — takes bonus damage from that element
+mob/var/elementalResistance = null  // e.g. "fire" — takes reduced damage from that element
+#define ELEMENTAL_WEAKNESS_BONUS_PERCENT 50
+#define ELEMENTAL_RESISTANCE_REDUCTION_PERCENT 50
+
 mob/proc
     // Spell damage helper
     ApplySpellDamage(mob/target, damage, element)
         if(!target) return
+
+        if(element)
+            if(target.elementalWeakness == element)
+                damage = round(damage * (100 + ELEMENTAL_WEAKNESS_BONUS_PERCENT) / 100)
+            else if(target.elementalResistance == element)
+                damage = round(damage * (100 - ELEMENTAL_RESISTANCE_REDUCTION_PERCENT) / 100)
+
         target.TakeDamage(damage, src)
-        // Can later add resistances, AoE, elemental effects
+        // Can later add AoE and more elaborate elemental effects (status ailments tied
+        // to an element, etc.) — this proc just handles the damage-modifier half.
 
 #define MELEE_ATK_BASE_DELAY 12
 #define MELEE_ATK_MIN_DELAY 4
@@ -163,12 +226,20 @@ mob/proc
 // character's cast speed but meaningfully helps a high-INT one. Tune by feel.
 #define SPELL_AGI_SYNERGY_DIVISOR 40
 
+// Extra deciseconds added on top of the normal formula when the mob WAS defending at
+// the moment it attacked (datum/skill/Attack/Fireball's OnUse(), SkillDatum.dm, both
+// pass their captured wasDefending here) — on top of the auto-drop mechanic itself
+// (dropping mitigation for the swing), attacking from a defensive stance is also
+// slightly slower to throw. Placeholder, tune by feel.
+#define DEFEND_ATTACK_SPEED_PENALTY 3
+
 mob/proc
     // Stat-based delay for skill usage. Deliberately NOT gated by class or an
     // isSpellcaster flag — physical vs. magic speed falls out purely from how a player
     // allocates stat points (ClickableStats.dm), so e.g. a Hero/Pilgrim can freely lean
     // physical, magic, or a hybrid of both through their own stat choices.
-    GetAttackDelay(datum/skill/S)
+    GetAttackDelay(datum/skill/S, wasDefending = FALSE)
+        var/delay
         if(S.isMelee)
             // Geometric mean of Agility and whichever of Vitality/Intelligence is
             // higher: needs Agility PLUS a real secondary investment to get fast, but
@@ -179,15 +250,20 @@ mob/proc
             // (sqrt(A*x) gets dragged down hard by whichever side is low), but which
             // *second* stat gets you there is the player's choice, not a fixed pairing.
             var/meleeSpeedStat = sqrt(Agility * max(Vitality, Intelligence))
-            return max(MELEE_ATK_MIN_DELAY, MELEE_ATK_BASE_DELAY - meleeSpeedStat)
+            delay = max(MELEE_ATK_MIN_DELAY, MELEE_ATK_BASE_DELAY - meleeSpeedStat)
         else if(S.isSpell)
             // Intelligence alone already gets a caster reasonably fast on its own;
             // Agility adds a small standalone bonus that only really grows once paired
             // with real Intelligence (see SPELL_AGI_SYNERGY_DIVISOR above).
             var/spellSpeedStat = Intelligence + (Agility * Intelligence / SPELL_AGI_SYNERGY_DIVISOR)
-            return max(SPELL_ATK_MIN_DELAY, SPELL_ATK_BASE_DELAY - spellSpeedStat)
+            delay = max(SPELL_ATK_MIN_DELAY, SPELL_ATK_BASE_DELAY - spellSpeedStat)
         else
-            return 10
+            delay = 10
+
+        if(wasDefending)
+            delay += DEFEND_ATTACK_SPEED_PENALTY
+
+        return delay
 
 // get_dist()/step_to() use Chebyshev (king-move) distance, which treats a
 // diagonally-adjacent tile the same as a cardinally-adjacent one — but this game is
