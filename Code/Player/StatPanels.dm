@@ -30,6 +30,15 @@ mob/player
         stat("Gold: [Gold]")              // Currency
         stat("Players online: [length(players)]") // Total players online
 
+        // Active status effects (Code/Combat/StatusEffects.dm) — only shown when
+        // there's actually something to report, so the panel isn't cluttered with an
+        // empty line the rest of the time.
+        if(length(statusEffects))
+            var/effectNames = ""
+            for(var/datum/status_effect/E in statusEffects)
+                effectNames += (effectNames ? ", " : "") + E.effectName
+            stat("Status: [effectNames]")
+
         // ---------------- Battle Panel ----------------
         // Initialize clickable stat links once per player
         if(!strStatPanel)  strStatPanel  = new /obj/StatLink("Strength", src)

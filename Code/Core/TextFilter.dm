@@ -4,11 +4,83 @@
 // Shared word-list filter for anything player-typed — character names, chat, etc.
 // (adultServer is defined in Main.dm alongside the other shared config.)
 
-// Slurs/hate speech — enforced regardless of adultServer. Deliberately left empty;
-// fill in with your own curated list rather than anything auto-generated.
-var/list/banned_words_always = list()
+// Slurs/hate speech — enforced regardless of adultServer.
+var/list/banned_words_always = list(
+	//Ethnic
+	"nigger",
+	"nig",
+	"niglet",
+	"nigglet",
+	"honkey",
+	"honky",
+	"cracker",
+	"whitedevil",
+	"white devil",
+	"darkie",
+	"coon",
+	"negro",
+	"kike",
+	"spic",
+	"spick",
+	"beaner",
+	"wetback",
+	"chink",
+	"gook",
+	"jap",
+	"chinaman",
+	"redskin",
+	"injun",
+	"sandnigger",
+	"raghead",
+	"towelhead",
+	"wop",
+	"guinea",
+	"mick",
+	"paddy",
+	"heeb",
+	"hymie",
+	"nigga",
+	"jigaboo",
+	"spook",
+	"sambo",
+	"porchmonkey",
+	"junglebunny",
+	"spearchucker",
+	"tarbaby",
+	"dago",
+	"polack",
+	"kraut",
+	"nip",
+	"zipperhead",
+	"gyp",
+	"gypsy",
+	"squaw",
+	"camel jockey",
+	"cameljockey",
 
-// General profanity — only enforced when adultServer is FALSE. Small test list.
+	//Ableist
+	"retard",
+	"retarded",
+	"spaz",
+	"spastic",
+	"mongoloid",
+	"gimp",
+	"cripple",
+
+	//Homophobic/transphobic
+	"dyke",
+	"dike",
+	"fag",
+	"faggot",
+	"fudgepacker",
+	"tranny",
+	"shemale",
+	"heshe",
+	"poof",
+	"poofter"
+)
+
+// General profanity — only enforced when adultServer is FALSE.
 var/list/banned_words_general = list(
     // Strong profanity
     "fuck",
@@ -41,12 +113,20 @@ var/list/banned_words_general = list(
     "cunts",
     "twat",
     "twats",
+    "cock",
+    "cocks",
+    "dick",
+    "dicks",
+    "pussy",
+    "pussies",
 
     // Sexual insults
     "dickhead",
     "dickheads",
     "dumbfuck",
     "dumbfucks",
+    "cocksucker",
+    "cocksuckers",
 
     // Insults
     "bitch",
@@ -57,12 +137,24 @@ var/list/banned_words_general = list(
 
     "asshole",
     "assholes",
+    "arsehole",
+    "arseholes",
     "jackass",
     "jackasses",
     "dumbass",
     "dumbasses",
     "smartass",
     "smartasses",
+    "prick",
+    "pricks",
+    "wanker",
+    "wankers",
+    "bastard",
+    "bastards",
+    "slut",
+    "sluts",
+    "whore",
+    "whores",
 
     // Other vulgar insults
     "douche",

@@ -1,0 +1,176 @@
+// -----------------------------
+// Status Effects
+// -----------------------------
+// Minimal framework for timed conditions on a mob (poison, and eventually Sleep and
+// whatever else). Deliberately built as a small real system rather than a one-off per
+// effect — there are already at least two planned (Poison, Sleep), so the second one
+// shouldn't require reworking the first.
+//
+// HOW IT WORKS:
+//   mob.ApplyStatusEffect(/datum/status_effect/poison) creates the effect, attaches it
+//   to that mob's statusEffects list, and starts its own polling loop (same shape as
+//   AILoop()/MoveLoop()/SleepRestoreLoop() elsewhere in this codebase). The loop calls
+//   OnTick() every tickInterval until either the duration runs out, the mob dies, or
+//   something removes it explicitly — then OnExpire() fires and it detaches itself.
+//
+// Applying an effect a mob already has REFRESHES its duration rather than stacking a
+// second copy (so standing in poison repeatedly doesn't multiply the damage rate).
+// Stacking rules beyond that (intensity levels, multiple different effects at once)
+// aren't designed yet — multiple *different* effects coexist fine, that's all.
+
+datum/status_effect
+	var
+		effectName = "Unnamed Effect"
+		mob/holder            // who this is attached to
+		duration = 0          // total deciseconds; 0 = lasts until removed explicitly
+		tickInterval = 10     // deciseconds between OnTick() calls
+		expiresAt = 0         // world.time when this ends; 0 = never (see duration)
+		active = FALSE
+
+	// Override these per effect — base versions do nothing.
+	proc/OnApply()
+		return
+	proc/OnTick()
+		return
+	proc/OnExpire()
+		return
+
+	proc/Start(mob/M)
+		if(!M) return
+		holder = M
+		active = TRUE
+		expiresAt = duration ? world.time + duration : 0
+		OnApply()
+		EffectLoop()
+
+	// Re-applying an effect that's already running just resets its clock.
+	proc/Refresh()
+		if(duration)
+			expiresAt = world.time + duration
+
+	proc/EffectLoop()
+		set waitfor = 0
+		while(active && holder)
+			sleep(tickInterval)
+
+			// Re-check everything after the sleep — the holder may have died, been
+			// deleted, or had the effect cleared while this was waiting.
+			if(!active || !holder) return
+			if(holder.isDead) break
+			if(expiresAt && world.time >= expiresAt) break
+
+			OnTick()
+
+		Stop()
+
+	// Safe to call from anywhere (expiry, death cleanup, a future cure item/spell) —
+	// the active guard makes double-calls harmless.
+	proc/Stop()
+		if(!active) return
+		active = FALSE
+		OnExpire()
+		if(holder)
+			holder.statusEffects -= src
+			holder = null
+
+// -----------------------------
+// Mob-side interface
+// -----------------------------
+mob/var/list/statusEffects = list()
+
+mob/proc/GetStatusEffect(effectType)
+	for(var/datum/status_effect/E in statusEffects)
+		if(istype(E, effectType))
+			return E
+	return null
+
+mob/proc/HasStatusEffect(effectType)
+	return GetStatusEffect(effectType) ? TRUE : FALSE
+
+// Applies an effect, or refreshes its duration if it's already active. Returns the
+// effect datum either way.
+mob/proc/ApplyStatusEffect(effectType)
+	var/datum/status_effect/existing = GetStatusEffect(effectType)
+	if(existing)
+		existing.Refresh()
+		return existing
+
+	var/datum/status_effect/E = new effectType
+	statusEffects += E
+	E.Start(src)
+	return E
+
+mob/proc/RemoveStatusEffect(effectType)
+	var/datum/status_effect/E = GetStatusEffect(effectType)
+	if(E)
+		E.Stop()
+
+// Called on death and on respawn (CombatSystem.dm / PlayerVerbs.dm) so effects never
+// survive across those. Iterates a copy since Stop() mutates the real list.
+mob/proc/ClearStatusEffects()
+	for(var/datum/status_effect/E in statusEffects.Copy())
+		E.Stop()
+	statusEffects = list()
+
+// -----------------------------
+// Poison
+// -----------------------------
+// Chips away a small percentage of MaxHP on a timer. All placeholder numbers.
+#define POISON_DURATION 300         // deciseconds — 30 seconds total
+#define POISON_TICK_INTERVAL 20     // deciseconds — damage every 2 seconds
+#define POISON_DAMAGE_PERCENT 2     // % of MaxHP per tick (so ~30% over full duration)
+
+// Whether poison can actually finish someone off. FALSE floors it at 1 HP, matching
+// classic Dragon Warrior (poison never kills outright) and avoiding "died to a ticking
+// number I couldn't respond to." Flip to TRUE if poison should be genuinely lethal —
+// the death path below is already wired for it either way.
+#define POISON_CAN_KILL FALSE
+
+datum/status_effect/poison
+	parent_type = /datum/status_effect
+
+	New()
+		..()
+		effectName = "Poison"
+		duration = POISON_DURATION
+		tickInterval = POISON_TICK_INTERVAL
+
+	OnApply()
+		if(holder)
+			holder << output("<font color='green'>You've been poisoned!</font>", "Info")
+
+	OnTick()
+		if(!holder) return
+
+		// Percentage of MAX HP, not current — percent-of-current would shrink every
+		// tick and asymptotically never do much, which makes poison feel pointless.
+		var/dmg = max(1, round(holder.MaxHP * POISON_DAMAGE_PERCENT / 100))
+
+		if(!POISON_CAN_KILL)
+			dmg = min(dmg, max(0, holder.HP - 1))  // never drops below 1 HP
+			if(dmg <= 0) return                     // already at 1 HP, nothing to do
+
+		// Direct HP change rather than TakeDamage() on purpose: TakeDamage() would roll
+		// RollDodge(), and you shouldn't be able to dodge poison already in your veins.
+		// The hit SOUND is still wanted every tick though (confirmed), so it's played
+		// explicitly below — same player/enemy split and SFX_CHANNEL that TakeDamage()
+		// uses, so it doesn't stomp area music. Death handling below likewise mirrors
+		// TakeDamage() so nothing gets skipped by going around it.
+		holder.HP -= dmg
+
+		// Same hit flick + sound TakeDamage() plays, just triggered explicitly here
+		// since we're deliberately going around that proc (see note above).
+		flick("hit", holder)
+		var/isEnemy = istype(holder, /mob/enemy)
+		view(holder) << sound(isEnemy ? 'enemyhit.wav' : 'hit.wav', channel = SFX_CHANNEL, volume = baseVolume)
+
+		holder << output("<font color='green'>The poison burns! (-[dmg] HP)</font>", "Info")
+
+		if(holder.HP <= 0)
+			var/mob/dying = holder
+			dying.Die(null)        // no attacker to credit — poison isn't a mob
+			dying.CleanUpDead()
+
+	OnExpire()
+		if(holder && !holder.isDead)
+			holder << output("<font color='green'>The poison wears off.</font>", "Info")

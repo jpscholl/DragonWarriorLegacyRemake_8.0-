@@ -13,11 +13,6 @@ mob
 			usr << output("Glide Size: [glide_size]", "Info")
 			usr << output("Frames per Step: [round(step_delay / (1 / world.fps))]", "Info")
 
-		Test_Leveling()
-			set category = "Debug"
-			usr.Exp+=100000
-			spawn() usr.LevelCheck()
-
 		// Spawns a placeholder /mob/enemy/slime (Code/Combat/NPCs/EnemyNPCs.dm) on
 		// the tile in front of you, for testing AI/combat without a real monster
 		// placement tool yet (TODOList.md Phase 10, GMmakemob).
@@ -27,6 +22,21 @@ mob
 			if(!T) T = usr.loc
 			new /mob/enemy/slime(T)
 			usr << output("Spawned a test slime.", "Info")
+
+		// Nothing inflicts poison in-game yet (no monster attack, trap, or spell
+		// applies it) — this is the only way to trigger it for now. See
+		// Code/Combat/StatusEffects.dm.
+		Test_PoisonSelf()
+			set category = "Debug"
+			usr.ApplyStatusEffect(/datum/status_effect/poison)
+
+		// Tops HP/MP back up to max, for testing (e.g. after taking hits, or
+		// spending mana on Blaze).
+		FullRestore()
+			set category = "Debug"
+			usr.HP = usr.MaxHP
+			usr.MP = usr.MaxMP
+			usr << output("Fully restored: [usr.HP]/[usr.MaxHP] HP, [usr.MP]/[usr.MaxMP] MP.", "Info")
 
 		S_World()
 			set category = "Debug"

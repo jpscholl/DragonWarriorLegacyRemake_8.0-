@@ -2,9 +2,11 @@
 // Clickable Stat Link
 // -----------------------------
 obj/StatLink
-    var/attributeName        // Name of the stat, e.g., "Strength"
+    // attributeName doubles as the actual mob var name (e.g. "Strength") — every
+    // construction site below (StatPanels.dm) passes one of the five real stat var
+    // names directly, so there's no separate display-name-to-var-name mapping needed.
+    var/attributeName
     var/mob/player/P         // Reference to owning player
-    var/statMap              // Maps attributeNames to actual player vars
 
     // -----------------------------
     // Constructor
@@ -12,15 +14,6 @@ obj/StatLink
     New(attributeName, mob/player/P)
         src.attributeName = attributeName
         src.P = P
-
-        // Map attributeNames to player vars
-        statMap = list(
-            "Strength"     = "Strength",
-            "Vitality"     = "Vitality",
-            "Agility"      = "Agility",
-            "Intelligence" = "Intelligence",
-            "Luck"         = "Luck"
-        )
         UpdateName()
 
     // -----------------------------
@@ -28,10 +21,8 @@ obj/StatLink
     // -----------------------------
     proc/UpdateName()
         if(!P) return
-        if(!(attributeName in statMap)) return
 
-        var/statVar = statMap[attributeName]
-        var/currentStat = P.vars[statVar]
+        var/currentStat = P.vars[attributeName]
         // "+0" is a placeholder for a future equipment/buff stat-bonus system (no such
         // system exists yet — see TODOList.md Phase 5) — matches the confirmed OG
         // Battle-tab format ("Strength: 14+0") even though the bonus is always 0 for now.
@@ -47,18 +38,16 @@ obj/StatLink
     // -----------------------------
     Click()
         if(!P || !ismob(P)) return
-        if(!(attributeName in statMap)) return
 
-        var/statVar = statMap[attributeName]
-        var/currentStat = P.vars[statVar]
+        var/currentStat = P.vars[attributeName]
         var/cost = GetCost(currentStat)
 
         if(P.StatPoints < cost)
             P << output("Not enough stat points! (need [cost])", "Info")
             return
 
-        P.vars[statVar]++   // Increment the actual stat
-        P.StatPoints -= cost // Reduce available points by the real cost
+        P.vars[attributeName]++   // Increment the actual stat
+        P.StatPoints -= cost       // Reduce available points by the real cost
 
         P.RecalculateVitals()  // Vitality/Intelligence changes affect MaxHP/MaxMP —
                                 // see Code/Player/StatsDatum.dm

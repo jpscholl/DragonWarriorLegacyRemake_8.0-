@@ -17,8 +17,6 @@ var/list/color_swatches = list(
 		"Black" = rgb(0,0,0),
 		"Brown" = rgb(88,57,39))
 
-var/tmp/appearance_updating = FALSE   // declared but never read/set anywhere — currently dead
-
 // Repaints the LIVE character-creation preview object (newCharPreview) using the
 // current palette. Only meaningful during creation — a loaded/finalized character
 // never has newCharPreview/baseIconPreview set, so this is a no-op for them; their
@@ -38,34 +36,11 @@ mob/proc/UpdateAppearance()
 
     newCharPreview.icon = base
 
-//these verbs bring up the list and allow players to select color
-mob/proc/Set_Main()
+// Prompts for a color and applies it to the given palette zone ("Main"/"Accent"/
+// "Hair"/"Eyes") — was four separate, otherwise-identical Set_Main()/Set_Accent()/
+// Set_Eyes()/Set_Hair() procs differing only by that zone name.
+mob/proc/SetZoneColorPrompt(zone)
     var/choice = input(src, "Pick a color") in color_swatches
     if(choice)
-        palette.SetZoneColor("Main", color_swatches[choice])
+        palette.SetZoneColor(zone, color_swatches[choice])
         UpdateAppearance()   // push change to preview
-
-mob/proc/Set_Accent()
-    var/choice = input(src, "Pick a color") in color_swatches
-    if(choice)
-        palette.SetZoneColor("Accent", color_swatches[choice])
-        UpdateAppearance()   // push change to preview
-
-mob/proc/Set_Eyes()
-    var/choice = input(src, "Pick a color") in color_swatches
-    if(choice)
-        palette.SetZoneColor("Eyes", color_swatches[choice])
-        UpdateAppearance()   // push change to preview
-
-mob/proc/Set_Hair()
-    var/choice = input(src, "Pick a color") in color_swatches
-    if(choice)
-        palette.SetZoneColor("Hair", color_swatches[choice])
-        UpdateAppearance()   // push change to preview
-
-//scan for colors of icons and get rgb value of colors
-mob/proc/IsColorUsed(color)
-    for(var/zone in palette.colors)
-        if(palette.colors[zone] == color)
-            return TRUE
-    return FALSE

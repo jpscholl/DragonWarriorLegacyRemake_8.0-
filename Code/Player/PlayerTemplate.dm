@@ -104,6 +104,27 @@ mob/player
         skills += atk
         skillSlots[9] = atk
 
+    // Grants Defend and equips it to Numpad 7 — Hero and Soldier only, confirmed
+    // default kit difference (Wizard doesn't get it). class is already set by the
+    // time this runs (class overrides below apply at instantiation, before New()'s
+    // body finishes), so this check is safe to run right after EquipBasicAttack().
+    verb/EquipBasicDefend()
+        set hidden = 1
+        if(class != "Hero" && class != "Soldier") return
+        var/datum/skill/defend = new /datum/skill/Defend
+        skills += defend
+        skillSlots[7] = defend
+
+    // Grants Blaze and equips it to Numpad 3 — Hero and Wizard, confirmed default kit
+    // (not Soldier). Exact slot number isn't important (confirmed) as long as it's
+    // equipped somewhere.
+    verb/EquipBasicBlaze()
+        set hidden = 1
+        if(class != "Hero" && class != "Wizard") return
+        var/datum/skill/blaze = new /datum/skill/Blaze
+        skills += blaze
+        skillSlots[3] = blaze
+
     // Battle-tab display helpers (StatPanels.dm) — text-only readout of the numpad
     // slots + "Free Skills" list, matching the confirmed OG layout. Real drag-and-drop
     // equip/unequip UI is still TODOList.md future work.
@@ -121,13 +142,10 @@ mob/player
 // -----------------------------
 mob/player/Hero
     class = "Hero"
-    MaxMP = 15
 
 mob/player/Soldier
     class = "Soldier"
-    MaxMP = 0
     hasMana = FALSE
 
 mob/player/Wizard
     class = "Wizard"
-    MaxMP = 30

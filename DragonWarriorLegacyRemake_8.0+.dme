@@ -40,6 +40,8 @@
 #include "Code\Admin\Commands\GMCommands.dm"
 #include "Code\Admin\Debug\DebugTools.dm"
 #include "Code\Combat\CombatSystem.dm"
+#include "Code\Combat\Projectiles.dm"
+#include "Code\Combat\StatusEffects.dm"
 #include "Code\Combat\NPCs\EnemyNPCs.dm"
 #include "Code\Combat\Skills\SkillDatum.dm"
 #include "Code\Core\Main.dm"

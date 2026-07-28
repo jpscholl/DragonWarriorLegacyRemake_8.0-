@@ -9,7 +9,7 @@
 //
 //    Author: Cerebella (Shorin88)
 //
-//    Last Update: 7/23/2026
+//    Last Update: 7/25/2026
 //
 //    Known Issues: see Known Issues.txt (currently empty — nothing outstanding logged)
 //
@@ -112,11 +112,7 @@ mob/playerTemp
 
 
     Logout() //well fine...just leave then. See if I care! (covers disconnects during character select/creation only — see mob/player/Logout() below for real gameplay)
-        players << output("[src.name] has left the world!!", "Messages")
-        if(client && client.saveManager)
-            client.saveManager.SaveCharacter(src, saveSlot || 1)
-        players -= src
-        src.loc = null
+        SaveAndLogout()
 
 // -------------------- Real Player (Gameplay) --------------------
 // mob/playerTemp's Logout() above only covers disconnects during character
@@ -125,11 +121,17 @@ mob/playerTemp
 // needs this override to actually save progress on disconnect.
 mob/player
     Logout()
-        players << output("[src.name] has left the world!!", "Messages")
-        if(client && client.saveManager)
-            client.saveManager.SaveCharacter(src, saveSlot || 1)
-        players -= src
-        src.loc = null
+        SaveAndLogout()
+
+// Shared by both Logout() overrides above (mob/playerTemp and mob/player are siblings,
+// not parent/child, so neither inherits the other's) — announces departure, saves if
+// there's a real character to save, and removes the mob from the world.
+mob/proc/SaveAndLogout()
+    players << output("[src.name] has left the world!!", "Messages")
+    if(client && client.saveManager)
+        client.saveManager.SaveCharacter(src, saveSlot || 1)
+    players -= src
+    src.loc = null
 
 // -------------------- Command Control --------------------
 // Disable all verbs until login is complete

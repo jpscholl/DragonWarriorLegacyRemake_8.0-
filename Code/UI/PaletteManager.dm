@@ -28,6 +28,3 @@ datum/PaletteManager
             src << output("Invalid zone: [zone]", "Info")
             return
         colors[zone] = newColor
-
-    proc/GetAllZones()
-        return colors

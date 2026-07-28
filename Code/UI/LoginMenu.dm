@@ -257,10 +257,10 @@ mob/proc/CustomizeColors()
         var/zone_choice = input(src, "Choose a zone to change or Finish", "Color Customization") in options
 
         switch(zone_choice)
-            if("Main")   Set_Main()
-            if("Accent") Set_Accent()
-            if("Hair")   Set_Hair()
-            if("Eyes")   Set_Eyes()
+            if("Main")   SetZoneColorPrompt("Main")
+            if("Accent") SetZoneColorPrompt("Accent")
+            if("Hair")   SetZoneColorPrompt("Hair")
+            if("Eyes")   SetZoneColorPrompt("Eyes")
             if("Finish")
                 src.hairColor   = palette.GetZoneColor("Hair")
                 src.eyeColor    = palette.GetZoneColor("Eyes")
@@ -300,6 +300,14 @@ proc/FinalizePlayer(mob/playerTemp/M)
     // Appearance & stats
     ApplyCustomColors(M, newPlayer)
     ApplyCustomStats(M, newPlayer)
+
+    // Derive MaxHP/MaxMP from the stats just applied, then top both off — a fresh
+    // character should never start below full. This also retires the static
+    // per-class MaxMP literals (PlayerTemplate.dm), which RecalculateVitals()
+    // silently overwrote the moment any stat point was later spent anyway.
+    newPlayer.RecalculateVitals()
+    newPlayer.HP = newPlayer.MaxHP
+    newPlayer.MP = newPlayer.MaxMP
 
     // -----------------------------
     // Find first free character slot
@@ -367,8 +375,12 @@ proc/ApplyPlayerClass(class_name)
         // if("Custom")   newPlayer = new /mob/player/GM
 
     // Skills aren't persisted in save data (Code/Save/SaveData.dm) — every fresh
-    // character needs the base Attack skill equipped to Numpad 9 from scratch.
-    if(newPlayer) newPlayer.EquipBasicAttack()
+    // character needs its default skills equipped from scratch. EquipBasicDefend()/
+    // EquipBasicBlaze() no-op for classes that don't get them (PlayerTemplate.dm).
+    if(newPlayer)
+        newPlayer.EquipBasicAttack()
+        newPlayer.EquipBasicDefend()
+        newPlayer.EquipBasicBlaze()
     return newPlayer
 
 //copy temp stats into player stats

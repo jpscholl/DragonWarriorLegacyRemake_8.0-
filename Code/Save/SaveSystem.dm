@@ -56,12 +56,18 @@ datum/SaveManager
         newPlayer.isCharacter = TRUE
         newPlayer.saveSlot = slot
 
-        // Skills aren't part of the save blob (Code/Save/SaveData.dm) — re-equip the
-        // base Attack skill to Numpad 9 every load, same as a fresh character.
+        // Skills aren't part of the save blob (Code/Save/SaveData.dm) — re-equip
+        // default skills every load, same as a fresh character. EquipBasicDefend()/
+        // EquipBasicBlaze() no-op for classes that don't get them (PlayerTemplate.dm).
         newPlayer.EquipBasicAttack()
+        newPlayer.EquipBasicDefend()
+        newPlayer.EquipBasicBlaze()
 
         // Apply saved snapshot to the mob
         D.ApplyToCharacter(newPlayer)
+
+        // Full mana on login, every time — not just whatever was saved.
+        newPlayer.MP = newPlayer.MaxMP
 
         // Rebuild palette & apply saved colors
         newPlayer.palette = new /datum/PaletteManager(
