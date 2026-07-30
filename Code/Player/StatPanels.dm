@@ -21,7 +21,7 @@ mob/player
         stat("[src.name]")               // Player name
         stat("Class: [class]")           // Player class
         stat("Level: [Level]")           // Player level
-        //stat("Party: [Party ? Party.name : "None"]") // Optional party info
+        stat("Party: [Party ? "[Party.name][isPartyLeader ? " Leader" : ""]" : "None"]")
 
         // Core stats
         stat("Hit Points: [HP]/[MaxHP]")  // Current/max HP
@@ -62,18 +62,20 @@ mob/player
         stat("Stat Points: [StatPoints]")
 
         // ---------------- Skills (numpad slots + Free Skills) ----------------
-        // Text-only readout matching the confirmed OG layout — no drag-and-drop
-        // equip/unequip yet, see TODOList.md.
-        stat("Numpad 9: [GetEquippedSkillName(9)]")
-        stat("Numpad 7: [GetEquippedSkillName(7)]")
-        stat("Numpad 3: [GetEquippedSkillName(3)]")
-        stat("Numpad 1: [GetEquippedSkillName(1)]")
-        stat("Numpad 0: [GetEquippedSkillName(0)]")
-        stat("Free Skills -")
+        // Real draggable objs (obj/SkillLink, Code/Player/SkillLink.dm) — drag a known
+        // skill from Free Skills onto a numpad slot to equip it (swaps out whatever
+        // was already there), or drag an equipped skill onto the Free Skills area
+        // (a real drop target below, not plain text — needed even when Free Skills is
+        // empty) to unequip it. Double-clicking an equipped skill also unequips it.
+        stat(GetNumpadSkillLink(9))
+        stat(GetNumpadSkillLink(7))
+        stat(GetNumpadSkillLink(3))
+        stat(GetNumpadSkillLink(1))
+        stat(GetNumpadSkillLink(0))
+        stat(GetFreeSkillsAreaLink())
         stat("")
-        for(var/datum/skill/S in skills)
-            if(IsSkillEquipped(S)) continue
-            stat(S.skillName)
+        for(var/obj/SkillLink/L in GetFreeSkillLinks())
+            stat(L)
 
         // ---------------- Inventory Panel ----------------
         // Header panel for carried items

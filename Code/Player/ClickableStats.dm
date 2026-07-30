@@ -51,4 +51,6 @@ obj/StatLink
 
         P.RecalculateVitals()  // Vitality/Intelligence changes affect MaxHP/MaxMP —
                                 // see Code/Player/StatsDatum.dm
+        P.CheckSkillUnlocks()  // a stat-gated skill can unlock without a level-up too
+                                // (Code/Player/SkillUnlocks.dm)
         UpdateName()

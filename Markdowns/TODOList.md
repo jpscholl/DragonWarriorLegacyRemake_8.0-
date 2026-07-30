@@ -121,20 +121,43 @@ fluff — see this file's own intro about that).
 - [x] Class, Level, Exp/Nexp, Gold, HP/MaxHP, MP/MaxMP, StatPoints (`PlayerTemplate.dm`)
 - [x] Admin/Builder resolution on `client` (not mob) — hardcoded ckey lists, fresh every
       connect, savefile-tamper-proof by design (`AdminLevels.dm`)
-- [ ] `isMuted` var + mute enforcement in chat verbs
-- [ ] Real party data model (currently just a "None" stub). Confirmed from OG testing:
-      a party has a name (prompted for on creation, e.g. "Aeon's Crew"), a
-      sharing on/off toggle (`partyshare` — splits **experience** among the party; likely
-      comes with an XP penalty/reduction per kill vs. solo, since fighting as a group
-      makes kills easier — exact penalty formula not yet known), and a roster
-      each showing icon + `Name(ckey)` + Class + Level. Party gets its own dedicated
-      **tab** (`Status | Inventory | Battle | Actions | GM Commands | Party | Social`)
-      that only appears once you're actually in a party — it's not a permanent tab.
-      Confirmed party verbs (shown inside the Party tab itself, not Actions):
-      `partykick`, `partyleave`, `partyrecruit`, `partysay`, `partyshare`, `partywho`.
-      Also confirmed via `GMplayerstatus`: a party leader's status shows "Party: [name]
-      Leader" (role appended after the party name), so `isPartyLeader` needs to surface
-      in status displays, not just gate `partykick`-style permissions internally.
+- [x] `isMuted` var + mute enforcement in chat verbs — mob-level `isMuted` var
+      (`PlayerTemplate.dm`), `CheckMuted()` gate (`SocialVerbs.dm`) blocks `Say`/`Tell`/
+      `WorldSay`/`Emote`/`WorldEmote`, plus `PartySay` (`PartyVerbs.dm`, not in the
+      original confirmed list but the same category of verb). Var is session-only, no
+      persistence. `GMmute` verb itself still not built — see Admin verbs list below.
+- [x] Chat + login/logout logging — new discovery, not in the original design notes, but
+      a confirmed real excerpt from the OG's own server log showed connect/disconnect/
+      host events and chat lines (`<Name(ckey) says:> msg`) all sharing one
+      auto-timestamped stream. Reproduced the same way: `world.log` redirected to
+      `server.log` (`world/New()`, `Main.dm`), chat verbs write their exact
+      display-matching bracketed line via `LogChat()` (`Code/Core/TextFilter.dm`).
+      Logged unconditionally — even a muted player's blocked attempt still lands in
+      the log (`CheckMuted()` runs after `LogChat()`, not before). Custom
+      `"[Name]([key]) logs in/out at [IP]."` lines added at `mob/playerTemp/Login()`
+      and `SaveAndLogout()` (`Main.dm`) — the OG excerpt's connect/disconnect lines are
+      BYOND's own automatic ones, but the "logs in" moment itself needed its own line.
+      Every `LogChat()` line is prefixed with a full date+time (`YYYY-MM-DD hh:mm:ss`),
+      written explicitly rather than relying on BYOND's own auto-stamp (time-only) —
+      the OG excerpt only had a full date on the session-start/-end banner lines, not
+      per-message. No IP on chat lines (confirmed — not in the OG excerpt), only on
+      login/logout, which spell it into their own sentence. `server.log` gitignored.
+- [x] Anti-double-login (`client/New()`, `Main.dm`) — confirmed from the same OG log
+      excerpt: two different ckeys connecting from the same IP got logged as
+      `"[newKey]/[existingKey] attempted double login at [IP]."` and the new one was
+      immediately disconnected while the original session kept running. `adminLevel <
+      LEVEL_GM_HOST` gates it — GMs are exempt (confirmed), e.g. testing with a second
+      window from the same machine.
+- [x] Real party data model (`Party.dm`, `PartyVerbs.dm`) — `datum/party` with
+      name/leader/members/shareExp. `CreateParty()` prompts for a name (Social tab);
+      the six confirmed verbs (`PartyKick`, `PartyLeave`, `PartyRecruit`, `PartySay`,
+      `PartyShare`, `PartyWho`) live on a dedicated Party tab that's only added to
+      `src.verbs` once you're actually in a party (`ShowPartyVerbs()`/`HidePartyVerbs()`,
+      `PlayerTemplate.dm`). `isPartyLeader` surfaces as "Party: [name] Leader" in
+      `StatPanels.dm` and `PartyWho()`. `PartyShare` splits kill Exp evenly across
+      `Party.members` (`Die()`, `CombatSystem.dm`) — no solo-vs-group XP penalty yet,
+      that formula was never confirmed from OG testing. Party is session-only, not
+      saved/loaded.
 - [ ] Persistent Builder/Admin promotion (today: hardcoded test lists, needs recompile to
       change — fine for solo dev, blocks any real GM handing out Builder status later)
 - [x] `StatsDatum.dm` resolved: not a dead stub anymore — holds `RecalculateVitals()`,
@@ -190,20 +213,22 @@ fluff — see this file's own intro about that).
       movement at all (classic Dragon Warrior, 4-directional only; diagonal motion may
       only ever happen as a skill's own effect, e.g. a dash, never as direct key input;
       `mob/Move()` in `Main.dm:91` already hard-blocks diagonal `dir` values regardless).
-      `EquipBasicAttack()` now runs on every character creation/load path so slot 9
-      always has Attack. **Display now exists** (`StatPanels.dm`'s Battle tab): equipped
-      skill per numpad slot + a "Free Skills -" list of known-but-unequipped skills
-      (`GetEquippedSkillName()`/`IsSkillEquipped()`, `PlayerTemplate.dm`), matching the
-      confirmed OG layout from a real screenshot. **Still missing**: the actual equip
-      UI — drag-and-drop from Free Skills to a slot, confirmed working in the OG game
-      (resolves the earlier open question about whether BYOND `stat()`-panel atoms
-      support drag-and-drop at all — they do, at least on 475.1080). See
-      `ClassReference.md`'s "Skills vs. equipped skills" note for the full mechanic.
+      `EquipBasicAttack()`/`EquipStartingKit()` now runs on every character
+      creation/load path so slot 9 always has Attack. **Display + equip UI now both
+      exist** (`StatPanels.dm`'s Battle tab, `obj/SkillLink` in
+      `Code/Player/SkillLink.dm`): equipped skill per numpad slot + a "Free Skills -"
+      list of known-but-unequipped skills, matching the confirmed OG layout from a
+      real screenshot, and real drag-and-drop from Free Skills onto a numpad slot to
+      equip (swaps out whatever was already there — the displaced skill just falls
+      back to Free Skills, since `skills`/known and `skillSlots`/equipped are tracked
+      separately). Confirms BYOND `stat()`-panel atoms do support drag-and-drop (the
+      earlier open question here, at least on 475.1080). See `ClassReference.md`'s
+      "Skills vs. equipped skills" note for the full mechanic.
 - [ ] **Status panel field order/content** — confirmed complete from OG testing, current
       `StatPanels.dm` is missing several fields entirely: Name → Class → Level → Party →
       Hit Points → Magic Points → **GM Level** → **CPU** → Experience Points → Gold →
       Players online. Specifics:
-      - Party: currently commented out in our code, needs the real party system first
+      - [x] Party: real party system now wired in (`StatPanels.dm`, see Phase 2 note)
       - GM Level / CPU: not in our code at all — CPU is `world.cpu` (tick load), staff
         debug info; still unresolved whether both should be staff-only or shown to
         everyone (question was asked earlier, not yet answered)
@@ -231,11 +256,9 @@ fluff — see this file's own intro about that).
 - [x] Right-click `Drop()` with `category = "Action"` (`Inventory.dm`) — **confirmed
       correct pattern**: OG's Actions tab only shows Drop/Give when a droppable/giveable
       item is actually in inventory, exactly matching how `set src in usr` scoping works
-- [ ] `CreateParty()` — **blocked on the party system existing first** (confirmed — no
-      point stubbing this verb until party data model exists). Confirmed flow: opens a
-      text-input prompt for the party name, then prints "[name] has been successfully
-      created." and switches the creator into the new Party tab (see Phase 2 for the
-      full data model this depends on).
+- [x] `CreateParty()` — implemented in `PartyVerbs.dm`. Text-input prompt for the
+      party name, prints "[name] has been successfully created.", switches the
+      creator into the new Party tab (see Phase 2 for the full data model).
 - [x] `Give()` — implemented in `Inventory.dm`, same pattern as `Drop()` (item-level verb,
       `category = "Action"`, `src in usr`). Target picker uses `mob/player in view(5, usr)`
       to restrict to nearby players; reuses `PickUpItem()` so the "inventory full" check
@@ -309,7 +332,7 @@ fluff — see this file's own intro about that).
       simple on/off for area background music, behavior not yet detailed.
 - [ ] `MusicVolume()` — new discovery, not in the original design notes at all. Likely
       a player-side volume control for area background music, behavior not yet detailed.
-- [ ] Wire real class/level/party into `Who()` (currently hardcoded stub fields)
+- [x] Wire real class/level/party into `Who()`/`Look()` (`SocialVerbs.dm`, `PlayerVerbs.dm`)
 
 ## Phase 5 — Inventory & Items (core loop mostly done)
 
@@ -708,7 +731,8 @@ fluff — see this file's own intro about that).
       codename of the combat-system planning session's plan file. Not from the OG, purely
       a remake original. No design details yet beyond "big mole boss."
 - [ ] More skills per class (currently only 2 exist total)
-- [ ] Party combat (shared XP, can't be fully designed until the party system exists)
+- [x] Party combat shared XP — `PartyShare` toggle splits kill Exp evenly across
+      `Party.members` (`Die()`, `CombatSystem.dm`). No solo-vs-group penalty yet.
 - [x] "HP reaches 0" flow (`CombatSystem.dm`'s `Die()` player branch +
       `PlayerVerbs.dm`'s `Interact()`): loses 50% Gold (matches confirmed OG "lose half
       gold") and a placeholder 25% Exp (new, no OG number, tunable), `isDead`/
@@ -731,7 +755,25 @@ fluff — see this file's own intro about that).
 - [ ] Level cap
 - [ ] Class-specific stat growth on level-up (right now growth is generic across classes)
 - [ ] Skill/spell unlocks by level + stat threshold — **needs the "what does each class
-      actually learn and when" data you flagged as still unknown**
+      actually learn and when" data you flagged as still unknown**. Framework skeleton
+      now exists (`Code/Player/SkillUnlocks.dm`): `datum/skillUnlock` (skill type +
+      level + optional stat/threshold), each class overrides `GetSkillUnlocks()` with
+      its own list, `CheckSkillUnlocks()` runs on level-up (`LevelCheck()`,
+      `CombatSystem.dm`) and stat point spend (`StatLink/Click()`, `ClickableStats.dm`).
+      By construction a class can only ever learn what's in its own list. Current
+      per-class lists are PLACEHOLDER TEST DATA (Fireball, at different fake
+      level/stat thresholds per class) — swap in real numbers from
+      `ClassReference.md` once confirmed, nothing else needs to change to do that.
+      Equip UI now exists too (`obj/SkillLink`, `Code/Player/SkillLink.dm`): drag a
+      Free Skill onto a numpad slot to equip (swaps out whatever was there, both
+      directions work, slot-to-slot is a true swap), drag an equipped skill onto the
+      Free Skills area (or double-click it) to unequip. **Persistence**: which skills
+      are known isn't saved — it's fully re-derived from Level/stats on load — but
+      which slot each one occupies (the player's own arrangement) is now saved for
+      real (`equippedSkillTypes` on `datum/CharacterSaveData`, `SaveData.dm` —
+      slotNum -> skill typepath, restored by `ApplySkillSlots()` which must run last
+      in `LoadCharacter()`, after every skill a saved slot could reference is already
+      known again).
 
 ## Phase 8 — World Systems
 
@@ -877,6 +919,16 @@ fluff — see this file's own intro about that).
       `S_World`/`S_Sleep`/`S_Attack`/`S_Defend`, `Debug_ShowZoneColors`) — **currently
       unrestricted, no permission check at all**, worth gating or hiding before this is
       ever run on a shared server
+- [x] `GMtogglelog` — toggles `loggingEnabled` (`Code/Core/TextFilter.dm`), gates
+      `LogChat()`'s own lines only (chat/login/logout/double-login) — `world.log`'s
+      automatic connect/disconnect/host events keep writing to `server.log` regardless,
+      that's the engine, not something this can toggle. **First GM verb that's actually
+      hidden from non-GMs**, not just rejected-on-use like every other one here —
+      `client/proc/SyncGMVerbs()` (`AdminLevels.dm`) adds/removes it from `mob.verbs`
+      dynamically, re-run at every point a mob's own verb list gets reset wholesale
+      (`EnableCommands()`, `Main.dm`) or a fresh mob takes over
+      (`FinalizePlayer()`/`LoadCharacter()`). Every other GM verb below is still
+      visible-to-everyone — this establishes the pattern, doesn't retrofit all of them.
 - [ ] Admin verbs: `GMannounce`, `GMban`, `GMboot`, `GMmute`, `GMpwipe`, `GMunban`
 - [ ] Builder verbs: `GMdelobjmob`, `GMmakearea`, `GMmaketurf`, `GMmakeitem`, `GMmakestat`,
       `GMtransfer`, `GMmakemob` (some overlap with `GM_Create_Lockable`, which already

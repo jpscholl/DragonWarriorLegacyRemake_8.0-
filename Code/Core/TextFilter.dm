@@ -237,3 +237,33 @@ proc/CensorText(text)
             searchStart = pos + 1
 
     return result
+
+// -----------------------------
+// Chat Log
+// -----------------------------
+// Every text chat verb (Say/Tell/Emote/WorldSay/WorldEmote/PartySay) logs here
+// unconditionally — Tell is private and Say/Emote/PartySay only reach whoever's in
+// view/party, so this is the only place a GM can audit any of it after the fact.
+// Logged even when CheckMuted() blocks the message from actually displaying
+// (SocialVerbs.dm/PartyVerbs.dm), so a muted player attempting to speak still leaves
+// a paper trail. Writes straight to world.log (redirected to server.log, world/New()
+// in Main.dm) rather than a separate file — matches a confirmed real excerpt from the
+// OG's own server log, where connect/disconnect/host events and chat lines
+// (`<Name(ckey) says:> msg`) all share one auto-timestamped stream. Each call site
+// builds its own bracketed line to match that exact per-verb format (says/wsays/
+// psays/tells, or bare for Emote/WorldEmote). BYOND's own auto-timestamp is time-only
+// ([HH:MM:SS]) — the OG excerpt only had a full date on the session-start/-end banner
+// lines, not per-message — so a full date+time is written explicitly into every line
+// here rather than relying on that. No IP on chat lines — confirmed from a real OG
+// excerpt, only login/logout lines carry one (and those spell it into the sentence
+// itself, "logs in at 1.2.3.4.", rather than going through this proc).
+//
+// GM-toggleable (GMtogglelog(), GMCommands.dm) — loggingEnabled only gates OUR own
+// lines here, not world.log itself: BYOND's automatic connect/disconnect/host events
+// keep writing to server.log regardless (that's the engine, not something this can
+// toggle without un-redirecting world.log entirely and losing those too).
+var/global/loggingEnabled = TRUE
+
+proc/LogChat(line)
+    if(!loggingEnabled) return
+    world.log << "[time2text(world.realtime, "YYYY-MM-DD hh:mm:ss")] [line]"

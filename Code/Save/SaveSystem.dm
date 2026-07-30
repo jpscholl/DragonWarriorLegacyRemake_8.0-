@@ -55,16 +55,30 @@ datum/SaveManager
 
         newPlayer.isCharacter = TRUE
         newPlayer.saveSlot = slot
+        newPlayer.saveManager = src
 
-        // Skills aren't part of the save blob (Code/Save/SaveData.dm) — re-equip
-        // default skills every load, same as a fresh character. EquipBasicDefend()/
-        // EquipBasicBlaze() no-op for classes that don't get them (PlayerTemplate.dm).
-        newPlayer.EquipBasicAttack()
-        newPlayer.EquipBasicDefend()
-        newPlayer.EquipBasicBlaze()
+        // Skills aren't part of the save blob (Code/Save/SaveData.dm) — re-equip the
+        // starting kit every load, same as a fresh character, per its own
+        // GetStartingKit() (Code/Player/SkillUnlocks.dm).
+        newPlayer.EquipStartingKit()
 
         // Apply saved snapshot to the mob
         D.ApplyToCharacter(newPlayer)
+
+        // Re-sync any leveled unlocks already earned before this player last
+        // disconnected — silent, since these were already learned, not just-now. MUST
+        // run after ApplyToCharacter() above, not before — CheckSkillUnlocks() reads
+        // Level/stats off the mob, which are still fresh-mob defaults (Level 1,
+        // Strength 1, etc.) until ApplyToCharacter() sets them from the save. Running
+        // it too early is exactly why a Fireball learned mid-session was vanishing on
+        // relog: the unlock check always failed against default stats.
+        newPlayer.CheckSkillUnlocks(silent = TRUE)
+
+        // Restore the player's own numpad slot arrangement (Code/Player/SkillLink.dm's
+        // drag-and-drop) — must run LAST, after every skill it could reference is
+        // actually known (starting kit above, plus whatever CheckSkillUnlocks() just
+        // re-granted).
+        D.ApplySkillSlots(newPlayer)
 
         // Full mana on login, every time — not just whatever was saved.
         newPlayer.MP = newPlayer.MaxMP
@@ -86,8 +100,18 @@ datum/SaveManager
         // Stop the login-menu music before handing control to the real character
         M << sound(null, channel = 1)
 
-        // Transfer client control
-        M.client.mob = newPlayer
+        // Transfer client control. Grab the client ref BEFORE reassigning client.mob —
+        // once that reassignment happens, the engine clears M's own .client (M is no
+        // longer that client's mob), so "M.client.SyncGMVerbs()" after would be
+        // null.SyncGMVerbs(), aborting the proc before newPlayer.loc got set below and
+        // leaving newPlayer stuck at the default (1,1,1) spawn. Same pattern already
+        // used in FinalizePlayer() (LoginMenu.dm).
+        var/client/C = M.client
+        C.mob = newPlayer
+        // The new mob's own verb list starts fresh from its type declaration (includes
+        // GM-only verbs like GMtogglelog by default) — re-sync (AdminLevels.dm) so a
+        // non-GM's removal carries over from the old temp mob.
+        C.SyncGMVerbs()
         newPlayer.loc = PLAYER_SPAWN
 
         var/area/spawnArea = newPlayer.loc?.loc

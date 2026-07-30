@@ -61,6 +61,13 @@ world
     mob       = /mob/playerTemp
     view      = "13x13"
 
+    New()
+        . = ..()
+        // Redirects world.log to a persistent file — BYOND auto-timestamps every
+        // line and auto-logs connect/disconnect/host events into the same stream.
+        // Chat verbs write into this same log via LogChat() (Code/Core/TextFilter.dm).
+        log = file("server.log")
+
 client
     var/datum/SaveManager/saveManager   // declare the variable
     New()
@@ -80,6 +87,19 @@ client
 
         // Resolve admin level fresh from hardcoded data every connection (Code/Admin/AdminLevels.dm)
         ApplyAdminLevel()
+
+        // Reject a second simultaneous connection from an IP that already has one —
+        // confirmed from a real OG server log excerpt: two different ckeys
+        // ("D-FORCE"/"Supersayion5") from the same address, the new one logged as an
+        // "attempted double login" and immediately disconnected while the original
+        // session kept running unaffected. GMs are exempt (confirmed) — e.g. testing
+        // with a second window from the same machine.
+        if(adminLevel < LEVEL_GM_HOST)
+            for(var/client/C)
+                if(C != src && C.address == address)
+                    LogChat("[key]/[C.key] attempted double login at [address].")
+                    del(src)
+                    return
 
 // -------------------- Movement Rules --------------------
 obj
@@ -108,7 +128,12 @@ mob/playerTemp
             ShowLoginMenu(src)
 
         EnableCommands() //now you can cause trouble in the world
+        // EnableCommands() just added every /mob/verb-typed verb wholesale, including
+        // GM-only ones like GMtogglelog — re-run the GM verb sync (AdminLevels.dm) so
+        // that removal actually sticks for non-GMs.
+        client.SyncGMVerbs()
         players << output("[src.name] has joined the world!!", "Messages")
+        LogChat("[src.name]([src.key]) logs in at [client.address].")
 
 
     Logout() //well fine...just leave then. See if I care! (covers disconnects during character select/creation only — see mob/player/Logout() below for real gameplay)
@@ -127,9 +152,24 @@ mob/player
 // not parent/child, so neither inherits the other's) — announces departure, saves if
 // there's a real character to save, and removes the mob from the world.
 mob/proc/SaveAndLogout()
+    // Save comes first, before anything else — if LogChat()/world.log ever runtime-
+    // errors (bad path, permissions, whatever), that aborts the rest of this proc, and
+    // a save that happened after the log call would never run. Saving before logging
+    // means that failure mode can only ever cost a missing log line, never a lost save.
+    //
+    // Uses the mob's own saveManager (PlayerTemplate.dm), not client.saveManager — on
+    // an abrupt disconnect (closing the window/hitting X, vs a graceful quit) client
+    // can already be null by the time Logout() fires, which silently skipped the save
+    // with no error. mob/playerTemp never has saveManager set (only real /mob/player
+    // characters do, in FinalizePlayer()/LoadCharacter()), so this naturally still
+    // skips saving during character select — nothing to save yet at that point anyway.
+    if(istype(src, /mob/player))
+        var/mob/player/P = src
+        if(P.saveManager)
+            P.saveManager.SaveCharacter(P, P.saveSlot || 1)
+
     players << output("[src.name] has left the world!!", "Messages")
-    if(client && client.saveManager)
-        client.saveManager.SaveCharacter(src, saveSlot || 1)
+    LogChat("[src.name]([src.key]) logs out at [client ? client.address : "unknown"].")
     players -= src
     src.loc = null
 

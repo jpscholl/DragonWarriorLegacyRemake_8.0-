@@ -66,11 +66,11 @@ mob/verb/Look()
     src << output("<b>Players in view:</b>", "Info")
 
     var/found = FALSE
-    for(var/mob/M in view(src))
+    for(var/mob/player/M in view(src))
         if(M == src) continue
         if(!M.client) continue
         found = TRUE
-        src << output("<font color='blue'> \icon[M] [M.name]([M.key]) <b>Class:</b> Hero <b>Level:</b> 1 <b>Party:</b> None</font>", "Info")
+        src << output("<font color='blue'> \icon[M] [M.name]([M.key]) <b>Class:</b> [M.class] <b>Level:</b> [M.Level] <b>Party:</b> [M.Party ? M.Party.name : "None"]</font>", "Info")
 
     if(!found)
         src << output("No other players in view.", "Info")
