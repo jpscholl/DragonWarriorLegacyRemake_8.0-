@@ -142,8 +142,16 @@ mob/proc
         ClearStatusEffects()
 
         if(attacker)
-            attacker.Exp += 10
-            attacker.LevelCheck()
+            if(attacker.Party && attacker.Party.shareExp)
+                // Split evenly among the party (Code/Player/Party.dm) — no
+                // solo-vs-group penalty yet, that formula isn't confirmed (TODOList.md)
+                var/share = max(1, round(10 / attacker.Party.members.len))
+                for(var/mob/player/M in attacker.Party.members)
+                    M.Exp += share
+                    M.LevelCheck()
+            else
+                attacker.Exp += 10
+                attacker.LevelCheck()
 
         if(istype(src, /mob/player))
             // Player death: no auto-respawn, no deletion — wait for Interact() once
@@ -176,6 +184,13 @@ mob/proc
             src.RecalculateVitals()  // Code/Player/StatsDatum.dm — Level affects MaxHP/MaxMP too
             src << output("You are now Level [src.Level]", "Info")
             src << sound('levelup.wav', channel = 2, volume = baseVolume)
+
+            // Leveled skill/spell learning (Code/Player/SkillUnlocks.dm) — enemies
+            // also route through this shared LevelCheck() (Die()'s attacker.LevelCheck()
+            // call, above), so guard to players only.
+            if(istype(src, /mob/player))
+                var/mob/player/P = src
+                P.CheckSkillUnlocks()
 
 mob/proc
     // Melee hit detection

@@ -172,6 +172,25 @@ mob/verb/GMdaynight()
     world << output("[src] has turned it to [isNight ? "night" : "day"].", "Info")
 
 // -----------------------------
+// GM Log Toggle
+// -----------------------------
+// Flips loggingEnabled (Code/Core/TextFilter.dm) — gates LogChat()'s own lines (chat,
+// login/logout, double-login) only. world.log's automatic connect/disconnect/host
+// events keep writing to server.log regardless — that's the engine, not this. GM-tier
+// power, not Admin, since it's about who can talk without being logged, not general
+// server admin — players never see this verb at all (not just gated on use).
+mob/verb/GMtogglelog()
+    set category = "GM"
+    set desc = "Turns chat/login logging (server.log) on or off"
+
+    if(!client || client.adminLevel < LEVEL_GM_HOST)
+        src << output("You don't have GM access.", "Info")
+        return
+
+    loggingEnabled = !loggingEnabled
+    src << output("Chat/login logging is now [loggingEnabled ? "ON" : "OFF"].", "Info")
+
+// -----------------------------
 // GM Level Increase
 // -----------------------------
 // Was Test_Leveling() (DebugTools.dm) — added a huge pile of Exp and hoped
@@ -181,16 +200,25 @@ mob/verb/GMdaynight()
 // GM-tier power, matching the confirmed OG command name.
 mob/verb/GMlevelincrease()
     set category = "GM"
-    set desc = "Increases your level by one, same as leveling up normally"
+    set desc = "Increases your level by a chosen amount, same as leveling up normally"
 
     if(!client || client.adminLevel < LEVEL_GM_HOST)
         src << output("You don't have GM access.", "Info")
         return
 
-    Level += 1
-    StatPoints += 5
-    RecalculateVitals()  // Code/Player/StatsDatum.dm — Level affects MaxHP/MaxMP too
-    src << output("You are now Level [Level]", "Info")
+    var/amount = input(src, "How many levels to add?", "GMlevelincrease", 1) as num
+    if(isnull(amount) || amount < 1) return
+    amount = round(amount)
+
+    // Same per-level side effects as a real level-up, just repeated — RecalculateVitals()
+    // (Code/Player/StatsDatum.dm) tops up HP/MP by however much Max just grew each time,
+    // so looping it is equivalent to a real level-up chain, not a single jump.
+    for(var/i = 1 to amount)
+        Level += 1
+        StatPoints += 5
+        RecalculateVitals()
+
+    src << output("You are now Level [Level] (+[amount])", "Info")
     src << sound('levelup.wav', channel = 2, volume = baseVolume)
 
 // -----------------------------

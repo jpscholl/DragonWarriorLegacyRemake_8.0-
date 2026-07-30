@@ -24,7 +24,7 @@
 // it again. Host itself needs no list — see ResolveAdminLevel() below.
 var/list/test_builders = list()
 var/list/test_admins = list()
-var/list/test_gms = list()
+var/list/test_gms = list("guest3341048356")  // temp — Guest-3341048356, remove once done testing
 
 // Aeon's Crew — close friends, hardcoded by ckey. Real list, not a test scaffold; add
 // ckeys here as needed.
@@ -62,6 +62,22 @@ client
         adminLevel = ResolveAdminLevel(ckey)
         canBuild = (adminLevel == LEVEL_BUILDER || adminLevel >= LEVEL_GM_HOST)
         canAdmin = (adminLevel == LEVEL_ADMIN || adminLevel >= LEVEL_GM_HOST)
+        SyncGMVerbs()
+
+    // GMtogglelog() (GMCommands.dm) only shows up in a GM's own verb panel — every
+    // OTHER GM verb here is still visible-to-everyone-but-rejected-on-use (a known,
+    // already-flagged gap, see TODOList.md's Admin verbs note), this establishes the
+    // pattern for just this one rather than fixing all of them right now. Verbs live
+    // per-mob, not per-client, so this needs re-running whenever `mob` changes — called
+    // here (ApplyAdminLevel(), covers the initial mob/playerTemp) and again from
+    // FinalizePlayer() (LoginMenu.dm)/LoadCharacter() (SaveSystem.dm) once the real
+    // mob/player character takes over.
+    proc/SyncGMVerbs()
+        if(!mob) return
+        if(adminLevel >= LEVEL_GM_HOST)
+            mob.verbs += /mob/verb/GMtogglelog
+        else
+            mob.verbs -= /mob/verb/GMtogglelog
 
 // -----------------------------
 // Test verbs — confirm who gets what before any real Builder/Admin tools exist

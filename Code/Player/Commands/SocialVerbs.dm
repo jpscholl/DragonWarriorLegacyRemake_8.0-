@@ -1,4 +1,11 @@
 mob
+    // Shared mute gate for every chat verb below (and PartySay, PartyVerbs.dm) —
+    // isMuted itself is just a flag for now, GMmute verb not built yet (TODOList.md).
+    proc/CheckMuted()
+        if(!isMuted) return FALSE
+        src << output("You are muted and cannot speak.", "Info")
+        return TRUE
+
     verb
         // -----------------------------
         // LOCAL EMOTE
@@ -8,6 +15,8 @@ mob
             set desc = "Chat to players in view"
 
             if(trimtext(msg) == "") return  // ignore empty messages
+            LogChat("<[src.name]([src.key]) [msg]>", src)
+            if(CheckMuted()) return
             msg = CensorText(msg)
 
             // Send an emote to all players in view
@@ -23,6 +32,8 @@ mob
             set desc = "Talk to players in view"
 
             if(trimtext(msg) == "") return  // ignore empty messages
+            LogChat("<[src.name]([src.key]) says:> [msg]", src)
+            if(CheckMuted()) return
             msg = CensorText(msg)
 
             // Send a spoken message to all players in view
@@ -38,6 +49,8 @@ mob
             set desc = "Directly talk to another player"
 
             if(trimtext(msg) == "") return  // ignore empty messages
+            LogChat("<[src.name]([src.key]) tells [M.name]([M.key]):> [msg]", src)
+            if(CheckMuted()) return
             msg = CensorText(msg)
             if(M != src)
                 // Message to the recipient, styled in navy
@@ -58,9 +71,8 @@ mob
             src << output("<b>Players currently online:</b>", "Info")
 
             // List each player in the global players list
-            for(var/mob/M in players)
-                // Currently hard-coded class, level, party info
-                src << output("<font color='blue'> \icon[M] [M.name]([M.key]) <b>Class:</b> Hero <b>Level:</b> 1 <b>Party:</b> None</font>", "Info")
+            for(var/mob/player/M in players)
+                src << output("<font color='blue'> \icon[M] [M.name]([M.key]) <b>Class:</b> [M.class] <b>Level:</b> [M.Level] <b>Party:</b> [M.Party ? M.Party.name : "None"]</font>", "Info")
 
 
         // -----------------------------
@@ -71,6 +83,8 @@ mob
             set desc = "Emote to all players in the world"
 
             if(trimtext(msg) == "") return  // ignore empty messages
+            LogChat("<[src.name]([src.key]) [msg] to the world>", src)
+            if(CheckMuted()) return
             msg = CensorText(msg)
 
             // Send an emote to every player in the world
@@ -86,6 +100,8 @@ mob
             set desc = "Chat to all players in the world"
 
             if(trimtext(msg) == "") return  // ignore empty messages
+            LogChat("<[src.name]([src.key]) wsays:> [msg]", src)
+            if(CheckMuted()) return
             msg = CensorText(msg)
 
             // Send a spoken message to every player in the world

@@ -103,8 +103,8 @@ datum/skill/Attack
 // Defend Skill
 // -----------------------------
 // Not melee or spell — a toggled stance, not a one-shot action. Confirmed OG default
-// for Hero and Soldier (equipped to Numpad 7), not Wizard — see EquipBasicDefend()
-// (PlayerTemplate.dm). Deliberately NOT gated on canAct (unlike Attack/Fireball) —
+// for Hero and Soldier (equipped to Numpad 7), not Wizard — see GetStartingKit()
+// (Code/Player/SkillUnlocks.dm). Deliberately NOT gated on canAct (unlike Attack/Fireball) —
 // it's a passive stance toggle, not a wind-up action, so there's no reason to block it
 // mid-swing.
 #define DEFEND_TOGGLE_COOLDOWN 3  // deciseconds — holding the numpad key down fires
@@ -120,8 +120,8 @@ datum/skill/Attack
 datum/skill/Defend
     parent_type = /datum/skill
     var/lastToggleTime = 0  // per-player — each player gets their own Defend datum
-                              // instance (EquipBasicDefend()), so this can't leak
-                              // between players
+                              // instance (EquipSkill(), SkillUnlocks.dm), so this can't
+                              // leak between players
 
     New()
         ..()
@@ -278,9 +278,14 @@ datum/skill/Fireball
     OnUse(mob/user, mob/target)
         if(!user.canAct) return
         if(!user.InBattleArea()) return
-        if(!target) return
+        // No hard target requirement — castable in a battle area even at an empty
+        // tile, same as Attack (PerformMeleeHit() just finds nobody there). Damage
+        // only happens if target is actually present: ApplySpellDamage() below
+        // already no-ops on a null target, and PlayAttackAnimation() (CombatSystem.dm)
+        // already falls back to a turf-based effect instead of an on-target overlay.
 
         user.canAct = FALSE
+        user << output("You cast Fireball!", "Info")
 
         // Play spell animation & sound (src is this skill datum, matching
         // PlayAttackAnimation's real signature: mob/user, datum/skill/S, mob/target)

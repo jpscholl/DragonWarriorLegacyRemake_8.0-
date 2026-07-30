@@ -331,6 +331,7 @@ proc/FinalizePlayer(mob/playerTemp/M)
     // Mark this mob as a real character
     newPlayer.isCharacter = TRUE
     newPlayer.saveSlot = slot
+    newPlayer.saveManager = C.saveManager
 
     // Save character BEFORE login commit
     C.saveManager.SaveCharacter(newPlayer, slot)
@@ -342,6 +343,10 @@ proc/FinalizePlayer(mob/playerTemp/M)
     M << sound(null, channel = 1)
 
     C.mob = newPlayer
+    // The new mob's own verb list starts fresh from its type declaration (includes
+    // GM-only verbs like GMtogglelog by default) — re-sync (AdminLevels.dm) so a
+    // non-GM's removal carries over from the old temp mob.
+    C.SyncGMVerbs()
     newPlayer.loc = PLAYER_SPAWN
 
     // Start whatever music belongs to the spawn area (mob -> turf -> area)
@@ -375,12 +380,13 @@ proc/ApplyPlayerClass(class_name)
         // if("Custom")   newPlayer = new /mob/player/GM
 
     // Skills aren't persisted in save data (Code/Save/SaveData.dm) — every fresh
-    // character needs its default skills equipped from scratch. EquipBasicDefend()/
-    // EquipBasicBlaze() no-op for classes that don't get them (PlayerTemplate.dm).
+    // character needs its starting kit equipped from scratch, per its own
+    // GetStartingKit() (Code/Player/SkillUnlocks.dm).
     if(newPlayer)
-        newPlayer.EquipBasicAttack()
-        newPlayer.EquipBasicDefend()
-        newPlayer.EquipBasicBlaze()
+        newPlayer.EquipStartingKit()
+        newPlayer.CheckSkillUnlocks(silent = TRUE)  // no-op at Level 1 today, but stays
+                                                       // correct if a class ever gets a
+                                                       // Level 1 stat-only unlock later
     return newPlayer
 
 //copy temp stats into player stats
