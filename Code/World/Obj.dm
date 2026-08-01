@@ -43,7 +43,7 @@ obj/door
                     // channel = SFX_CHANNEL (.dme) — an unspecified channel still
                     // interrupts channel 1 area music (PlayAreaMusic(), Area.dm) in
                     // this BYOND version, same issue found in CombatSystem.dm.
-                    M << sound('door.wav', channel = SFX_CHANNEL)
+                    M << sound('door.wav', channel = SFX_CHANNEL, volume = M.client.ScaledVolume(100))
 
             // Auto-close after 5 seconds regardless of what's standing on/around the
             // door (covers the opener just parking on the tile and never leaving).

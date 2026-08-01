@@ -162,7 +162,7 @@ datum/status_effect/poison
 		// since we're deliberately going around that proc (see note above).
 		flick("hit", holder)
 		var/isEnemy = istype(holder, /mob/enemy)
-		view(holder) << sound(isEnemy ? 'enemyhit.wav' : 'hit.wav', channel = SFX_CHANNEL, volume = baseVolume)
+		PlaySFXAt(holder, isEnemy ? 'enemyhit.wav' : 'hit.wav')
 
 		holder << output("<font color='green'>The poison burns! (-[dmg] HP)</font>", "Info")
 

@@ -9,7 +9,7 @@
 //
 //    Author: Cerebella (Shorin88)
 //
-//    Last Update: 7/25/2026
+//    Last Update: 8/1/2026
 //
 //    Known Issues: see Known Issues.txt (currently empty — nothing outstanding logged)
 //
@@ -21,8 +21,14 @@
 */
 
 // -------------------- Global Settings --------------------
-var/global/baseVolume = 10   // I'm not going to have one of those games that deafens people on startup
 var/list/players = list()
+
+// Volume slider fallbacks for a player who's never touched them (SaveManager.
+// LoadVolumeSettings(), SaveSystem.dm). Master is the one that actually keeps login
+// from being a blast; Music/SFX default to 100 = full relative to whatever Master is
+// set to, since they're multipliers on Master, not independent absolute levels.
+#define DEFAULT_MASTER_VOLUME 50
+#define DEFAULT_CHANNEL_VOLUME 100
 
 // How many save slots each player gets, and where a new/loaded character spawns.
 // Shared across LoginMenu.dm and SaveSystem.dm so both stay in sync.
@@ -48,6 +54,19 @@ var/global/adultServer = FALSE
 // World icons only (turfs/objs), not mobs — the OG has no night sprites for those.
 var/global/isNight = FALSE
 
+// Sends `filename` to every client-having mob visible from `center` — same audience a
+// bare `view(center) << sound(...)` broadcast would reach, except personalized to each
+// listener's own client/ScaledVolume() (Main.dm) instead of one shared volume for
+// everyone. A single view() << sound() can only carry one volume value, which would
+// ignore individual players' Master/SFX sliders entirely. `base` = this particular
+// clip's own mix level (most sounds are fine at the 100 default; a few combat sounds
+// like attack/spell pass a custom base to sit louder or quieter than the rest) — not
+// to be confused with the Master/Music/SFX sliders, which scale on top of it.
+proc/PlaySFXAt(atom/center, filename, channel = SFX_CHANNEL, base = 100)
+    for(var/mob/M in view(center))
+        if(!M.client) continue
+        M.client << sound(filename, channel = channel, volume = M.client.ScaledVolume(base))
+
 // Global battle-mode override — toggled by GMbattlemode() in
 // Code/Admin/Commands/GMCommands.dm. Forces every area's battleModeOn to the same
 // value, disregarding each area type's own default (Code/World/Area.dm).
@@ -70,9 +89,34 @@ world
 
 client
     var/datum/SaveManager/saveManager   // declare the variable
+
+    // -------------------- Volume Control --------------------
+    // Master/Music/SFX sliders (TODOList.md, Phase 4) — percentages (0-100). Master is
+    // the actual base loudness (default 50, so login isn't a blast); Music/SFX are
+    // multipliers layered on top of Master (default 100 = full, no attenuation beyond
+    // whatever Master is set to). A `base` param can still be passed into
+    // ScaledVolume()/PlaySFXAt() per call site for a specific clip's own mix level
+    // (e.g. attack/spell sit louder than most SFX) — that's independent of these three
+    // sliders. Persisted per-ckey (SaveManager/SaveSystem.dm, LoadVolumeSettings()/
+    // SaveVolumeSettings()) — these vars live on /client, so they're already scoped to
+    // one player, never global.
+    var/masterVolume = DEFAULT_MASTER_VOLUME
+    var/musicVolume = DEFAULT_CHANNEL_VOLUME
+    var/sfxVolume = DEFAULT_CHANNEL_VOLUME
+
+    // Scales `base` (a call site's own mix level for this clip, default 100) by this
+    // client's Master + the relevant channel slider. isMusic picks musicVolume vs
+    // sfxVolume — Music (channel 1, PlayAreaMusic()/Area.dm) and everything else
+    // (SFX_CHANNEL/levelup's channel 2) are the only two channel categories that exist
+    // right now.
+    proc/ScaledVolume(base = 100, isMusic = FALSE)
+        var/channelPct = isMusic ? musicVolume : sfxVolume
+        return round(base * (channelPct / 100) * (masterVolume / 100))
+
     New()
         . = ..()                        // call parent constructor
         saveManager = new(ckey)         // attach SaveManager to this client
+        saveManager.LoadVolumeSettings(src)   // must run before Login()'s login-music sound() call
 
         // Map panel sizing/zoom is now handled declaratively in Interface.dmf's
         // "Gameplay" elem (fixed 832x832, zoom=0/zoom-mode=normal) — this used to
@@ -120,7 +164,7 @@ mob
 mob/playerTemp
     Login()
         DisableCommands() //make sure you troublemakers can't do something while in the login menu
-        client << sound('dw3conti.mid', repeat = 1, volume = baseVolume, channel = 1)
+        client << sound('dw3conti.mid', repeat = 1, volume = client.ScaledVolume(isMusic = TRUE), channel = 1)
         src << output("Welcome to DWL Remake!!", "Info")
 
         // Always show the login menu first
