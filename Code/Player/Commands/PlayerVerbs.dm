@@ -1,4 +1,16 @@
 // -----------------------------
+// Help — placeholder popup, wired to the File menu (Interface.dmf). Real content is
+// still TODOList.md Phase 4 work ("even the OG's own doc admits it's outdated") — this
+// just makes the menu item functional in the meantime, matching the confirmed OG
+// presentation (a browse() popup with a title bar/close button, not the output pane or
+// a stat panel). Hidden from the verb panel since File > Help is the only entry point.
+// -----------------------------
+mob/verb/Help()
+    set hidden = 1
+
+    src << browse("<h3>Dragon Warrior Legacy Remake</h3><p>Help content coming soon.</p>", "window=help;size=400x300")
+
+// -----------------------------
 // General Player Verbs
 // -----------------------------
 mob/verb/Interact()
@@ -86,3 +98,52 @@ mob/verb/TurnWalk()
 
     turnWalkMode = !turnWalkMode
     src << output("Turn-then-walk is now [turnWalkMode ? "ON" : "OFF"].", "Info")
+
+// -----------------------------
+// Volume Control — Master/Music/SFX sliders (client/ScaledVolume(), Main.dm). Per-ckey
+// persisted (SaveManager.SaveVolumeSettings()/SaveSystem.dm) — these are /client vars,
+// so already scoped to the one player adjusting them, never global. Three separate
+// verbs rather than one combined prompt so each can be adjusted independently without
+// re-entering the others.
+// -----------------------------
+mob/verb/SetMasterVolume()
+    set category = "Settings"
+    set desc = "Overall volume, scales Music and SFX together"
+    if(!client) return
+
+    var/v = input(src, "Master volume (0-100):", "Settings", client.masterVolume) as num
+    if(isnull(v)) return
+    client.masterVolume = max(0, min(100, round(v)))
+    client.saveManager.SaveVolumeSettings(client)
+    src << output("Master volume set to [client.masterVolume]%.", "Info")
+    // Re-apply immediately, same reasoning as SetMusicVolume() below — Master affects
+    // the currently-playing track too, not just future sounds.
+    // status = SOUND_UPDATE adjusts the volume of whatever's already playing on this
+    // channel in place, instead of resending the file and restarting it from the top.
+    if(current_music) client << sound(null, channel = 1, volume = client.ScaledVolume(isMusic = TRUE), status = SOUND_UPDATE)
+
+mob/verb/SetMusicVolume()
+    set category = "Settings"
+    set desc = "Area background music volume"
+    if(!client) return
+
+    var/v = input(src, "Music volume (0-100):", "Settings", client.musicVolume) as num
+    if(isnull(v)) return
+    client.musicVolume = max(0, min(100, round(v)))
+    client.saveManager.SaveVolumeSettings(client)
+    src << output("Music volume set to [client.musicVolume]%.", "Info")
+    // Re-apply immediately so the change is audible without needing to change areas.
+    // status = SOUND_UPDATE adjusts the volume of whatever's already playing on this
+    // channel in place, instead of resending the file and restarting it from the top.
+    if(current_music) client << sound(null, channel = 1, volume = client.ScaledVolume(isMusic = TRUE), status = SOUND_UPDATE)
+
+mob/verb/SetSFXVolume()
+    set category = "Settings"
+    set desc = "Combat/event sound effect volume"
+    if(!client) return
+
+    var/v = input(src, "Sound effects volume (0-100):", "Settings", client.sfxVolume) as num
+    if(isnull(v)) return
+    client.sfxVolume = max(0, min(100, round(v)))
+    client.saveManager.SaveVolumeSettings(client)
+    src << output("Sound effects volume set to [client.sfxVolume]%.", "Info")

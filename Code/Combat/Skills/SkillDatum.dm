@@ -205,7 +205,7 @@ datum/skill/Blaze
         var/mySession = user.defendToggleSession
         var/wasDefending = user.DropDefendForAction()
 
-        view(user) << sound('spell.wav', channel = SFX_CHANNEL, volume = 70)
+        PlaySFXAt(user, 'spell.wav', base = 70)
 
         // Cast windup and projectile flight are BOTH driven by the same
         // Agility+Intelligence formula (GetAttackDelay(), CombatSystem.dm — wasDefending

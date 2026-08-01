@@ -158,6 +158,13 @@ fluff — see this file's own intro about that).
       `Party.members` (`Die()`, `CombatSystem.dm`) — no solo-vs-group XP penalty yet,
       that formula was never confirmed from OG testing. Party is session-only, not
       saved/loaded.
+- [ ] **Guilds** (your own idea, 2026-07-31) — a persistent, saved counterpart to the
+      session-only Party above: where Party is a temporary in-the-moment group,
+      a Guild would be a standing, cross-session member list (likely its own save data,
+      not tied to any one character's slot). Not scoped yet: creation cost/requirements,
+      guild-specific perks or shared features (bank? chat channel? tag next to your
+      name?), rank structure (leader/officer/member), and whether Party and Guild
+      membership are independent or a Guild is just a pool you draw Parties from.
 - [ ] Persistent Builder/Admin promotion (today: hardcoded test lists, needs recompile to
       change — fine for solo dev, blocks any real GM handing out Builder status later)
 - [x] `StatsDatum.dm` resolved: not a dead stub anymore — holds `RecalculateVitals()`,
@@ -242,7 +249,15 @@ fluff — see this file's own intro about that).
       yet (`screen_loc`/HUD search turned up nothing). Spans the full view width and
       about 1 tile tall, exact tile count varies with window/zoom size. **Real UI work —
       out of scope for v1 per the Scope Note at the top of this file**, logged here only
-      as reference for the later visual-polish pass.
+      as reference for the later visual-polish pass. **Reference found (2026-07-31)**:
+      Silk Wizard's Dragon Warrior Online (a well-known older DW-style BYOND game) uses
+      this exact DW-style HUD layout — worth pulling up as a visual/behavioral reference
+      when this pass actually happens.
+- [ ] **Floating damage numbers** — new idea, not OG-derived. A number overlay that pops
+      up on a mob when it takes damage (`TakeDamage()`/`ApplySpellDamage()`,
+      `CombatSystem.dm`), rather than (or alongside) the existing hit flick/sound. Same
+      "Real UI work, later visual-polish pass" scope note as the HUD entry above applies
+      here too — not v1.
 
 ## Phase 4 — Actions & Social Panels
 
@@ -263,9 +278,11 @@ fluff — see this file's own intro about that).
       `category = "Action"`, `src in usr`). Target picker uses `mob/player in view(5, usr)`
       to restrict to nearby players; reuses `PickUpItem()` so the "inventory full" check
       is shared with pickup/GM item creation.
-- [ ] `Help()` — opens a scrollable popup window via `browse()` (confirmed from OG: title
-      bar, close button, formatted HTML text, not the output pane or a stat panel).
-      Content needs to be written fresh — even the OG's own doc admits it's outdated
+- [ ] `Help()` — **placeholder built (2026-07-31)**: `browse()` popup with a title bar/
+      close button (`PlayerVerbs.dm`, hidden verb, wired to File > Help,
+      `Interface.dmf`), matching the confirmed OG presentation. Currently just says
+      "Help content coming soon." — the actual content still needs to be written fresh,
+      even the OG's own doc admits it's outdated
 - [x] `Look()` — implemented in `PlayerVerbs.dm`, like `Who()` but iterates `view(src)`
       instead of the global `players` list. Same hardcoded Class/Level/Party stub as
       `Who()` until real data exists (see Phase 2's party model / class tracking).
@@ -330,8 +347,40 @@ fluff — see this file's own intro about that).
 - [ ] `ToggleWorldSay()` — mute/unmute world channel independent of using it yourself
 - [ ] `ToggleMusic()` — new discovery, not in the original design notes at all. Likely a
       simple on/off for area background music, behavior not yet detailed.
-- [ ] `MusicVolume()` — new discovery, not in the original design notes at all. Likely
-      a player-side volume control for area background music, behavior not yet detailed.
+- [x] **Volume control — Master/Music/SFX, three separate sliders** (your own idea,
+      2026-07-31, built same day; reworked 2026-08-01). Supersedes the flatter
+      `MusicVolume()` idea above. `client/masterVolume`/`musicVolume`/`sfxVolume`
+      (0-100 each, `Main.dm`) — persisted per-ckey in the player's own savefile
+      (`SaveManager.LoadVolumeSettings()`/`SaveVolumeSettings()`, `SaveSystem.dm`), not
+      global. `client/proc/ScaledVolume(base = 100, isMusic)` treats Master as the
+      actual base loudness and Music/SFX as multipliers layered on top of it: `round(base
+      * channelPct/100 * masterPct/100)`. Defaults are Master 50 / Music 100 / SFX 100 —
+      Master alone keeps login from being a blast, and Music/SFX at 100 mean "full,
+      relative to whatever Master is." The old standalone `baseVolume` global (a flat
+      pre-attenuation hack, separate from all this) is gone — Master now does that job.
+      `base` is still a per-call-site param for a specific clip's own mix level (e.g.
+      attack/spell pass 60/70 to sit louder than most SFX), independent of the sliders.
+      - **Music** (`isMusic = TRUE`) — `PlayAreaMusic()` (`Area.dm`) and the login
+        jingle (`Main.dm`), both on `channel = 1`
+      - **Sound Effects** (`isMusic = FALSE`, the default) — everything else: attack/
+        hit/dodge/spell (`SFX_CHANNEL`), door/stairs/fall, and `levelup.wav`
+        (`channel = 2`, still counted as SFX)
+      - **Master** — scales both together, layered on top of whichever channel slider
+        applies
+      Two call shapes needed different handling: single-recipient sounds (`M << sound
+      (...)`, e.g. stairs/fall/login music) call `client.ScaledVolume()` directly; the
+      several `view(x) << sound(...)` broadcasts (dodge/hit/attack/spell/GM ghost-form)
+      couldn't — a single broadcast can only carry one shared volume for every listener,
+      which would ignore each player's own sliders. Global `proc/PlaySFXAt(atom/center,
+      filename, channel = SFX_CHANNEL, base = 100)` (`Main.dm`) replaces those: loops
+      `view(center)` and sends each client-having mob its own personalized volume.
+      `SetMasterVolume()`/`SetMusicVolume()`/`SetSFXVolume()` (`PlayerVerbs.dm`,
+      "Settings" category) are bare `input()` 0-100 prompts, clamped, saving to disk on
+      each change — matches the v1 "no UI polish" rule already in place for everything
+      else. `SetMusicVolume()` re-applies the currently-playing track immediately (via
+      `current_music`, `Area.dm`) so the change is audible without needing to walk into a
+      new area. Loaded on `client/New()`, right after `saveManager` is created and before
+      the login jingle plays. Compile: 0 errors, 0 warnings. Not playtested yet.
 - [x] Wire real class/level/party into `Who()`/`Look()` (`SocialVerbs.dm`, `PlayerVerbs.dm`)
 
 ## Phase 5 — Inventory & Items (core loop mostly done)
@@ -860,6 +909,18 @@ fluff — see this file's own intro about that).
       `GMroleplaymode` is active, extreme temperatures deal damage over time and passive
       HP regen is disabled entirely — this was originally logged as an untested idea but
       turned out to be real OG behavior. Only happens during roleplay mode, not globally.
+- [ ] **Shallow vs. deep water** (your own idea, 2026-07-31) — right now `turf/water`
+      (`Turfs.dm`) is a single dense type, fully impassable, no depth distinction at all.
+      Split into two behaviors:
+      - **Shallow water** — walkable (`density = 0`), presumably just a visual/movement
+        variant, no other mechanic implied
+      - **Deep water** — interact-to-dive (`OnInteract()`-style, matching the pattern
+        other interactables use, e.g. doors/signs in `Obj.dm`), entering an underwater
+        state with an oxygen mechanic (meter that depletes over time, presumably damage
+        or forced-surface on hitting zero — not detailed yet)
+      Not scoped beyond the idea itself: exact oxygen numbers, whether it's a new status-
+      effect-like system (`StatusEffects.dm` already has the framework) or its own thing,
+      and how it interacts with combat/movement while submerged.
       Whether specific equipment counters the damage is still unconfirmed.
 - [ ] Roleplay Mode toggle — **low priority, not a straight port**. You weren't a big
       fan of how this played in the OG, so this is a candidate for redesign/expansion
@@ -1000,7 +1061,10 @@ fluff — see this file's own intro about that).
       A white cursor square shows the current build target; selecting a mode confirms
       with "[Mode] tool selected."
 - [ ] Save/upload custom maps (explicitly noted as a "maybe eventually" in your own notes
-      — do not start this until the rest of Phase 10 is solid)
+      — do not start this until the rest of Phase 10 is solid). **Reference found
+      (2026-07-31)**: a "SwapMaps" demo project on the BYOND developer hub — host-side
+      save/load/share of custom maps, exactly the shape of this feature. Not yet pulled
+      into the repo; grab the source and review before building from scratch.
 
 ## Open Questions (blockers worth resolving before the phase that needs them)
 
@@ -1038,6 +1102,9 @@ fluff — see this file's own intro about that).
 - [ ] General interface polish pass
 - [ ] Character select screen polish
 - [ ] Menu polish (creation flow, stat allocation, etc.)
+- [ ] **Opening splashscreen** (your own idea, 2026-07-31) — shown before the login menu
+      (`ShowLoginMenu()`, `mob/playerTemp/Login()`, `Main.dm`). Not detailed yet: art/
+      logo, how long it holds, click/key-to-continue vs. timed auto-advance.
 - [ ] Pets
 - [ ] Mounts (horse, wagon)
 - [ ] Amulet/accessory balance pass

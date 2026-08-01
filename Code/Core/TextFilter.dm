@@ -172,11 +172,31 @@ var/list/banned_words_general = list(
     "dipshits"
 )
 
+// Folds common leetspeak digit/symbol substitutions back to their letter, so "sh1t" or
+// "5hit" still matches the plain word lists below — same idea as the char classes
+// ([sS5], [iI1]) a regex-based filter would use, done as plain substitution instead so
+// it doesn't depend on unverified BYOND /regex behavior (no engine to test against
+// right now). Every swap is one character for one character, so position/length in the
+// caller's string stays untouched — CensorText() below relies on that to keep slicing
+// the ORIGINAL text while scanning this normalized copy.
+proc/NormalizeLeet(text)
+    var/result = text
+    result = replacetext(result, "0", "o")
+    result = replacetext(result, "1", "i")
+    result = replacetext(result, "3", "e")
+    result = replacetext(result, "4", "a")
+    result = replacetext(result, "5", "s")
+    result = replacetext(result, "7", "t")
+    result = replacetext(result, "@", "a")
+    result = replacetext(result, "$", "s")
+    return result
+
 // Returns TRUE if text contains a banned word for the current server mode (substring,
-// case-insensitive) — so it also catches a banned word embedded inside a longer string.
-// Used for names, where the whole entry just gets rejected outright.
+// case-insensitive, leetspeak-folded) — so it also catches a banned word embedded
+// inside a longer string. Used for names, where the whole entry just gets rejected
+// outright.
 proc/IsTextFiltered(text)
-    var/lower = lowertext(text)
+    var/lower = NormalizeLeet(lowertext(text))
 
     for(var/word in banned_words_always)
         if(findtext(lower, word))
@@ -221,7 +241,10 @@ proc/CensorText(text)
         var/searchStart = 1
 
         while(TRUE)
-            var/lower = lowertext(result)   // re-derive each pass since result may have changed
+            // re-derive each pass since result may have changed. Leetspeak-folded so
+            // "5h1t" gets caught same as "shit" — safe to scan here and slice `result`
+            // (the real text) below since NormalizeLeet() is 1-char-for-1-char.
+            var/lower = NormalizeLeet(lowertext(result))
             var/pos = findtext(lower, word, searchStart)
             if(!pos) break
 

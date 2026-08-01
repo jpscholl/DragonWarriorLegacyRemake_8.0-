@@ -100,7 +100,7 @@ mob/proc
             // by a verb. TakeDamage() also runs from background procs like an enemy's
             // AILoop() calling PerformMeleeHit(), where usr isn't the mob taking the
             // hit — that silently broke this exact sound for player-vs-enemy combat.
-            view(src) << sound(isEnemy ? 'enemydodge.wav' : 'dodge.wav', channel = SFX_CHANNEL, volume = baseVolume)
+            PlaySFXAt(src, isEnemy ? 'enemydodge.wav' : 'dodge.wav')
             view(src) << output("[src] dodges the attack!", "Info")
             return
 
@@ -108,7 +108,7 @@ mob/proc
         // channel = SFX_CHANNEL (defined in the .dme, see its comment), not 1 —
         // channel 1 is area background music (PlayAreaMusic(), Area.dm), and this
         // used to interrupt/kill it every hit.
-        view(src) << sound(isEnemy ? 'enemyhit.wav' : 'hit.wav', channel = SFX_CHANNEL, volume = baseVolume)  // see usr note above
+        PlaySFXAt(src, isEnemy ? 'enemyhit.wav' : 'hit.wav')  // see usr note above
 
         // Applied after the dodge roll (a dodge avoids damage entirely, unrelated to
         // defending) but before HP is reduced.
@@ -183,7 +183,7 @@ mob/proc
             src.StatPoints += 5
             src.RecalculateVitals()  // Code/Player/StatsDatum.dm — Level affects MaxHP/MaxMP too
             src << output("You are now Level [src.Level]", "Info")
-            src << sound('levelup.wav', channel = 2, volume = baseVolume)
+            src << sound('levelup.wav', channel = 2, volume = client ? client.ScaledVolume() : 100)
 
             // Leveled skill/spell learning (Code/Player/SkillUnlocks.dm) — enemies
             // also route through this shared LevelCheck() (Die()'s attacker.LevelCheck()
@@ -308,7 +308,7 @@ mob/proc
             // client, so it silently never played at all for enemies (no client to
             // reach). This broadcasts to everyone nearby who can see the attack,
             // attacker included, same pattern TakeDamage() already uses for hit.wav.
-            view(user) << sound(istype(user, /mob/enemy) ? 'enemyattack.wav' : 'attack.wav', channel = SFX_CHANNEL, volume = 60)
+            PlaySFXAt(user, istype(user, /mob/enemy) ? 'enemyattack.wav' : 'attack.wav', base = 60)
             if(target)
                 // Layered directly on the mob actually being hit, not the turf in
                 // front of the attacker. No pixel_y set here (unlike the turf case
@@ -333,7 +333,7 @@ mob/proc
                         targetTile.overlays -= weaponOverlay
         else if(S.isSpell)
             flick("cast", user)
-            view(user) << sound('spell.wav', channel = SFX_CHANNEL, volume = 70)  // see attack.wav note above
+            PlaySFXAt(user, 'spell.wav', base = 70)  // see attack.wav note above
             if(target)
                 // NOTE: unlike the melee weaponOverlay above, this still uses a plain
                 // /icon instead of /image with an explicit .layer — /icon has no layer

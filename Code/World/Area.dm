@@ -7,7 +7,7 @@ mob/var
 mob/proc/PlayAreaMusic(music_file)
 	if(!client) return
 	if(current_music == music_file) return
-	client << sound(music_file, repeat = 1, volume = baseVolume, channel = 1)
+	client << sound(music_file, repeat = 1, volume = client.ScaledVolume(isMusic = TRUE), channel = 1)
 	current_music = music_file
 
 area

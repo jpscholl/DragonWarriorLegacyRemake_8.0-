@@ -180,7 +180,7 @@ turf/table/longtablecenter
 				// straight to M sidesteps visibility rules entirely and guarantees
 				// the mob actually taking the stairs always hears it. Also has to
 				// fire BEFORE M.loc changes below, same reasoning as before.
-				M << sound('stairs.wav', repeat = 0, channel = SFX_CHANNEL, volume = baseVolume)  // SFX_CHANNEL: .dme — not channel 1 (area music), so this doesn't interrupt it
+				M << sound('stairs.wav', repeat = 0, channel = SFX_CHANNEL, volume = M.client ? M.client.ScaledVolume() : 100)  // SFX_CHANNEL: .dme — not channel 1 (area music), so this doesn't interrupt it
 				var/turf/new_loc = locate(M.x, M.y, M.z + 1)
 				if(new_loc)
 					M.loc = new_loc
@@ -192,7 +192,7 @@ turf/table/longtablecenter
 			Entered(atom/movable/A)
 				if(!ismob(A)) return
 				var/mob/M = A
-				M << sound('stairs.wav', repeat = 0, channel = SFX_CHANNEL, volume = baseVolume)  // see stairsup's notes above
+				M << sound('stairs.wav', repeat = 0, channel = SFX_CHANNEL, volume = M.client ? M.client.ScaledVolume() : 100)  // see stairsup's notes above
 				var/turf/new_loc = locate(M.x, M.y, M.z - 1)
 				if(new_loc)
 					M.loc = new_loc
@@ -238,7 +238,7 @@ turf/table/longtablecenter
 			// (e.g. GMghostform), silently swallowing the sound for exactly the
 			// mob it's meant for. Also has to fire before the z-level change
 			// below, same reasoning as stairsup/stairsdown.
-			M << sound('fall.wav', repeat = 0, channel = SFX_CHANNEL, volume = baseVolume)
+			M << sound('fall.wav', repeat = 0, channel = SFX_CHANNEL, volume = M.client ? M.client.ScaledVolume() : 100)
 			// Brief pause before actually dropping - placeholder gap for a real
 			// falling animation later (not built yet).
 			spawn(8)

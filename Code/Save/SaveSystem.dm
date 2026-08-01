@@ -13,6 +13,26 @@ datum/SaveManager
         F = new("Player SaveFiles/[ckey].sav")
 
     // -----------------------------
+    // Volume settings — stored at the ckey level (this same F), not per character
+    // slot, since login music (mob/playerTemp/Login(), Main.dm) plays before any
+    // slot is picked and needs a volume to use immediately.
+    // -----------------------------
+    proc/LoadVolumeSettings(client/C)
+        var/m, mu, sfx
+        F["volume.master"] >> m
+        F["volume.music"]  >> mu
+        F["volume.sfx"]    >> sfx
+        C.masterVolume = isnull(m)   ? DEFAULT_MASTER_VOLUME  : m
+        C.musicVolume  = isnull(mu)  ? DEFAULT_CHANNEL_VOLUME : mu
+        C.sfxVolume    = isnull(sfx) ? DEFAULT_CHANNEL_VOLUME : sfx
+
+    proc/SaveVolumeSettings(client/C)
+        F["volume.master"] << C.masterVolume
+        F["volume.music"]  << C.musicVolume
+        F["volume.sfx"]    << C.sfxVolume
+        F.Flush()
+
+    // -----------------------------
     // Save a player's data to a specific slot (1-4)
     // -----------------------------
     proc/SaveCharacter(mob/player/M, slot)

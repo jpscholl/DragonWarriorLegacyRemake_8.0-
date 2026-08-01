@@ -1,84 +1,117 @@
 macro "macro"
-	elem
+	elem 
 		name = "Center"
 		command = "Interact"
-	elem
+	elem 
 		name = "Northeast+REP"
 		command = "UseSkillKey 9"
-	elem
+	elem 
 		name = "Southeast+REP"
 		command = "UseSkillKey 3"
-	elem
+	elem 
 		name = "Southwest+REP"
 		command = "UseSkillKey 1"
-	elem
+	elem 
 		name = "Northwest+REP"
 		command = "UseSkillKey 7"
-	elem
+	elem 
 		name = "Insert+REP"
 		command = "UseSkillKey 0"
-	elem
+	elem 
 		name = "West"
 		command = "onMoveKey 8 1"
-	elem
+	elem 
 		name = "West+UP"
 		command = "onMoveKey 8 0"
-	elem
+	elem 
 		name = "North"
 		command = "onMoveKey 1 1"
-	elem
+	elem 
 		name = "North+UP"
 		command = "onMoveKey 1 0"
-	elem
+	elem 
 		name = "East"
 		command = "onMoveKey 4 1"
-	elem
+	elem 
 		name = "East+UP"
 		command = "onMoveKey 4 0"
-	elem
+	elem 
 		name = "South"
 		command = "onMoveKey 2 1"
-	elem
+	elem 
 		name = "South+UP"
 		command = "onMoveKey 2 0"
-	elem
+	elem 
 		name = "Add"
 
 
 menu "menu"
-	elem
+	elem 
 		name = "&File"
 		command = ""
 		saved-params = "is-checked"
-	elem
+	elem 
+		name = "&Settings"
+		command = ""
+		category = "&File"
+		saved-params = "is-checked"
+	elem 
+		name = "&Help"
+		command = "Help"
+		category = "&File"
+		saved-params = "is-checked"
+	elem 
 		name = "&Quit"
 		command = ".quit"
 		category = "&File"
+		saved-params = "is-checked"
+	elem 
+		name = "Volume Settings"
+		command = ""
+		saved-params = "is-checked"
+	elem 
+		name = "Master Volume"
+		command = "SetMasterVolume"
+		category = "Volume Settings"
+		saved-params = "is-checked"
+	elem 
+		name = "Music Volume"
+		command = "SetMusicVolume"
+		category = "Volume Settings"
+		saved-params = "is-checked"
+	elem 
+		name = "SFX Volume"
+		command = "SetSFXVolume"
+		category = "Volume Settings"
 		saved-params = "is-checked"
 
 
 window "Main"
 	elem "Main"
 		type = MAIN
+		pos = 291,0
 		size = 1400x860
 		anchor1 = -1,-1
 		anchor2 = -1,-1
-		can-resize = true
+		background-color = none
 		saved-params = "pos;size;is-minimized;is-maximized"
-		title = "Dragon Warrior Legacy Remake v0.1"
+		title = "Dragon Warrior Legacy Remake v0.4"
 		statusbar = false
 		macro = "macro"
 		menu = "menu"
+		outer-size = 1416x919
+		outer-pos = 291,0
+		inner-size = 1400x860
+		inner-pos = 8,51
+		screen-size = 2560x1392
 	elem "Gameplay"
 		type = MAP
 		pos = 0,0
 		size = 832x832
 		anchor1 = 0,0
 		anchor2 = 52,100
-		zoom = 0
-		zoom-mode = normal
-		letterbox = false
 		saved-params = ""
+		letterbox = false
 	elem "StatsCommands"
 		type = INFO
 		pos = 832,0
@@ -86,6 +119,7 @@ window "Main"
 		anchor1 = 52,0
 		anchor2 = 100,31
 		saved-params = ""
+		tab-background-color = none
 	elem "Info"
 		type = OUTPUT
 		pos = 832,279

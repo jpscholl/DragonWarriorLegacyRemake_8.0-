@@ -23,7 +23,7 @@ mob/proc/ToggleGhostForm()
     // left unspecified — turns out an unspecified channel still interrupts channel 1
     // area music (PlayAreaMusic(), Area.dm) in this BYOND version, same issue found
     // and fixed for attack/hit/dodge sounds (CombatSystem.dm).
-    view() << sound('spell.WAV', channel = SFX_CHANNEL, volume = baseVolume)
+    PlaySFXAt(src, 'spell.WAV')
 
     if(isGhostform)
         // --- Exit ghostIcon form ---
@@ -219,7 +219,7 @@ mob/verb/GMlevelincrease()
         RecalculateVitals()
 
     src << output("You are now Level [Level] (+[amount])", "Info")
-    src << sound('levelup.wav', channel = 2, volume = baseVolume)
+    src << sound('levelup.wav', channel = 2, volume = client.ScaledVolume())
 
 // -----------------------------
 // GM Battle Mode Toggle
