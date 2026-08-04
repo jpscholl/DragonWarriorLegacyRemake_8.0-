@@ -167,7 +167,9 @@ proc/PromptForName(mob/M)
         return selectedName
 //Class
 proc/PromptForClass(mob/M)
-    var/list/classes = list("Hero", "Soldier", "Wizard", "Back")
+    // Sage deliberately excluded — GM-only direct pick per existing design
+    // (TODOList.md), not a creation-time choice for normal players.
+    var/list/classes = list("Hero", "Soldier", "Wizard", "Fighter", "Pilgrim", "Goof-off", "Back")
     return input(M, "Choose your class:", "Class Selection") in classes
 
 // Turns a class choice into either the class name or null (on "Back")
@@ -198,6 +200,25 @@ proc/GetClassIcons(mob/M, selectedClass)
             return list("Dragon Warrior 1 Wizard"='Mob Icons/Player/dw1wizard.dmi',
                         "Dragon Warrior 2 Wizard"='Mob Icons/Player/dw2wizard.dmi',
                         "Dragon Warrior 3 Wizard"='Mob Icons/Player/dw3malewizard.dmi',
+                        "Back")
+        if("Fighter")
+            return list("Dragon Warrior 1 Fighter"='Mob Icons/Player/dw1fighter.dmi',
+                        "Dragon Warrior 2 Fighter"='Mob Icons/Player/dw2fighter.dmi',
+                        "Dragon Warrior 3 Fighter (Male)"='Mob Icons/Player/dw3malefighter.dmi',
+                        "Dragon Warrior 3 Fighter (Female)"='Mob Icons/Player/dw3femalefighter.dmi',
+                        "Back")
+        if("Pilgrim")
+            return list("Dragon Warrior 2 Pilgrim"='Mob Icons/Player/dw2pilgrim.dmi',
+                        "Dragon Warrior 3 Pilgrim (Male)"='Mob Icons/Player/dw3malepilgrim.dmi',
+                        "Dragon Warrior 3 Pilgrim (Female)"='Mob Icons/Player/dw3femalepilgrim.dmi',
+                        "Back")
+        if("Goof-off")
+            return list("Dragon Warrior 3 Goof-off (Male)"='Mob Icons/Player/dw3malegoofoff.dmi',
+                        "Dragon Warrior 3 Goof-off (Female)"='Mob Icons/Player/dw3femalegoofoff.dmi',
+                        "Back")
+        if("Sage")
+            return list("Dragon Warrior 3 Sage (Male)"='Mob Icons/Player/dw3malesage.dmi',
+                        "Dragon Warrior 3 Sage (Female)"='Mob Icons/Player/dw3femalesage.dmi',
                         "Back")
     return list()
 
@@ -367,17 +388,12 @@ proc/FinalizePlayer(mob/playerTemp/M)
 //selects proper template based on class templates
 proc/ApplyPlayerClass(class_name)
     var/mob/player/newPlayer
-    switch(class_name)
-        if("Hero")    newPlayer = new /mob/player/Hero
-        if("Soldier") newPlayer = new /mob/player/Soldier
-        if("Wizard")  newPlayer = new /mob/player/Wizard
 
-        // Future classes
-        // if("Fighter") newPlayer = new /mob/player/fighter
-        // if("Pilgrim") newPlayer = new /mob/player/pilgrim
-        // if("Goof-off") newPlayer = new /mob/player/goofoff
-        // if("Sage")     newPlayer = new /mob/player/sage
-        // if("Custom")   newPlayer = new /mob/player/GM
+    // GetPlayerClassType() (PlayerTemplate.dm) is the one place the name->type switch
+    // lives now — Custom/GM isn't in it yet since /mob/player/GM doesn't exist as a
+    // real type.
+    var/type = GetPlayerClassType(class_name)
+    if(type) newPlayer = new type
 
     // Skills aren't persisted in save data (Code/Save/SaveData.dm) — every fresh
     // character needs its starting kit equipped from scratch, per its own
@@ -419,7 +435,10 @@ proc/ApplyCustomColors(mob/playerTemp/src, mob/player/dst)
 // -----------------------------
 proc/StatAllocation(mob/playerTemp/M)
     var/remainingStatPoints = 14
-    var/statCap = 10
+    // Per-class ceiling (PlayerTemplate.dm's GetClassStatCaps()) — replaces the old
+    // flat cap-10-for-everyone so e.g. Hero's 150 Intelligence cap is actually reachable
+    // at creation time, not silently clamped to 10 like every other stat.
+    var/list/statCaps = GetClassStatCaps(M.selectedClass)
     var/lastStat = null   // which stat was picked last, so the dialog can re-highlight it
 
     // Temporary stat storage
@@ -439,7 +458,7 @@ proc/StatAllocation(mob/playerTemp/M)
         // change every allocation — look up lastStat's current label instead of
         // remembering the old (now-stale) label text.
         for(var/stat in tempStatPoints)
-            if(tempStatPoints[stat] < statCap)
+            if(tempStatPoints[stat] < statCaps[stat])
                 var/label = "[stat] [tempStatPoints[stat]]"
                 options[label] = stat
                 if(stat == lastStat)
@@ -474,8 +493,8 @@ proc/StatAllocation(mob/playerTemp/M)
                 lastStat = choice   // keep this stat highlighted next time regardless of outcome
                 if(remainingStatPoints <= 0)
                     M << output("You have no points left.", "Info")
-                else if(tempStatPoints[choice] >= statCap)
-                    M << output("Starter stats are capped at [statCap]!", "Info")
+                else if(tempStatPoints[choice] >= statCaps[choice])
+                    M << output("[choice] is capped at [statCaps[choice]] for this class!", "Info")
                 else
                     tempStatPoints[choice]++
                     remainingStatPoints--

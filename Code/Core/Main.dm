@@ -9,7 +9,7 @@
 //
 //    Author: Cerebella (Shorin88)
 //
-//    Last Update: 8/1/2026
+//    Last Update: 8/4/2026
 //
 //    Known Issues: see Known Issues.txt (currently empty — nothing outstanding logged)
 //
@@ -30,10 +30,11 @@ var/list/players = list()
 #define DEFAULT_MASTER_VOLUME 50
 #define DEFAULT_CHANNEL_VOLUME 100
 
-// How many save slots each player gets, and where a new/loaded character spawns.
+// How many save slots each player gets. PLAYER_SPAWN used to live here too — moved to
+// the .dme itself (same #include-order reason as SPRITE_PIXEL_Y_OFFSET/SFX_CHANNEL
+// there) once Combat/Skills/SkillCatalog.dm needed it before this file compiles.
 // Shared across LoginMenu.dm and SaveSystem.dm so both stay in sync.
 #define MAX_CHARACTERS 4
-#define PLAYER_SPAWN locate(26, 8, 4)
 
 // Longest a character name can be.
 #define MAX_NAME_LENGTH 24

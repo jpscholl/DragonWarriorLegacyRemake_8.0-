@@ -21,6 +21,15 @@ mob
         Nexp = 100
         Gold = 30
 
+    // Exp/Gold granted to whoever kills this mob (Die(), CombatSystem.dm). Live on the
+    // base mob rather than mob/enemy so a PvP kill has defined values too; real per-tier
+    // numbers are set on the monster subtypes (Code/Combat/NPCs/MonsterRoster.dm).
+    // PLACEHOLDER: expReward's 10 was the old hardcoded flat reward for every kill.
+    // goldReward is new — nothing in the game granted Gold at all before this (it was
+    // display-only, saved and halved on death with no way to ever earn any).
+    var/expReward = 10
+    var/goldReward = 0
+
     // Muted — session-only, not saved. Enforced in the chat verbs
     // (SocialVerbs.dm/PartyVerbs.dm); GMmute verb itself not built yet (TODOList.md).
     var
@@ -57,6 +66,18 @@ mob
         Intelligence = 1
         Luck = 1
         StatPoints = 0
+
+    // Per-class stat ceilings — enforced at both creation-time allocation
+    // (StatAllocation(), LoginMenu.dm) and level-up stat spend (obj/StatLink/Click(),
+    // ClickableStats.dm) via GetClassStatCaps() below. Confirmed numbers pulled from
+    // ClassReference.md; every gap it marks `?` gets a `// PLACEHOLDER:` value here,
+    // set per-class further down.
+    var
+        capStrength = 10
+        capAgility = 10
+        capVitality = 10
+        capIntelligence = 10
+        capLuck = 10
 
 // Appearance
 mob
@@ -124,6 +145,15 @@ mob/player
     proc/UseSkillSlot(slotNum)
         var/datum/skill/S = skillSlots[slotNum]
         if(!S) return
+
+        // Centralized here rather than duplicated in every spell's own OnUse() (which
+        // is how Fireball/Blaze ended up missing it entirely, and Sleep/Sleepmore/
+        // Stopspell/Return/Revive/GenericSpell each had their own copy of the same
+        // check — SkillCatalog.dm) — every skill funnels through this one proc, so
+        // this is the single place silence actually needs to be enforced.
+        if(S.isSpell && isSilenced)
+            src << output("You are silenced and cannot cast!", "Info")
+            return
 
         var/mob/target = null
         var/turf/stepTile = get_step(src, src.dir)
@@ -203,10 +233,197 @@ mob/player
 // -----------------------------
 mob/player/Hero
     class = "Hero"
+    capStrength = 60       // confirmed (ClassReference.md)
+    capAgility = 60        // PLACEHOLDER: unconfirmed, mirrored off Strength cap
+    capVitality = 80       // PLACEHOLDER: unconfirmed
+    capIntelligence = 150  // confirmed
+    capLuck = 60           // PLACEHOLDER: unconfirmed
 
 mob/player/Soldier
     class = "Soldier"
     hasMana = FALSE
+    capStrength = 100      // confirmed (ClassReference.md)
+    capAgility = 60        // PLACEHOLDER: unconfirmed
+    capVitality = 100      // confirmed
+    capIntelligence = 20   // PLACEHOLDER: unconfirmed, kept low — Soldier has no
+                            // Intelligence-gated skills in ClassReference.md
+    capLuck = 40           // PLACEHOLDER: unconfirmed
 
 mob/player/Wizard
     class = "Wizard"
+    capStrength = 40       // confirmed (ClassReference.md)
+    capAgility = 40        // confirmed
+    capVitality = 60       // confirmed
+    capIntelligence = 100  // confirmed
+    capLuck = 60           // PLACEHOLDER: unconfirmed
+
+mob/player/Fighter
+    class = "Fighter"
+    hasMana = FALSE        // PLACEHOLDER: no Intelligence-gated skill in
+                            // ClassReference.md's Fighter table — assumed non-caster
+    capStrength = 100      // confirmed (ClassReference.md)
+    capAgility = 100       // confirmed
+    capVitality = 80       // confirmed
+    capIntelligence = 40   // confirmed
+    capLuck = 40           // confirmed
+
+mob/player/Pilgrim
+    class = "Pilgrim"
+    capStrength = 80       // confirmed (ClassReference.md)
+    capAgility = 60        // confirmed
+    capVitality = 60       // PLACEHOLDER: unconfirmed
+    capIntelligence = 100  // confirmed
+    capLuck = 60           // PLACEHOLDER: unconfirmed
+
+mob/player/Goofoff
+    class = "Goof-off"
+    hasMana = FALSE        // PLACEHOLDER: no Intelligence-gated skill in
+                            // ClassReference.md's Goof-off table — assumed non-caster
+                            // (Magicknife's governing stat is itself unconfirmed)
+    capStrength = 80       // confirmed (ClassReference.md)
+    capAgility = 60        // PLACEHOLDER: unconfirmed
+    capVitality = 60       // confirmed
+    capIntelligence = 40   // confirmed
+    capLuck = 40           // confirmed
+
+mob/player/Sage
+    class = "Sage"
+    // Every cap here is PLACEHOLDER: (ClassReference.md has no Sage numbers at all)
+    // — kept in confirmed caster territory per the doc's explicit call ("horrible in
+    // physical combat"), Intelligence matched to Hero's since Sage's skill list is the
+    // Hero+Wizard+Pilgrim union.
+    capStrength = 40
+    capAgility = 40
+    capVitality = 60
+    capIntelligence = 150
+    capLuck = 60
+
+// -----------------------------
+// Class name -> type lookup — the one place this switch exists. ApplyPlayerClass()
+// (LoginMenu.dm), LoadCharacter() (SaveSystem.dm), and GetClassStatCaps() below all
+// need to turn a class NAME string (mob/playerTemp.selectedClass, or a save file's
+// stored mob/player.class) into its concrete mob/player/X type — previously each had
+// its own copy of this same switch.
+// -----------------------------
+proc/GetPlayerClassType(class_name)
+    switch(class_name)
+        if("Hero")     return /mob/player/Hero
+        if("Soldier")  return /mob/player/Soldier
+        if("Wizard")   return /mob/player/Wizard
+        if("Fighter")  return /mob/player/Fighter
+        if("Pilgrim")  return /mob/player/Pilgrim
+        if("Goof-off") return /mob/player/Goofoff
+        if("Sage")     return /mob/player/Sage
+    return null
+
+// -----------------------------
+// Class stat-cap lookup — single source of truth stays the per-class vars above; this
+// just resolves a class NAME to its type's cap values. initial(type:var) reads a
+// type's compile-time default without instantiating it — no throwaway mob spawn/delete
+// (and no running that class's whole New(), e.g. HidePartyVerbs()) just to read 5
+// numbers. Still memoized since building the 5-entry list per class is needless to
+// repeat on every stat click even though the read itself is now cheap.
+// -----------------------------
+var/list/classStatCapCache = list()
+
+proc/GetClassStatCaps(class_name)
+    if(class_name in classStatCapCache)
+        return classStatCapCache[class_name]
+
+    var/type = GetPlayerClassType(class_name)
+    if(!type)
+        return null
+
+    var/list/caps = list(
+        "Strength"     = initial(type:capStrength),
+        "Vitality"     = initial(type:capVitality),
+        "Agility"      = initial(type:capAgility),
+        "Intelligence" = initial(type:capIntelligence),
+        "Luck"         = initial(type:capLuck)
+    )
+
+    classStatCapCache[class_name] = caps
+    return caps
+
+// -----------------------------
+// Sage reclass — Goof-off's Classchange skill (SkillCatalog.dm) and, eventually, a
+// Dharma Scroll item (not yet built, any class) both hand off to this. News a fresh
+// mob/player/Sage, copies over everything that should survive the swap, transfers
+// control, and deletes the old mob — same vars-transfer shape FinalizePlayer()/
+// LoadCharacter() (LoginMenu.dm/SaveSystem.dm) already use to stand up a typed mob,
+// just applied mid-game instead of at creation/load.
+// -----------------------------
+mob/player/proc/BecomeSage()
+    if(!client) return
+
+    var/client/C = client
+    var/mob/player/Sage/newMob = new /mob/player/Sage
+    var/turf/T = loc
+
+    // Identity & appearance
+    newMob.name = name
+    newMob.icon = icon
+    newMob.icon_state = icon_state
+    newMob.baseIcon = baseIcon
+    newMob.basePlayerIcon = basePlayerIcon
+    newMob.hairColor = hairColor
+    newMob.eyeColor = eyeColor
+    newMob.mainColor = mainColor
+    newMob.accentColor = accentColor
+    newMob.palette = palette
+
+    // Progress
+    newMob.Level = Level
+    newMob.Exp = Exp
+    newMob.Nexp = Nexp
+    newMob.Gold = Gold
+    newMob.Strength = Strength
+    newMob.Vitality = Vitality
+    newMob.Agility = Agility
+    newMob.Intelligence = Intelligence
+    newMob.Luck = Luck
+    newMob.StatPoints = StatPoints
+
+    // Skills — every currently-known skill carries over as-is (including anything the
+    // old class could learn that Sage's own table never would), same numpad
+    // arrangement too. You don't unlearn things by changing class.
+    newMob.skills = skills
+    newMob.skillSlots = skillSlots
+
+    // Inventory — items live directly in mob.contents (Inventory.dm), not a separate
+    // list, so this IS the inventory transfer.
+    for(var/obj/item/I in contents)
+        I.loc = newMob
+
+    // Save identity — same slot, same manager
+    newMob.isCharacter = isCharacter
+    newMob.saveSlot = saveSlot
+    newMob.saveManager = saveManager
+
+    // Vitals — recalculate off Sage's own MaxHP/MaxMP formula (different stat caps can
+    // mean a different max), THEN re-clamp current HP/MP to whatever that turns out to
+    // be, so this can't manufacture free overheal/overmana.
+    newMob.HP = HP
+    newMob.MP = MP
+    newMob.RecalculateVitals()
+    newMob.HP = min(newMob.HP, newMob.MaxHP)
+    newMob.MP = min(newMob.MP, newMob.MaxMP)
+
+    newMob.loc = T
+
+    C.mob = newMob
+    // Fresh mob's verb list starts from its type declaration again — re-sync same as
+    // every other mob-swap in this codebase (FinalizePlayer()/LoadCharacter()).
+    C.SyncGMVerbs()
+
+    // Unlike FinalizePlayer()/LoadCharacter() (which only ever ADD to players, since
+    // the old mob there was a temp mob that was never in the list), this swap replaces
+    // an EXISTING real character already in players — without this, the old (about to
+    // be deleted) mob stays a stale reference in players forever, and the new Sage
+    // never shows up in Who()/world broadcasts (SocialVerbs.dm), which both iterate it.
+    players -= src
+    players += newMob
+
+    newMob << output("You feel your form shift... you have become a Sage!", "Info")
+
+    del src

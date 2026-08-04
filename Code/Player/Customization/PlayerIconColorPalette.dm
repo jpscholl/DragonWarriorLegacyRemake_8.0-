@@ -21,6 +21,10 @@ datum/DefaultIconColors
         // (not guessed), same shape as the Hero/dw3hero.dmi block above.
         colors_by_class["Soldier"] = list()
         colors_by_class["Wizard"] = list()
+        colors_by_class["Fighter"] = list()
+        colors_by_class["Pilgrim"] = list()
+        colors_by_class["Goof-off"] = list()
+        colors_by_class["Sage"] = list()
 
     proc/GetIconColors(class, icon_id)
         if(!(class in colors_by_class))

@@ -142,16 +142,33 @@ mob/proc
         ClearStatusEffects()
 
         if(attacker)
+            // expReward is per-mob (base mob default, overridden per monster tier in
+            // MonsterRoster.dm) — this used to be a flat literal 10 for every kill,
+            // which meant a Tier 4 Dragonlord paid exactly what a Tier 1 Bat did.
+            // That was survivable against the old flat "Nexp += 10" curve, but not
+            // against the convex one (LevelCheck() below): level 49->50 alone needs
+            // 15 * 49^2 = 36,015 exp, i.e. ~3,600 kills of ANY monster at a flat 10.
+            var/reward = src.expReward
+            var/goldDrop = src.goldReward
             if(attacker.Party && attacker.Party.shareExp)
                 // Split evenly among the party (Code/Player/Party.dm) — no
-                // solo-vs-group penalty yet, that formula isn't confirmed (TODOList.md)
-                var/share = max(1, round(10 / attacker.Party.members.len))
+                // solo-vs-group penalty yet, that formula isn't confirmed (TODOList.md).
+                // Gold splits on the same shareExp flag rather than getting its own
+                // toggle — one "we're sharing spoils" switch, not two.
+                var/memberCount = attacker.Party.members.len
+                var/share = max(1, round(reward / memberCount))
+                var/goldShare = goldDrop ? max(1, round(goldDrop / memberCount)) : 0
                 for(var/mob/player/M in attacker.Party.members)
                     M.Exp += share
+                    M.Gold += goldShare
                     M.LevelCheck()
             else
-                attacker.Exp += 10
+                attacker.Exp += reward
+                attacker.Gold += goldDrop
                 attacker.LevelCheck()
+
+            if(goldDrop)
+                attacker << output("You gain [goldDrop] Gold.", "Info")
 
         if(istype(src, /mob/player))
             // Player death: no auto-respawn, no deletion — wait for Interact() once
@@ -173,13 +190,30 @@ mob/proc
             density = 0
             icon_state = "sleep"
 
+// PLACEHOLDER exp curve — convex on purpose ("fast at first, slows down" per your own
+// description): cheap early on, requirement balloons at high levels. Quadratic
+// (Level^2), not a fractional exponent — DM has no exponentiation operator and no
+// pow()/exp()/ln() builtins to fall back on either, so plain integer multiplication is
+// the safe way to get a convex curve. BASE_EXP is invented, no OG data exists for
+// this — tune once there's real playtesting to feel the pacing against.
+#define BASE_EXP 15
+
+// Temporary level cap while class content/skill curricula are only tuned up through
+// here — ClassReference.md's stated cap is 99, this doesn't change that number, it's a
+// deliberate override for the time being. Raise/remove once there's more to level into.
+#define MAX_LEVEL 50
+
 mob/proc
     // Level up check
     LevelCheck()
+        if(src.Level >= MAX_LEVEL) return
+
         if(src.Exp >= src.Nexp)
             src.Exp = 0
-            src.Nexp += 10
             src.Level += 1
+            // Recomputed fresh off the new Level (not incremented off the old
+            // threshold like the flat +10 this replaced).
+            src.Nexp = BASE_EXP * src.Level * src.Level
             src.StatPoints += 5
             src.RecalculateVitals()  // Code/Player/StatsDatum.dm — Level affects MaxHP/MaxMP too
             src << output("You are now Level [src.Level]", "Info")
@@ -202,7 +236,18 @@ mob/proc
             if(M == src) continue
             if(M.HP <= 0) continue
 
-            var/damage = Strength
+            // S.damage_multiplier (base /datum/skill, SkillDatum.dm) defaults to 1, so
+            // this stays flat-Strength for Attack exactly like before — only a skill
+            // that actually sets a different multiplier (GenericPhysical subtypes,
+            // SkillCatalog.dm) changes the number.
+            //
+            // S may legitimately be null — reading .damage_multiplier off null is a
+            // hard runtime error in DM, which would abort the whole hit. Every caller
+            // in the codebase now passes a real skill (enemies pass their own
+            // attackSkill, EnemyNPCs.dm), but this stays defensive so a future
+            // "just deal a plain hit" caller can't silently break all melee again.
+            var/mult = S ? S.damage_multiplier : 1
+            var/damage = round(Strength * mult)
             M.TakeDamage(damage, src)
 
 // Elemental scaffolding — real, working code, but currently inert: nothing anywhere
@@ -231,6 +276,15 @@ mob/proc
         target.TakeDamage(damage, src)
         // Can later add AoE and more elaborate elemental effects (status ailments tied
         // to an element, etc.) — this proc just handles the damage-modifier half.
+
+mob/proc
+    // Heal helper — symmetric to ApplySpellDamage() above but restores HP instead,
+    // capped at MaxHP. No dodge/elemental interaction (can't dodge or resist being
+    // healed). Used by GenericSpell's healing branch (SkillCatalog.dm) and Rest.
+    ApplyHeal(mob/target, amount)
+        if(!target) return
+        target.HP = min(target.MaxHP, target.HP + amount)
+        target << output("You are healed for [amount] HP! (HP: [target.HP]/[target.MaxHP])", "Info")
 
 #define MELEE_ATK_BASE_DELAY 12
 #define MELEE_ATK_MIN_DELAY 4
@@ -299,11 +353,64 @@ mob/proc
         var/area/A = T ? T.loc : null
         return A && A.battleModeOn
 
+// -----------------------------
+// Animation state resolution
+// -----------------------------
+// Not every mob icon uses the same icon_state names for the same action. Confirmed by
+// reading the actual .dmi files: Hero/Soldier/Wizard/Pilgrim/Goof-off/Sage all use
+// "attack"/"weapon", but ALL FOUR Fighter icons (dw1fighter/dw2fighter/dw3malefighter/
+// dw3femalefighter) instead split them per hand — "rightattack"/"leftattack" and
+// "rightweapon"/"leftweapon", with no plain "attack"/"weapon" state at all. Asking
+// flick() for a state an icon doesn't have silently plays nothing, which is why a
+// Fighter had no swing animation and no weapon overlay whatsoever.
+//
+// ResolveAnimState() picks whatever the mob's icon actually HAS: the plain name when
+// present, otherwise the right/left pair (alternating per swing, which is the whole
+// point of a split-hand sprite set — a Fighter punches with alternating fists).
+// Returns null when the icon has none of them, so callers can skip cleanly instead of
+// flicking a nonexistent state.
+mob/var/animAlternate = FALSE  // flipped once per swing by PlayAttackAnimation()
+
+// icon_states() builds a fresh list per call, and this runs on every single swing in
+// combat — cached per icon instead. Keyed by the icon itself; the same handful of
+// class/monster icons are shared across every mob using them, so this stays tiny.
+var/list/iconStateCache = list()
+
+proc/GetCachedIconStates(icon_ref)
+    if(!icon_ref) return list()
+    var/key = "[icon_ref]"
+    if(key in iconStateCache)
+        return iconStateCache[key]
+    var/list/states = icon_states(icon_ref)
+    iconStateCache[key] = states
+    return states
+
+mob/proc/ResolveAnimState(baseName)
+    var/list/states = GetCachedIconStates(icon)
+    if(!states.len) return baseName  // no readable states — let the caller try anyway
+    if(baseName in states) return baseName
+
+    var/rightName = "right[baseName]"
+    var/leftName = "left[baseName]"
+    var/hasRight = (rightName in states)
+    var/hasLeft = (leftName in states)
+
+    if(hasRight && hasLeft)
+        return animAlternate ? leftName : rightName
+    if(hasRight) return rightName
+    if(hasLeft) return leftName
+    return null
+
 mob/proc
     // Play animations for skills
     PlayAttackAnimation(mob/user, datum/skill/S, mob/target = null)
         if(S.isMelee)
-            flick("attack", user)
+            // One flip per swing (not per state lookup) so the swing animation and its
+            // weapon overlay below always agree on which hand is being used.
+            user.animAlternate = !user.animAlternate
+
+            var/attackState = user.ResolveAnimState("attack")
+            if(attackState) flick(attackState, user)
             // view(user), not "user <<" — the latter only reaches the attacker's own
             // client, so it silently never played at all for enemies (no client to
             // reach). This broadcasts to everyone nearby who can see the attack,
@@ -316,7 +423,7 @@ mob/proc
                 // automatically, so target already renders shifted correctly; setting
                 // it again here would double-apply the offset instead of fixing it.
                 // layer is nudged just above the target's own so it draws on top.
-                var/image/weaponOverlay = image(icon = user.icon, icon_state = S.icon_state, dir = user.dir)
+                var/image/weaponOverlay = image(icon = user.icon, icon_state = user.ResolveAnimState(S.icon_state), dir = user.dir)
                 weaponOverlay.layer = target.layer + 0.1
                 target.overlays += weaponOverlay
                 spawn(2)
@@ -326,13 +433,19 @@ mob/proc
                 // matched to the ATTACKER's own offset since there's no target mob.
                 var/turf/targetTile = get_step(user, user.dir)
                 if(targetTile)
-                    var/image/weaponOverlay = image(icon = user.icon, icon_state = S.icon_state, dir = user.dir)
+                    var/image/weaponOverlay = image(icon = user.icon, icon_state = user.ResolveAnimState(S.icon_state), dir = user.dir)
                     weaponOverlay.pixel_y = user.pixel_y
                     targetTile.overlays += weaponOverlay
                     spawn(2)
                         targetTile.overlays -= weaponOverlay
         else if(S.isSpell)
-            flick("cast", user)
+            // "cast" isn't a real state on ANY player icon (every one dumped is
+            // world/hit/sleep/attack/weapon, plus defend on some) — so this flick has
+            // always been a silent no-op. Routed through ResolveAnimState() so it
+            // picks up a real "cast" state automatically if one is ever drawn, and
+            // falls back to the attack state meanwhile rather than showing nothing.
+            var/castState = user.ResolveAnimState("cast") || user.ResolveAnimState("attack")
+            if(castState) flick(castState, user)
             PlaySFXAt(user, 'spell.wav', base = 70)  // see attack.wav note above
             if(target)
                 // NOTE: unlike the melee weaponOverlay above, this still uses a plain
