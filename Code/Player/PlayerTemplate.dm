@@ -33,6 +33,12 @@ mob
         datum/party/Party = null
         isPartyLeader = FALSE
 
+    // Owned pet — session-only, not saved, one at a time for now (Code/Combat/NPCs/
+    // EnemyNPCs.dm's owner/petName/petMode vars, ShowAssignPetMenu()/
+    // ShowPetOwnerMenu()). Declared at base mob level, same reasoning as Party above.
+    var
+        mob/enemy/pet = null
+
     // Health & Mana
     var
         HP = 30
