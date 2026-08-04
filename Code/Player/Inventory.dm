@@ -1,10 +1,16 @@
 // -----------------------------
 // Items & Inventory
 // -----------------------------
-// Placeholder capacity — real formula (base + scaling off a stat, TBD) not verified
-// against the original game yet. This define is the only place that needs to change
-// once it is.
-#define BASE_INVENTORY_SLOTS 8
+// Strength-scaled capacity — confirmed shape via the OG help file's own flavor text
+// ("Strength: increases physical damage AND the number of items you can carry",
+// TODOList.md 2026-08-04 decision). Coefficients are PLACEHOLDER, chosen so a fresh
+// level-1 character (Strength = 1, the actual creation default — PlayerTemplate.dm,
+// before any stat points are spent) lands exactly on the one confirmed real data
+// point: capacity 9. STR_PER_CAPACITY reuses the same /5 divisor already established
+// by the stat-point cost formula (obj/StatLink/GetCost(), ClickableStats.dm) for a bit
+// of internal consistency, not because it's independently confirmed.
+#define BASE_INVENTORY_CAPACITY 9
+#define STR_PER_CAPACITY 5
 
 // Base type for anything a player can carry. Items just live in mob.contents (BYOND's
 // built-in containment) — no separate inventory list to keep in sync.
@@ -36,7 +42,7 @@ obj/item
     verb/Drop()
         set src in usr
         set name = "Drop"
-        set category = "Action"
+        set category = "Inventory/Action"
 
         if(!ismob(loc)) return
         var/mob/M = loc
@@ -49,7 +55,7 @@ obj/item
     verb/Give(mob/player/target in view(5, usr))
         set src in usr
         set name = "Give"
-        set category = "Action"
+        set category = "Inventory/Action"
 
         if(!ismob(loc)) return
         var/mob/M = loc
@@ -100,7 +106,9 @@ obj/item/key
 // Mob-side inventory helpers
 // -----------------------------
 mob/proc/GetInventoryCapacity()
-    return BASE_INVENTORY_SLOTS
+    return BASE_INVENTORY_CAPACITY + round(Strength / STR_PER_CAPACITY)  // round() with
+                                                                            // one arg
+                                                                            // floors in DM
 
 mob/proc/GetInventoryCount()
     var/count = 0

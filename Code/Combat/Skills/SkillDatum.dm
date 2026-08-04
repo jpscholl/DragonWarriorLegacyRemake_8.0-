@@ -17,6 +17,11 @@ datum/skill
         mana_cost = 0
         isMelee = FALSE
         isSpell = FALSE
+        // Multiplies Strength in PerformMeleeHit() (CombatSystem.dm) — lives on the
+        // base type (not just GenericPhysical, SkillCatalog.dm) so that proc can always
+        // read S.damage_multiplier safely regardless of skill type. Defaults to 1 so
+        // Attack's existing flat-Strength damage is unchanged.
+        damage_multiplier = 1
         // Elemental scaffolding — null means "no element" (Attack/Defend stay null;
         // physical). A spell sets this to a string like "fire"/"ice" instead of
         // hardcoding it at the ApplySpellDamage() call site, so the element lives on

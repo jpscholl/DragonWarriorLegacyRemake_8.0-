@@ -64,26 +64,71 @@ client
         canAdmin = (adminLevel == LEVEL_ADMIN || adminLevel >= LEVEL_GM_HOST)
         SyncGMVerbs()
 
-    // GMtogglelog() (GMCommands.dm) only shows up in a GM's own verb panel — every
-    // OTHER GM verb here is still visible-to-everyone-but-rejected-on-use (a known,
-    // already-flagged gap, see TODOList.md's Admin verbs note), this establishes the
-    // pattern for just this one rather than fixing all of them right now. Verbs live
+    // Every verb below now lives in the single consolidated "GM" category (Stage 5
+    // verb reorg — was split across Admin/Builder/GM). This used to only cover
+    // GMtogglelog ("every OTHER GM verb here is still visible-to-everyone-but-
+    // rejected-on-use" per the old comment, matching TODOList.md's Admin verbs note) —
+    // extended to all 10 so a player without sufficient access doesn't see a verb they
+    // can't use at all, instead of seeing it and getting rejected on click. Each verb
+    // still keeps its own internal canBuild/canAdmin/adminLevel check too (defense in
+    // depth) — this only controls whether it's offered in the first place. Verbs live
     // per-mob, not per-client, so this needs re-running whenever `mob` changes — called
     // here (ApplyAdminLevel(), covers the initial mob/playerTemp) and again from
-    // FinalizePlayer() (LoginMenu.dm)/LoadCharacter() (SaveSystem.dm) once the real
-    // mob/player character takes over.
+    // FinalizePlayer() (LoginMenu.dm)/LoadCharacter() (SaveSystem.dm)/BecomeSage()
+    // (PlayerTemplate.dm) once the real mob/player character takes over.
+    //
+    // MAINTENANCE NOTE: this is the one central place a verb's access tier is
+    // declared — its own internal check (e.g. GMmaketurf's `if(!client.canBuild)`)
+    // only rejects on USE, it doesn't hide the verb. A future GM verb that gets its
+    // internal check right but isn't added to one of the three lists below will still
+    // be visible-but-rejected for anyone below that tier — the exact bug this proc was
+    // extended to fix for the other 10. DM verbs can't carry their own custom
+    // metadata to read back generically here, so there's no way to derive these lists
+    // automatically; a new GM verb needs a manual entry below.
     proc/SyncGMVerbs()
         if(!mob) return
-        if(adminLevel >= LEVEL_GM_HOST)
-            mob.verbs += /mob/verb/GMtogglelog
+
+        var/list/builderVerbs = list(
+            /mob/verb/TestBuilderVerb,
+            /mob/verb/GM_Create_Lockable,
+            /mob/verb/GMseeareas,
+            /mob/verb/GMmaketurf,
+            /mob/verb/GMmakemob,
+            /mob/verb/GMmakearea,
+            /mob/verb/GMmaketool,
+        )
+        var/list/adminVerbs = list(
+            /mob/verb/TestAdminVerb,
+            /mob/verb/GMghostIconform,
+            /mob/verb/GMToggleProfanityFilter,
+        )
+        var/list/gmHostVerbs = list(
+            /mob/verb/GMdaynight,
+            /mob/verb/GMtogglelog,
+            /mob/verb/GMlevelincrease,
+            /mob/verb/GMbattlemode,
+        )
+
+        if(canBuild)
+            mob.verbs += builderVerbs
         else
-            mob.verbs -= /mob/verb/GMtogglelog
+            mob.verbs -= builderVerbs
+
+        if(canAdmin)
+            mob.verbs += adminVerbs
+        else
+            mob.verbs -= adminVerbs
+
+        if(adminLevel >= LEVEL_GM_HOST)
+            mob.verbs += gmHostVerbs
+        else
+            mob.verbs -= gmHostVerbs
 
 // -----------------------------
 // Test verbs — confirm who gets what before any real Builder/Admin tools exist
 // -----------------------------
 mob/verb/TestBuilderVerb()
-    set category = "Builder"
+    set category = "GM"
     set desc = "Test verb - requires Builder-category access"
 
     if(!client || !client.canBuild)
@@ -93,7 +138,7 @@ mob/verb/TestBuilderVerb()
     src << output("Builder test verb worked! (adminLevel=[client.adminLevel])", "Info")
 
 mob/verb/TestAdminVerb()
-    set category = "Admin"
+    set category = "GM"
     set desc = "Test verb - requires Admin-category access"
 
     if(!client || !client.canAdmin)

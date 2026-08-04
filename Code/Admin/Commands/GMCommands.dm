@@ -63,7 +63,7 @@ mob/proc/ToggleGhostForm()
 
 // GM verb to toggle ghostIcon form — Admin-category power (Code/Admin/AdminLevels.dm)
 mob/verb/GMghostIconform()
-    set category = "Admin"
+    set category = "GM"
 
     if(!client || !client.canAdmin)
         src << output("You don't have Admin access.", "Info")
@@ -77,7 +77,7 @@ mob/verb/GMghostIconform()
 // Flips adultServer (Code/Core/Main.dm) — TRUE disables the general-profanity list,
 // leaving only banned_words_always (slurs/hate speech) enforced. Admin-category power.
 mob/verb/GMToggleProfanityFilter()
-    set category = "Admin"
+    set category = "GM"
     set desc = "Turns the general-profanity filter (names/chat) on or off"
 
     if(!client || !client.canAdmin)
@@ -93,7 +93,7 @@ mob/verb/GMToggleProfanityFilter()
 // Creates a lockable object and its matching key together in one step, so they can't
 // get out of sync. Builder-category power (world content creation), not Admin.
 mob/verb/GM_Create_Lockable()
-    set category = "Builder"
+    set category = "GM"
     set desc = "Creates a lockable object (e.g. a door) and its matching key"
 
     if(!client || !client.canBuild)

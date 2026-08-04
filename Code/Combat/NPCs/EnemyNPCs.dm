@@ -94,8 +94,10 @@ mob/enemy
 	                         // movement); this is just how often it reconsiders WHAT to
 	                         // do. Was 5 (0.5s) — felt too twitchy/reactive.
 	var/attackCooldown = 10  // deciseconds between attacks once adjacent — enemies use
-	                          // their own flat cooldown rather than GetAttackDelay(),
-	                          // which needs a real datum/skill and enemies don't use one
+	                          // their own flat cooldown rather than GetAttackDelay()'s
+	                          // stat-derived timing, deliberately: monster attack speed
+	                          // is meant to be tuned per-species, not fall out of the
+	                          // same Agility formula players use
 	var/wanderChance = 20  // % chance per idle tick (no target, or area isn't in battle
 	                         // mode, checked every aiTickDelay) to take one random step —
 	                         // averages roughly one step every ~5 seconds at the default
@@ -103,11 +105,15 @@ mob/enemy
 	                         // idle behavior, not real pathfinding.
 	var/fleeHealthPercent = 10  // HP% (of MaxHP) at or below which this enemy runs
 	                              // instead of attacking — placeholder guess, tune later
-	var/datum/skill/Attack/attackSkill  // not used for OnUse()/cooldown (enemies use
-	                                      // their own attackCooldown var below) — this
-	                                      // exists purely so PlayAttackAnimation()
-	                                      // (CombatSystem.dm) has an isMelee/icon_state
-	                                      // ("weapon") to read, same as a player's Attack
+	var/datum/skill/Attack/attackSkill  // never driven through OnUse() (enemies use their
+	                                      // own attackCooldown above instead of the skill's
+	                                      // own timing), but it IS the skill datum passed to
+	                                      // both PlayAttackAnimation() and PerformMeleeHit()
+	                                      // (CombatSystem.dm) — the former reads isMelee/
+	                                      // icon_state off it, the latter damage_multiplier.
+	                                      // Those calls used to pass null for the hit, which
+	                                      // became a hard runtime error the moment
+	                                      // PerformMeleeHit() started reading a var off it.
 	var/avoidDir = 0  // 0 = not currently routing around an obstacle; else a cardinal
 	                    // dir — see StepRelativeTo() below. Kept as instance state (not
 	                    // recomputed fresh each tick) so an enemy commits to one side
@@ -187,7 +193,7 @@ mob/enemy
 						if(canAct)
 							canAct = FALSE
 							PlayAttackAnimation(src, attackSkill, target)
-							PerformMeleeHit(null)
+							PerformMeleeHit(attackSkill)
 							spawn(attackCooldown)
 								canAct = TRUE
 					else
@@ -240,7 +246,7 @@ mob/enemy
 							if(canAct)
 								canAct = FALSE
 								PlayAttackAnimation(src, attackSkill, target)
-								PerformMeleeHit(null)
+								PerformMeleeHit(attackSkill)
 								spawn(attackCooldown)
 									canAct = TRUE
 						else
@@ -286,7 +292,7 @@ mob/enemy
 						if(canAct)
 							canAct = FALSE
 							PlayAttackAnimation(src, attackSkill, huntTarget)
-							PerformMeleeHit(null)
+							PerformMeleeHit(attackSkill)
 							spawn(attackCooldown)
 								canAct = TRUE
 					else
@@ -478,8 +484,21 @@ mob/enemy
 		moveTowardAtom = null
 
 	slime
+		name = "Slime"
 		icon = 'slime.dmi'
 		icon_state = "world"
 		Level = 1
 		HP = 20
 		MaxHP = 20
+		// Strength/Agility/Vitality/Intelligence/Luck were never set here (defaulted to
+		// the base mob's Strength=1 etc.) until the rest of the roster
+		// (Code/Combat/NPCs/MonsterRoster.dm) got real stat blocks — filled in to match
+		// that file's Tier 1 (common-animal/weak) block, since slime is the same power
+		// tier as bat/cat/wolf/etc.
+		Strength = 4
+		Agility = 3
+		Vitality = 3
+		Intelligence = 1
+		Luck = 2
+		expReward = 10  // matches MonsterRoster.dm's TIER1_EXP
+		goldReward = 6  // matches MonsterRoster.dm's TIER1_GOLD

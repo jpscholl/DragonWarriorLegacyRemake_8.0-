@@ -72,7 +72,7 @@ mob/verb/Interact()
 // until the real data (TODOList.md Phase 2/4) exists.
 // -----------------------------
 mob/verb/Look()
-    set category = "Action"
+    set category = "Inventory/Action"
     set desc = "Shows players in view and their basic info"
 
     src << output("<b>Players in view:</b>", "Info")
@@ -93,7 +93,7 @@ mob/verb/Look()
 // direction you're already facing actually steps.
 // -----------------------------
 mob/verb/TurnWalk()
-    set category = "Action"
+    set category = "Inventory/Action"
     set desc = "Toggle: face a new direction before walking that way, instead of moving instantly"
 
     turnWalkMode = !turnWalkMode

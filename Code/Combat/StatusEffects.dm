@@ -174,3 +174,73 @@ datum/status_effect/poison
 	OnExpire()
 		if(holder && !holder.isDead)
 			holder << output("<font color='green'>The poison wears off.</font>", "Info")
+
+// -----------------------------
+// Sleep — locks canAct until it expires. PLACEHOLDER: no wake-on-hit yet (classic
+// Dragon Warrior sleep breaks when the sleeper is attacked) — worth adding once this
+// gets tuned against real combat, deliberately left simple for now.
+// -----------------------------
+#define SLEEP_DURATION 100       // deciseconds — 10 seconds, PLACEHOLDER
+#define SLEEP_DURATION_MORE 200  // Sleepmore's stronger version — PLACEHOLDER
+
+datum/status_effect/sleep
+	parent_type = /datum/status_effect
+
+	New()
+		..()
+		effectName = "Sleep"
+		duration = SLEEP_DURATION
+		tickInterval = SLEEP_DURATION  // no ticking — just OnApply/OnExpire
+
+	OnApply()
+		if(holder)
+			holder.canAct = FALSE
+			holder << output("<font color='purple'>You fall asleep!</font>", "Info")
+
+	OnExpire()
+		if(holder)
+			// Only hand movement back if the holder isn't dead — Die()
+			// (CombatSystem.dm) locks canAct deliberately as part of the death/respawn
+			// flow, and an unconditional unlock here would quietly undo that and let a
+			// "dead" mob walk before respawning. Same guard Attack/Blaze's own deferred
+			// recovery spawns already use for the identical reason.
+			if(!holder.isDead)
+				holder.canAct = TRUE
+				holder << output("<font color='purple'>You wake up.</font>", "Info")
+
+datum/status_effect/sleep/more
+	New()
+		..()
+		effectName = "Sleep"
+		duration = SLEEP_DURATION_MORE
+		tickInterval = SLEEP_DURATION_MORE
+
+// -----------------------------
+// Silence — blocks spell casting. Enforced centrally in UseSkillSlot()
+// (PlayerTemplate.dm), the one place every skill use funnels through, rather than each
+// spell's own OnUse() checking isSilenced itself — covers Fireball/Blaze too, not just
+// the SkillCatalog.dm generic framework.
+// -----------------------------
+#define SILENCE_DURATION 150  // deciseconds — 15 seconds, PLACEHOLDER
+
+mob/var/isSilenced = FALSE
+
+datum/status_effect/silence
+	parent_type = /datum/status_effect
+
+	New()
+		..()
+		effectName = "Silence"
+		duration = SILENCE_DURATION
+		tickInterval = SILENCE_DURATION
+
+	OnApply()
+		if(holder)
+			holder.isSilenced = TRUE
+			holder << output("<font color='gray'>You've been silenced!</font>", "Info")
+
+	OnExpire()
+		if(holder)
+			holder.isSilenced = FALSE
+			if(!holder.isDead)
+				holder << output("<font color='gray'>The silence fades.</font>", "Info")

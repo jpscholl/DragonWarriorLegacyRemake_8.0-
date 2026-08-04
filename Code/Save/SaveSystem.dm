@@ -65,12 +65,11 @@ datum/SaveManager
         F["[key].data"] >> D
         if(!D) return 0
 
-        // Spawn the correct player mob
+        // Spawn the correct player mob — GetPlayerClassType() (PlayerTemplate.dm) is
+        // the one place the name->type switch lives now.
         var/mob/player/newPlayer
-        switch(D.class)
-            if("Hero")    newPlayer = new /mob/player/Hero
-            if("Soldier") newPlayer = new /mob/player/Soldier
-            if("Wizard")  newPlayer = new /mob/player/Wizard
+        var/type = GetPlayerClassType(D.class)
+        if(type) newPlayer = new type
         if(!newPlayer) return 0
 
         newPlayer.isCharacter = TRUE

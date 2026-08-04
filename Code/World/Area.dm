@@ -68,6 +68,9 @@ area
 	snow
 		icon_state = "snow"
 
+	snownight
+		icon_state = "snownight"
+
 	bar
 		icon_state = "bar"
 		areaMusic = 'dw3town.mid'
@@ -84,6 +87,9 @@ area
 
 	rain
 		icon_state = "rain"
+
+	rainnight
+		icon_state = "rainnight"
 
 	ceiling
 		icon_state = "ceiling"
@@ -111,14 +117,26 @@ area
 	deepwater1
 		icon_state = "deepwater1"
 
+	deepwaternight1
+		icon_state = "deepwaternight1"
+
 	deepwater
 		icon_state = "deepwater"
+
+	deepwaternight
+		icon_state = "deepwaternight"
 
 	water1
 		icon_state = "water1"
 
+	waternight1
+		icon_state = "waternight1"
+
 	water
 		icon_state = "water"
+
+	waternight
+		icon_state = "waternight"
 
 	rave
 		icon_state = "rave"

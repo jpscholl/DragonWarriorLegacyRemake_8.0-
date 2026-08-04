@@ -34,15 +34,23 @@
 // above (Combat/CombatSystem.dm needs this and compiles before Core/Main.dm too).
 #define SFX_CHANNEL 3
 
+// Same #include-order reason as SPRITE_PIXEL_Y_OFFSET/SFX_CHANNEL above —
+// Combat/Skills/SkillCatalog.dm's Return/Revive skills need PLAYER_SPAWN and compile
+// before Core/Main.dm (where this used to live exclusively) alphabetically.
+#define PLAYER_SPAWN locate(26, 8, 4)
+
 // BEGIN_INCLUDE
 #include "Interface.dmf"
 #include "Code\Admin\AdminLevels.dm"
+#include "Code\Admin\Commands\BuildTools.dm"
 #include "Code\Admin\Commands\GMCommands.dm"
 #include "Code\Admin\Debug\DebugTools.dm"
 #include "Code\Combat\CombatSystem.dm"
 #include "Code\Combat\Projectiles.dm"
 #include "Code\Combat\StatusEffects.dm"
 #include "Code\Combat\NPCs\EnemyNPCs.dm"
+#include "Code\Combat\NPCs\MonsterRoster.dm"
+#include "Code\Combat\Skills\SkillCatalog.dm"
 #include "Code\Combat\Skills\SkillDatum.dm"
 #include "Code\Core\Main.dm"
 #include "Code\Core\SmoothMovement.dm"
