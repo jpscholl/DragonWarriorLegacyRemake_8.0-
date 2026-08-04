@@ -9,23 +9,48 @@
 //
 //   AILoop() — the "brain." Runs every aiTickDelay (slow, currently 1s). Each tick it
 //   decides WHAT the enemy should be doing right now — acquire/drop a target, and set
-//   moveIntent to one of ENEMY_MOVE_NONE/CHASE/FLEE — but never moves anything itself.
-//   This is also where an actual melee swing happens, when already adjacent.
+//   moveIntent to one of ENEMY_MOVE_NONE/CHASE/FLEE plus moveTowardAtom (the thing to
+//   actually walk toward — not always the same as target, see pets below) — but never
+//   moves anything itself. This is also where an actual melee swing happens, when
+//   already adjacent.
 //
 //   MovementLoop() — the "body." Runs every world.tick_lag (fast, same cadence as a
 //   player's own client/MoveLoop(), SmoothMovement.dm). Each tick it just looks at
-//   whatever moveIntent/target AILoop() last set and takes one step accordingly, via
-//   StepRelativeTo(). Splitting brain/body this way is what makes movement flow
-//   continuously instead of one visible glide-step per (much slower) AI decision —
-//   see MovementLoop()'s own comment for the whole story on why that split exists.
+//   whatever moveIntent/moveTowardAtom AILoop() last set and takes one step
+//   accordingly, via StepRelativeTo(). Splitting brain/body this way is what makes
+//   movement flow continuously instead of one visible glide-step per (much slower) AI
+//   decision — see MovementLoop()'s own comment for the whole story on why that split
+//   exists.
 //
 // Everything else in the file is a helper called by one of those two loops:
 // StepRelativeTo() (single-step movement + wall-hugging obstacle avoidance) and
 // Wander() (idle random movement, called directly from AILoop() since it doesn't need
 // MovementLoop()'s fast cadence).
+//
+// PETS (your idea, 2026-08-01): any mob/enemy can become a pet — there's no separate
+// pet type. A GM double-clicking a wild (unowned) one gets an "Assign Pet" option
+// (ShowAssignPetMenu() below); picking a nearby player sets owner on that same mob
+// instance, in place — same stats, same icon, no leveling system yet. Once owned,
+// AILoop() routes every tick through HandlePetTick() instead of the wild logic below,
+// branching on petMode (see PET_MODE_* below and ShowPetOwnerMenu()). Only one pet per
+// owner for now (enforced in ShowAssignPetMenu()) — no roster/stable system yet.
 #define ENEMY_MOVE_NONE 0
 #define ENEMY_MOVE_CHASE 1
 #define ENEMY_MOVE_FLEE 2
+
+// Pet behavior modes (ShowPetOwnerMenu()'s "Set Mode" option) — what HandlePetTick()
+// branches on every AILoop() tick once a mob/enemy has an owner.
+#define PET_MODE_AGGRESSIVE 1  // hunts nearby unowned mob/enemy while the area's in
+                                 // battle mode — the "helps you fight" mode
+#define PET_MODE_SIT 2          // stays put, doesn't act
+#define PET_MODE_WANDER 3       // reverts to plain wild-monster behavior, including
+                                 // targeting players — a pet in this mode is not
+                                 // guaranteed safe to be around, by design
+#define PET_MODE_FOLLOW 4       // keeps pace with owner, never fights — default mode
+                                 // a freshly-assigned pet starts in
+
+#define PET_FOLLOW_DISTANCE 3  // tiles — how far a Follow/Aggressive-idle pet lets its
+                                 // owner get before catching up
 
 mob/enemy
 	pixel_y = SPRITE_PIXEL_Y_OFFSET  // Main.dm — same vertical offset as players, so
@@ -38,6 +63,15 @@ mob/enemy
 	step_delay = 2.8
 
 	var/mob/player/target
+	var/mob/enemy/huntTarget  // PET_MODE_AGGRESSIVE's equivalent of target — separate
+	                           // var because target is typed mob/player (wild AI only
+	                           // ever chases players) and DM checks member access
+	                           // against a var's declared type at compile time, so an
+	                           // Aggressive pet's monster-hunting can't reuse it
+	var/atom/moveTowardAtom  // what MovementLoop() actually steps toward this tick —
+	                          // usually == target, but a Follow/idle-Aggressive pet
+	                          // walks toward its owner while target stays null, so
+	                          // these two needed to split apart (see pets, file header)
 	var/moveIntent = ENEMY_MOVE_NONE  // set by AILoop() (slow "decision" cadence),
 	                                    // consumed every tick by MovementLoop() (fast
 	                                    // "execution" cadence) — same split as the
@@ -80,6 +114,12 @@ mob/enemy
 	                    // once it starts skirting a wall instead of flip-flopping
 	                    // between left/right every tick as the target's angle shifts.
 
+	// Pet state — null/PET_MODE_FOLLOW until a GM assigns this mob via
+	// ShowAssignPetMenu() below. See file header for the overall design.
+	var/mob/player/owner
+	var/petName
+	var/petMode = PET_MODE_FOLLOW
+
 	New()
 		..()
 		attackSkill = new
@@ -89,19 +129,25 @@ mob/enemy
 	// Runs forever once this enemy exists in the world — same polling-loop shape as
 	// client/MoveLoop() in Code/Core/SmoothMovement.dm. Each tick: stop entirely once
 	// dead (so a corpse just sits still until CombatSystem.dm's CleanUpDead() deletes
-	// it), verify the current target is still alive and still in range (the
+	// it), then hands off to HandlePetTick() if owned, otherwise runs the wild-monster
+	// logic below — verify the current target is still alive and still in range (the
 	// "deathcheck"/leash checks that clear a stale target), then decide whether to
 	// flee/attack/chase a target or wander — but only while the area is actually in
 	// battle mode (Code/World/Area.dm's battleModeOn); otherwise enemies stay peaceful
-	// and just wander regardless of nearby players. This only sets moveIntent/target —
-	// the actual stepping happens continuously in MovementLoop() below, decoupled from
-	// this slower decision cadence.
+	// and just wander regardless of nearby players. This only sets moveIntent/
+	// moveTowardAtom — the actual stepping happens continuously in MovementLoop()
+	// below, decoupled from this slower decision cadence.
 	proc/AILoop()
 		set waitfor = 0
 		while(src)
 			if(HP <= 0)
 				moveIntent = ENEMY_MOVE_NONE
 				return  // dead — CleanUpDead() (CombatSystem.dm) handles deletion
+
+			if(owner)
+				HandlePetTick()
+				sleep(aiTickDelay)
+				continue
 
 			if(target && target.HP <= 0)
 				target = null
@@ -128,6 +174,7 @@ mob/enemy
 						break
 
 				if(target)
+					moveTowardAtom = target
 					if(HP <= MaxHP * fleeHealthPercent / 100)
 						// Low HP — run instead of fighting. No healing exists yet, so
 						// the only way this ends is death or breaking sightRange (the
@@ -155,14 +202,109 @@ mob/enemy
 
 			sleep(aiTickDelay)
 
-	// Continuously steps toward/away from target every tick, same cadence as the
+	// Pet AI — runs instead of the wild-monster block above once this mob has an
+	// owner, branching on petMode (PET_MODE_* above, set via ShowPetOwnerMenu()'s "Set
+	// Mode"). Reuses the same target/moveIntent/moveTowardAtom/canAct/attackSkill/
+	// attackCooldown vars and the same MovementLoop()/StepRelativeTo() below — only
+	// the decision logic differs.
+	proc/HandlePetTick()
+		if(!owner || !owner.client || owner.HP <= 0)
+			// Ownerless-mid-tick edge case (owner disconnected/died) — no despawn/
+			// drop-item behavior decided yet, so just hold still rather than guess.
+			target = null
+			moveIntent = ENEMY_MOVE_NONE
+			return
+
+		switch(petMode)
+			if(PET_MODE_SIT)
+				target = null
+				moveIntent = ENEMY_MOVE_NONE
+
+			if(PET_MODE_WANDER)
+				// Deliberately falls back to the exact wild-monster block above,
+				// owner and all — see PET_MODE_WANDER's definition up top for why.
+				target = null
+				if(InBattleArea())
+					for(var/mob/player/P in range(sightRange, src))
+						if(P.HP <= 0 || P.isDead || P.isGhostform) continue
+						target = P
+						break
+
+					if(target)
+						moveTowardAtom = target
+						if(HP <= MaxHP * fleeHealthPercent / 100)
+							moveIntent = ENEMY_MOVE_FLEE
+						else if(IsCardinallyAdjacent(src, target, attackRange))
+							moveIntent = ENEMY_MOVE_NONE
+							dir = get_dir(src, target)
+							if(canAct)
+								canAct = FALSE
+								PlayAttackAnimation(src, attackSkill, target)
+								PerformMeleeHit(null)
+								spawn(attackCooldown)
+									canAct = TRUE
+						else
+							moveIntent = ENEMY_MOVE_CHASE
+					else
+						moveIntent = ENEMY_MOVE_NONE
+						Wander()
+				else
+					moveIntent = ENEMY_MOVE_NONE
+					Wander()
+
+			if(PET_MODE_FOLLOW)
+				target = null
+				if(get_dist(src, owner) > PET_FOLLOW_DISTANCE)
+					moveTowardAtom = owner
+					moveIntent = ENEMY_MOVE_CHASE
+				else
+					moveIntent = ENEMY_MOVE_NONE
+
+			if(PET_MODE_AGGRESSIVE)
+				if(!InBattleArea())
+					huntTarget = null
+					moveIntent = ENEMY_MOVE_NONE
+					return
+
+				// Drop the target if it died, wandered off, or got tamed by someone
+				// else mid-fight (an owned mob/enemy is fair game for a different
+				// GM's Assign Pet just like a wild one, so re-check .owner here too).
+				if(huntTarget && (huntTarget.HP <= 0 || huntTarget.owner || get_dist(src, huntTarget) > sightRange))
+					huntTarget = null
+
+				if(!huntTarget)
+					for(var/mob/enemy/E in range(sightRange, src))
+						if(E == src || E.owner || E.HP <= 0) continue
+						huntTarget = E
+						break
+
+				if(huntTarget)
+					moveTowardAtom = huntTarget
+					if(IsCardinallyAdjacent(src, huntTarget, attackRange))
+						moveIntent = ENEMY_MOVE_NONE
+						dir = get_dir(src, huntTarget)
+						if(canAct)
+							canAct = FALSE
+							PlayAttackAnimation(src, attackSkill, huntTarget)
+							PerformMeleeHit(null)
+							spawn(attackCooldown)
+								canAct = TRUE
+					else
+						moveIntent = ENEMY_MOVE_CHASE
+				else if(get_dist(src, owner) > PET_FOLLOW_DISTANCE)
+					moveTowardAtom = owner
+					moveIntent = ENEMY_MOVE_CHASE
+				else
+					moveIntent = ENEMY_MOVE_NONE
+
+	// Continuously steps toward moveTowardAtom every tick, same cadence as the
 	// player's client/MoveLoop() — this is what actually makes movement flow smoothly
 	// instead of taking one glide-step per (much slower) AI decision tick.
 	proc/MovementLoop()
 		set waitfor = 0
 		while(src)
-			if(target && moveIntent != ENEMY_MOVE_NONE)
-				StepRelativeTo(target, away = (moveIntent == ENEMY_MOVE_FLEE))
+			if(moveTowardAtom && moveIntent != ENEMY_MOVE_NONE)
+				StepRelativeTo(moveTowardAtom, away = (moveIntent == ENEMY_MOVE_FLEE))
 			sleep(world.tick_lag)
 
 	// Takes one cardinal step toward Trg (or, if away = TRUE, directly away from it —
@@ -239,6 +381,101 @@ mob/enemy
 	proc/Wander()
 		if(prob(wanderChance))
 			Step(pick(NORTH, SOUTH, EAST, WEST))
+
+	// GM double-click → "Assign Pet" (unowned mobs only; more options may join this
+	// list later, per your spec). Owner double-click → rename/mode/release menu
+	// (ShowPetOwnerMenu()). Anyone else (including a GM clicking an already-owned
+	// pet) falls through to the default click behavior.
+	DblClick()
+		if(owner == usr)
+			ShowPetOwnerMenu(usr)
+			return
+
+		if(!owner && usr.client && usr.client.canAdmin)
+			ShowAssignPetMenu(usr)
+			return
+
+		..()
+
+	// GM-facing: offers to assign this wild mob as a pet to a nearby player. Player
+	// list is scoped to view(src) (near the monster being assigned), not the GM's own
+	// view, since the GM could be observing from anywhere (e.g. ghosted).
+	proc/ShowAssignPetMenu(mob/GM)
+		var/choice = input(GM, "What do you want to do with this [name]?", "Monster Options") in list("Assign Pet", "Cancel")
+		if(choice != "Assign Pet") return
+
+		var/list/nearby = list()
+		for(var/mob/player/P in view(src))
+			nearby[P.name] = P
+
+		if(!nearby.len)
+			GM << output("No players in view to assign this pet to.", "Info")
+			return
+
+		var/pick = input(GM, "Assign this [name] to which player?", "Assign Pet") in nearby
+		if(!pick) return
+
+		// One pet at a time for now (file header) — a new assignment replaces
+		// whatever this player already owned, reverting the old one to wild.
+		var/mob/player/newOwner = nearby[pick]
+		if(newOwner.pet)
+			newOwner.pet.ReleaseToWild()
+
+		owner = newOwner
+		petMode = PET_MODE_FOLLOW
+		newOwner.pet = src
+		GM << output("[name] assigned to [newOwner.name] as a pet.", "Info")
+		newOwner << output("You've been given a pet [name]! Double-click it to name it.", "Info")
+
+	// Owner-facing: first double-click after being assigned prompts for a name; every
+	// double-click after that opens the Rename/Set Mode/Release menu.
+	proc/ShowPetOwnerMenu(mob/player/M)
+		if(!petName)
+			var/newName = input(M, "Name your new pet:", "Name Pet") as text|null
+			if(!newName || !trimtext(newName)) return
+			petName = CensorText(trimtext(newName))
+			name = petName
+			M << output("Your pet is now named [petName].", "Info")
+			return
+
+		var/choice = input(M, "[petName]", "Pet Options") in list("Rename", "Set Mode", "Release", "Cancel")
+		switch(choice)
+			if("Rename")
+				var/newName = input(M, "Rename your pet:", "Rename Pet", petName) as text|null
+				if(!newName || !trimtext(newName)) return
+				petName = CensorText(trimtext(newName))
+				name = petName
+				M << output("Your pet is now named [petName].", "Info")
+
+			if("Set Mode")
+				var/modeChoice = input(M, "Set [petName]'s behavior:", "Pet Mode") in list("Aggressive", "Sit", "Wander", "Follow", "Cancel")
+				switch(modeChoice)
+					if("Aggressive") petMode = PET_MODE_AGGRESSIVE
+					if("Sit")        petMode = PET_MODE_SIT
+					if("Wander")     petMode = PET_MODE_WANDER
+					if("Follow")     petMode = PET_MODE_FOLLOW
+					else return
+				M << output("[petName] is now set to [modeChoice].", "Info")
+
+			if("Release")
+				var/confirm = alert(M, "Release [petName]? It will become a wild monster again.", "Release Pet", "Yes", "No")
+				if(confirm != "Yes") return
+				M << output("You released [petName].", "Info")
+				ReleaseToWild()
+
+	// Drops ownership and reverts this mob to a normal wild monster — shared by the
+	// owner's own "Release" choice above and by ShowAssignPetMenu() bumping a player's
+	// prior pet when they're given a new one.
+	proc/ReleaseToWild()
+		if(owner && owner.pet == src)
+			owner.pet = null
+		owner = null
+		petName = null
+		petMode = PET_MODE_FOLLOW
+		name = initial(name)
+		target = null
+		huntTarget = null
+		moveTowardAtom = null
 
 	slime
 		icon = 'slime.dmi'

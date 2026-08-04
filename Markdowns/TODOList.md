@@ -1105,8 +1105,32 @@ fluff — see this file's own intro about that).
 - [ ] **Opening splashscreen** (your own idea, 2026-07-31) — shown before the login menu
       (`ShowLoginMenu()`, `mob/playerTemp/Login()`, `Main.dm`). Not detailed yet: art/
       logo, how long it holds, click/key-to-continue vs. timed auto-advance.
-- [ ] Pets
-- [ ] Mounts (horse, wagon)
+- [x] **Basic pet system** (your idea, 2026-08-01). No taming mechanic — a GM
+      double-clicking a wild, unowned `mob/enemy` gets an "Assign Pet" option
+      (`ShowAssignPetMenu()`, `EnemyNPCs.dm`); picking a nearby player sets `owner` on
+      that exact mob instance, in place. No separate pet type: any current or future
+      monster species can become a pet this way, same stats/icon, no leveling system
+      for pets yet. Owner double-clicks it to name it first, then double-click opens a
+      Rename/Set Mode/Release menu (`ShowPetOwnerMenu()`). Set Mode picks `petMode`:
+      **Aggressive** (hunts nearby unowned monsters while the area's in battle mode —
+      the "helps you fight" behavior), **Sit** (stays put), **Wander** (deliberately
+      reverts to full wild-monster AI, including targeting players — not guaranteed
+      safe, by design), **Follow** (keeps pace with owner, default after assignment,
+      never fights). One pet per owner for now (`ReleaseToWild()` bumps an old one if
+      a player's given a new one). Compile: 0 errors, 0 warnings. Not playtested yet.
+      - **Deferred, explicitly agreed not to build yet**: a Pet Battle tab showing
+        stats/battle info; picking up a pet into inventory (if there's room); a dead
+        pet not despawning — surviving as a "dead" inventory item you'd have to
+        recover somehow (recovery mechanic not designed yet, your words: "need to
+        figure out how to make it recover"); pet leveling; multi-pet roster/stable.
+- [ ] Mounts (horse, wagon) — some concrete ideas dropped mid-conversation
+      (2026-08-01), not designed/built yet: riding a horse increases move speed; you
+      buy a horse and pick its color; equipping a wagon lets other players ride along
+      by entering it, and in the OG this had no seat cap — literally infinite players
+      could pile into one wagon ("acted literally like a clown car"). Fun follow-up
+      idea (also just dropped, not committed to): make your own personal
+      horse-and-wagon literally a tiny clown car, as a deliberate joke on that OG
+      behavior, serving as both mount and wagon at once.
 - [ ] Amulet/accessory balance pass
 - [ ] **Graphical build-mode picker** (depends on Phase 10) — you specifically called
       this out as the area you most want to overhaul: the OG's plain text lists for
