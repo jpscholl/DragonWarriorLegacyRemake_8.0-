@@ -220,22 +220,35 @@ list (not yet documented).
 
 ---
 
+## Sage
+
+- Level cap: 99 (same as every other class)
+- Reached via: Goof-off's `Classchange` skill, or any other class using a **Dharma
+  Scroll** item (not yet built), or direct GM pick at creation
+- **Skill list decided (2026-08-04, your call, no OG data recoverable)**: union of
+  Hero + Wizard + Pilgrim's skill tables above — matches the OG help file's own
+  flavor text ("A combination of Wizard and Pilgrim... learns both offensive and
+  defensive magic, but is horrible in physical combat"), extended to include Hero's
+  list too per your explicit decision. Stat caps/growth: placeholder, tune later —
+  should land squarely in caster territory (low Str/Agi, high Int, since "horrible in
+  physical combat" is confirmed OG flavor text).
+- Default equipped skills: not decided yet, pick 5 from the combined pool once the
+  combined skill table actually exists in code.
+
 ## Still needed
 
 - Every class: full Agility/Vitality/Intelligence/Luck stat caps where marked `?` above
-- Soldier/Fighter/Goof-off/Pilgrim/Wizard: exact level + exact stat threshold per skill
-  (currently only know *which* stat governs each skill, not the level or the number)
+  — **placeholder policy (2026-08-04)**: invent reasonable numbers now, all tunable
+  later, don't block building on these.
+- Soldier/Fighter/Goof-off/Pilgrim/Wizard/Sage: exact level + exact stat threshold per
+  skill — **same placeholder policy**: assign a sane level/stat curve now (mirroring
+  Hero's confirmed spacing/scaling where reasonable), revise once/if more OG data
+  surfaces.
 - Confirmation on whether Stopspell/Firebane/Vivify (Hero) are genuinely stat *ranges*
-  or a copy-paste error in the source notes
-- Sage's own skill list — normally reached only via Goof-off's Classchange, but
-  sufficiently-permissioned GMs can pick Sage directly at character creation; needs its
-  own research pass either way
-- "Master" class tier — GM-only, one Master variant per base class (Master Hero, Master
-  Sage, etc.), each with higher stat caps and stronger moves than the normal version.
-  Replaces the single "GM_Custom" class from the original design notes with a per-class
-  family instead — not documented here yet
-- Merchant and Thief classes — added in later OG DWL versions you don't have access to,
-  so there's no source data to recover here. These need to be designed from scratch
-  (stats, default skills, unlock tables) rather than documented from play, unlike every
-  other class in this file.
-- Skill effects/damage/MP cost — not covered by this doc at all, only unlock conditions
+  or a copy-paste error in the source notes — treat as a range for now (placeholder)
+- "Master" class tier, Merchant/Thief classes, weapon-gated skills — **all explicitly
+  deferred to a later version (2026-08-04 decision)**, not part of the current
+  mechanics-first build pass. See `TODOList.md` Open Questions.
+- Skill effects/damage/MP cost — not covered by this doc at all, only unlock conditions;
+  same placeholder policy as everything else — real numbers come after mechanics work
+  end-to-end and playtesting starts.

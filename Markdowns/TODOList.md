@@ -72,6 +72,88 @@ fluff — see this file's own intro about that).
 
 ---
 
+## Mechanics-First Build Philosophy (adopted 2026-08-04)
+
+**Get every system's actual mechanics working correctly first, with placeholder
+numbers everywhere they're needed — tune the numbers later, once there's something
+real to playtest.** This is an explicit sequencing decision covering the whole next
+build pass, not just one phase:
+
+- **Modularity over accuracy**: every system below should be built so its placeholder
+  values (damage numbers, stat caps, level thresholds, costs, timers, etc.) are easy to
+  retune later without restructuring the system itself — same pattern already used for
+  `TESTING_CHEAP_SPELLS`/`GetManaCost()` (one flag + one accessor) and
+  `SleepRestoreLoop()` (interval/amount as parameters). Don't chase real/authentic
+  numbers now; chase a working, swappable framework.
+- **No UI work until mechanics are done.** Every player-facing screen stays the
+  bare-bones text/`input()`/`stat()` interface from the v1 Scope Note at the top of
+  this file — no exceptions — for this entire pass, including systems built brand new
+  in it (e.g. the building/map-editor tools in Phase 10).
+- **"The Big Beautiful Update" (your joke name for it, riffing on a certain bill)** is
+  the explicitly-planned *next* major pass after this one: real HUD, floating damage
+  numbers, on-screen meters, menu/character-select polish, the graphical build-mode
+  picker, the splashscreen — see the Quality of Life section below for the full list.
+  Nothing in that bucket starts before this mechanics pass is actually done.
+- **Deferred out of this pass entirely** (revisit in a future version, not this one):
+  Guilds, "Master" class tier, Merchant/Thief classes, weapon/tome-gated skills,
+  Mounts, TM/HM-style spell scrolls. Each is still logged in its normal phase below,
+  just explicitly not in scope right now.
+
+## OG Help File — Recovered Mechanics (found 2026-08-04)
+
+You pasted the original game's actual in-game `Help()` text (by Tarq/WizDragon,
+labelled "outdated" even by its own author, so treat details as directionally right,
+not gospel). New confirmed mechanics not previously in this file:
+
+- **Quick Item slot** (Phase 5's "Quick Item" entry above, previously undesigned) —
+  confirmed OG mechanic: drag an item onto the dedicated Quick Item slot (separate from
+  the general inventory list) to select it; Numpad `*` **cycles through** carried items
+  in that slot; Numpad `-` **uses** whatever's currently selected. Matches the OG
+  Inventory tab's "Quick Item: Nothing" label already noted in Phase 5.
+- **Skill targeting model** — not yet built at all in our code (current skills are all
+  self-cast/melee-range only). Confirmed OG flow: click the target player, choose
+  "Cast Spell" from their interaction menu; alternatively, click **yourself** to arm a
+  "quick spell," then click any subsequent target to fire it at them without reopening
+  the menu. Relevant once any targeted (non-self, non-melee) player-vs-player or
+  player-vs-ally skill gets built — nothing currently needs this, but Blaze/future
+  spells aimed at other players eventually will.
+- **Unequipped skills are still usable** — double-clicking a known skill that isn't
+  assigned to a numpad slot casts/uses it directly, no need to equip it first. Numpad
+  slots are a convenience binding, not a requirement to act. Confirms equip/known
+  distinction already in `ClassReference.md` extends to actual usability, not just
+  display.
+- **Numlock must be off** for the numpad skill keys to register (OG quirk, worth
+  keeping in mind if slot keys ever seem unresponsive during testing — not something to
+  code around, just a player-side gotcha).
+- **Class flavor text** (confirms/refines existing docs, no contradictions):
+  - Hero: "Balanced in all areas... if you plan on soloing"
+  - Soldier: "best class at taking damage" (physical power/defense/HP)
+  - Fighter: "attacks extremely quickly," huge physical damage, "not so good at taking
+    damage" — glass cannon, consistent with its Phase 6 dual-stat delay design once
+    weapon-speed-vs-bulk tradeoffs get tuned
+  - Goof-off: "weaker than the rest" but becomes Sage at (per this doc) level 25 —
+    **note**: `ClassReference.md` doesn't have a confirmed level for `Classchange`
+    yet; this "25" is the first real data point for it, worth using as the placeholder
+    if none exists already
+  - Pilgrim: healing/defensive magic, "fair in physical combat"
+  - Wizard: "very weak in physical combat," most powerful offensive magic
+  - Sage: "combination of Wizard and Pilgrim... learns both offensive and defensive
+    magic, but is horrible in physical combat" — informed the Sage skill-list decision
+    above (`ClassReference.md`), though your explicit call was to also fold in Hero's
+    list, going beyond just Wizard+Pilgrim
+- **Posted community rules** (useful if a `Help()` rewrite or a rules/MOTD feature ever
+  gets built): no harassment, listen to GMs ("anyone with a fancier icon than normal"),
+  no spam, don't steal kills/loot (directly confirms the first-hit-tag decision above —
+  "you won't get any EXP or gold from it unless you hit it first, anyway"), general
+  courtesy.
+- **Help() content itself**: still just a placeholder in our code (Phase 4). This
+  recovered text is a reasonable starting draft for the real content once that's
+  written, though it'd need updating for our actual mechanics (real-time Zelda-style
+  combat instead of the OG's own combat model, current class roster, etc.) rather than
+  copied verbatim — the OG's own author already flagged parts of it as outdated.
+
+---
+
 ## Phase 1 — Login & Character Creation (mostly done, polish remains)
 
 - [x] Character select menu, 4 save slots, load/create/delete (`Code/UI/LoginMenu.dm`)
@@ -103,11 +185,13 @@ fluff — see this file's own intro about that).
       without changing your class entirely). Not scoped yet: which skills are
       tutor-eligible vs. class-locked, whether it costs Gold/an item/a quest, and how it
       interacts with the confirmed weapon/tome-gating idea (Phase 5) if that gets built.
-- [ ] "Master" class tier — GM-only, one Master variant per base class (Master Hero,
+- [ ] "Master" class tier — **deferred to a later version (2026-08-04 decision)**.
+      GM-only, one Master variant per base class (Master Hero,
       Master Sage, etc., per-GM), higher stat caps and stronger moves than the normal
       version of that class. Generalizes/replaces the single "GM_Custom" class from the
       original design notes — it's a family, not one catch-all class.
-- [ ] Merchant and Thief classes — these were added in later OG DWL versions you don't
+- [ ] Merchant and Thief classes — **deferred to a later version (2026-08-04
+      decision)**. These were added in later OG DWL versions you don't
       have access to, so there's no reference data to recover; stats/moves/unlock
       criteria for these two need to be designed from scratch, not documented from play
 - [ ] Populate `DefaultIconColors` for Soldier/Wizard icons (only Hero's is done)
@@ -158,7 +242,8 @@ fluff — see this file's own intro about that).
       `Party.members` (`Die()`, `CombatSystem.dm`) — no solo-vs-group XP penalty yet,
       that formula was never confirmed from OG testing. Party is session-only, not
       saved/loaded.
-- [ ] **Guilds** (your own idea, 2026-07-31) — a persistent, saved counterpart to the
+- [ ] **Guilds** — **deferred to a later version (2026-08-04 decision)**. (your own
+      idea, 2026-07-31) — a persistent, saved counterpart to the
       session-only Party above: where Party is a temporary in-the-moment group,
       a Guild would be a standing, cross-session member list (likely its own save data,
       not tied to any one character's slot). Not scoped yet: creation cost/requirements,
@@ -414,7 +499,8 @@ fluff — see this file's own intro about that).
       a tome** before they're usable, same gating concept as weapon-locked skills but for
       Wizard/magic-focused classes instead of physical ones. This is a bigger design
       decision than the rest of Phase 5 — worth its own pass once basic equip slots exist
-      at all.
+      at all. **Weapon/tome gating specifically deferred (2026-08-04 decision)**: build
+      basic equip slots (stat bonuses only) now, skip the gating mechanic for this pass.
 - [ ] "Give" right-click option (hand an item to a nearby player) — already planned,
       deferred until Drop was solid
 - [ ] Chest/drawer/pot storage interactions (turf types exist, `OnInteract()` logic doesn't)
@@ -1036,9 +1122,24 @@ fluff — see this file's own intro about that).
       type from a list, or "None" to exit build mode; picking a real type auto-enters
       build mode) and one shared brush mode (`GMmaketool`, see below) applying to all
       three, not just turfs:
-      - `GMmakearea` — paints area instances (pairs with `GMseeareas`'s grid overlay)
+      - `GMmakearea` — paints area instances (pairs with `GMseeareas`'s grid overlay).
+        **Correction (2026-08-04): the area roster already exists almost in full** —
+        `Area.dm` already defines casino/dungeon/boss/forest/townrain/town/battle/
+        castle/cave/old/snow/bar/jail/rain/ceiling/visible/wilderness/temple/
+        deepwater1/deepwater/water1/water/rave/playerStart, confirmed against a real
+        screenshot of the OG's own area-type list. Only gap: **6 night variants not
+        yet coded** — snownight, rainnight, waternight1, waternight, deepwaternight1,
+        deepwaternight — add these as new `area` subtypes before wiring the picker.
+        `area/visible` exists but is currently an empty stub (icon_state only, no
+        behavior) — working theory: it's the unbuilt "border" half of the Ceiling/
+        border visibility rework below (walls blocking outside-in sight), not
+        confirmed, flag if that's wrong.
       - `GMmaketurf` — paints turfs (the one originally in the design notes)
-      - `GMmakemob` — places monsters from the `/mob/monster/*` roster
+      - `GMmakemob` — places monsters from the `/mob/monster/*` roster (doesn't exist
+        yet — zero `mob/enemy/*` subtypes are defined in code at all currently, just
+        the generic base `mob/enemy` in `EnemyNPCs.dm`; the 88 named icons in
+        `Mob Icons/Monsters/` have no stat blocks behind them yet — needed before this
+        tool has anything to place)
       **Every one of these build-mode list pickers needs a "None" entry to cancel out of
       build mode** — confirmed as a required pattern across all of them, not just
       incidental to the two we happened to test first.
@@ -1072,39 +1173,81 @@ fluff — see this file's own intro about that).
       DW1 itself (which only has Strength/Agility/HP/MP), but introduced in Dragon Quest
       III and carried through IV — fits the game's stated DW1-4 range. Spirit isn't a
       Dragon Warrior/Quest stat at any point.
-- [ ] Per-class spell/skill lists and their learn requirements (level + stat combo) —
-      **in progress, see `ClassReference.md`**: stat effects are confirmed, most
-      per-skill level/stat thresholds still aren't (2 of ~90 entries confirmed so far)
-- [ ] Real inventory capacity formula (base + stat scaling)
-- [ ] Whether text/chat logging is wanted, and if so where it's stored
-- [ ] **Stat point cost formula may not be a flat universal formula** — a real OG Battle
-      tab screenshot (level-unknown Hero: Str 14, Agi 9, Vit 11, Int 9, Luck("Spirit") 9)
-      shows Vitality/Intelligence/Luck matching the confirmed `2 + floor(stat/5)` formula
-      exactly (4/3/3 points), but **Strength and Agility don't** — the screenshot shows
-      6 and 5 points respectively, where the formula predicts 4 and 3. Currently still
-      using the universal formula (`ClickableStats.dm`) since 2 data points against a
-      formula already confirmed from 5 *different* data points isn't enough to
-      confidently redesign it — but worth investigating whether Hero has higher costs
-      specifically for its physical stats (Str/Agi), or whether cost also depends on
-      something beyond the raw current stat value (e.g. character level).
+- [x] **Per-class spell/skill lists and their learn requirements (level + stat combo)**
+      — resolved (2026-08-04): **placeholder policy**. Real OG data only ever confirmed
+      2 of ~90 entries (Hero's Heal/Thornwhip) and no more is coming, so stop waiting on
+      it — invent a sane level/stat curve for every unconfirmed entry now (mirroring
+      Hero's confirmed spacing where reasonable), all numbers tunable later once
+      playtesting starts. Same policy covers Sage's skill list (see `ClassReference.md`
+      — union of Hero+Wizard+Pilgrim, your explicit call) and the unconfirmed
+      Agility/Vitality/Intelligence/Luck stat caps for every class.
+- [x] **Real inventory capacity formula** — resolved (2026-08-04): **Strength-scaled**,
+      confirmed by the OG help file's own flavor text ("Strength: increases physical
+      damage AND the number of items you can carry"). Exact coefficients are placeholder
+      — only real data point is level-1 Hero = capacity 9 (not the current placeholder
+      8) — tune later. Not blocking: pick a formula shape now (e.g. `base + floor(Str /
+      X)`), revisit once more data points exist.
+- [ ] Whether text/chat logging is wanted, and if so where it's stored — **already
+      answered/built**, see Phase 2's chat+login/logout logging entry (`server.log`,
+      gitignored). Leaving this line only because it was never explicitly checked off
+      here — no remaining work.
+- [x] **Stat point cost formula may not be a flat universal formula** — resolved
+      (2026-08-04): **keep the universal formula for now**, tweak later. A real OG
+      Battle tab screenshot (level-unknown Hero: Str 14, Agi 9, Vit 11, Int 9,
+      Luck("Spirit") 9) shows Vitality/Intelligence/Luck matching `2 + floor(stat/5)`
+      exactly (4/3/3 points), but Strength/Agility don't (6/5 shown vs. 4/3 predicted) —
+      not enough data to confidently redesign against 5 *other* data points that do fit,
+      so leave `ClickableStats.dm` as-is and revisit if/when more screenshots surface.
+- [x] **Real exp curve shape** — resolved (2026-08-04): front-loaded, not flat and not
+      exponential from level 1. Your words: the OG "gains levels too fast" early on, but
+      shouldn't be flat-out grindy either — so **fast early levels, gradually slowing**,
+      matching the classic-RPG feel of quick early progress that tapers into a real
+      grind by the level-90s. Exact curve (formula/table) is placeholder, tune by feel
+      once leveling exists to test against.
+- [x] **Loot-stealing prevention** — resolved (2026-08-04): **first-hit tagging**, start
+      simple, revisit later. Confirmed by the OG's own posted rules (see "OG Help File"
+      section below): "You won't get any EXP or gold from [a kill] unless you hit it
+      first" — so the OG already enforced first-hit ownership of both kill-credit and
+      loot, just as a social norm reinforced by mechanics, not pure honor system. Build:
+      whichever player lands the first hit on a monster owns its Exp/gold/drop; nobody
+      else can loot the corpse.
+- [x] **Verb category/tab reorganization** — resolved (2026-08-04): consolidate into a
+      sensible scheme, your call on exact bucket, one requirement: **collapse
+      Admin/Builder/GM into a single "GM" tab** (rank-gated per-verb visibility, not
+      separate tabs per rank), and **keep "Debug" as its own separate category**
+      (admin-only, not merged into GM). Proposed buckets to implement against: Combat
+      (skills/numpad), Inventory/Action (pickup/drop/give/interact), Social (say/tell/
+      emote/who/look/party), Settings (volume/turnwalk/toggle verbs), GM (everything
+      currently `"Admin"`/`"Builder"`/`"GM"`), Debug (unchanged, admin-only).
+- [x] **TM/HM-style spell scrolls vs. Move Tutor NPC** — resolved (2026-08-04):
+      **deferred to a later version**, not part of the current mechanics-first pass.
+      Keep both ideas logged (Phase 1's Move Tutor entry above) as distinct — not
+      merged — decide which (or both) to build once this pass is done.
 
 ## Quality of Life (no fixed phase — pull these in wherever they fit)
 
-- [ ] Prevent other players from stealing loot drops
-- [ ] **Reorganize verb categories/tabs — explicitly deferred, pick up next session.**
-      You flagged it was "a little bit of a mess to find the right ones" — verbs are
-      currently grouped by whatever `set category = "..."` each one happened to get as
-      it was written (seen so far: `"Action"`, `"Debug"`, `"Admin"`, `"Builder"`,
-      `"GM"`), not a deliberately designed layout. Needs an actual pass across every
-      verb file (`PlayerVerbs.dm`, `SocialVerbs.dm`, `GMCommands.dm`, `DebugTools.dm`,
-      etc.) to decide on a sensible category scheme and re-tag verbs consistently, not
-      just a quick rename.
-- [ ] General interface polish pass
-- [ ] Character select screen polish
-- [ ] Menu polish (creation flow, stat allocation, etc.)
+- [x] Prevent other players from stealing loot drops — see resolved Open Question above
+      (first-hit tagging, 2026-08-04)
+- [x] Reorganize verb categories/tabs — see resolved Open Question above (2026-08-04):
+      Combat/Inventory-Action/Social/Settings/GM(consolidated)/Debug(kept separate)
+- [ ] **General interface/UI polish pass — deliberately scheduled as its own later
+      milestone, nicknamed "the Big Beautiful Update" (your joke name, 2026-08-04).**
+      Explicit sequencing decision: get every mechanic (combat, classes, leveling,
+      building tools, GM tooling, etc.) working correctly first, current placeholder
+      numbers and all — UI stays bare-bones `input()`/`stat()` per the v1 Scope Note
+      throughout this whole pass. Once mechanics are solid, the next major pass adds
+      all the actual UI/visual polish: real HUD overlay (Level/HP/XP/MP along the
+      bottom, Map-overlay HUD entry above), floating damage numbers, on-screen meters,
+      character select screen polish, menu polish, the graphical build-mode picker
+      (Phase 10 QoL entry below), and the splashscreen entry below. Nothing in this
+      bucket should be started before the mechanics pass is actually done.
+- [ ] Character select screen polish — part of the Big Beautiful Update, see above
+- [ ] Menu polish (creation flow, stat allocation, etc.) — part of the Big Beautiful
+      Update, see above
 - [ ] **Opening splashscreen** (your own idea, 2026-07-31) — shown before the login menu
       (`ShowLoginMenu()`, `mob/playerTemp/Login()`, `Main.dm`). Not detailed yet: art/
-      logo, how long it holds, click/key-to-continue vs. timed auto-advance.
+      logo, how long it holds, click/key-to-continue vs. timed auto-advance. Part of the
+      Big Beautiful Update — no UI work until then (confirmed 2026-08-04).
 - [x] **Basic pet system** (your idea, 2026-08-01). No taming mechanic — a GM
       double-clicking a wild, unowned `mob/enemy` gets an "Assign Pet" option
       (`ShowAssignPetMenu()`, `EnemyNPCs.dm`); picking a nearby player sets `owner` on
@@ -1123,7 +1266,8 @@ fluff — see this file's own intro about that).
         pet not despawning — surviving as a "dead" inventory item you'd have to
         recover somehow (recovery mechanic not designed yet, your words: "need to
         figure out how to make it recover"); pet leveling; multi-pet roster/stable.
-- [ ] Mounts (horse, wagon) — some concrete ideas dropped mid-conversation
+- [ ] Mounts (horse, wagon) — **deferred to a later version (2026-08-04 decision)**,
+      not part of the current mechanics-first pass. Some concrete ideas dropped mid-conversation
       (2026-08-01), not designed/built yet: riding a horse increases move speed; you
       buy a horse and pick its color; equipping a wagon lets other players ride along
       by entering it, and in the OG this had no seat cap — literally infinite players
