@@ -1,12 +1,12 @@
 // -----------------------------
 // GM Building System (Phase 10)
 // -----------------------------
-// Three pickers (GMmaketurf/GMmakemob/GMmakearea) choose WHAT to place — "pick from
+// Three pickers (GM_MakeTurf/GM_MakeMob/GM_MakeArea) choose WHAT to place — "pick from
 // list, 'None' cancels, picking a real type enters build mode" per the exact pattern
-// GMbattlemode (GMCommands.dm) already established. GMmaketool separately chooses HOW
+// GM_BattleMode (GMCommands.dm) already established. GM_MakeTool separately chooses HOW
 // to place it (one of 7 modes). The two are independent: changing the selection
 // doesn't reset the current tool mode and vice versa — buildMode defaults to "Click"
-// so a GM who's never touched GMmaketool still gets sane single-click placement the
+// so a GM who's never touched GM_MakeTool still gets sane single-click placement the
 // moment they pick something.
 //
 // Placement itself is driven by client-level MouseDown()/MouseUp()/MouseDrag()/
@@ -16,7 +16,7 @@
 // override calls ..() first — skipping that would silently break default click
 // handling (item-use clicks, etc.) for EVERY client, not just GMs mid-build.
 //
-// GMmakemob correcting the design doc's /mob/monster/* — actual base type built in
+// GM_MakeMob correcting the design doc's /mob/monster/* — actual base type built in
 // Stage 3 is /mob/enemy (MonsterRoster.dm).
 
 #define BUILD_MODE_CLICK "Click"
@@ -66,6 +66,10 @@ client
     var/buildMode = BUILD_MODE_CLICK  // HOW to place — independent of WHAT (below)
     var/buildKind = null              // "turf" / "mob" / "area" — null = no selection, build mode inactive
     var/buildSelection = null         // typepath to place (turf/mob) or assign (area)
+    var/buildIconState = null         // turf only — specific sprite variant within
+                                        // buildSelection's icon file (e.g. "brush" vs.
+                                        // "grass" on /turf/ground); null = type's own
+                                        // compiled-in default icon_state
     var/turf/buildDownTurf = null     // captured on MouseDown, consumed by Block/Line/Move on MouseUp
     var/atom/movable/buildGrabbedAtom = null  // captured on MouseDown for Move mode —
                                                 // /atom/movable specifically (not bare
@@ -75,7 +79,7 @@ client
     var/image/buildCursorImage = null // single square tracking the hovered tile
 
     // -----------------------------
-    // Cursor overlay — same screen-overlay-via-client.images shape GMseeareas's area
+    // Cursor overlay — same screen-overlay-via-client.images shape GM_SeeAreas's area
     // grid (GMCommands.dm) already uses, just one square instead of a grid. Uses the
     // real confirmed asset for this ('meter.dmi', icon_state "select" — the actual OG
     // build-target cursor), not a procedurally-drawn stand-in.
@@ -102,6 +106,7 @@ client
     // see file header).
     proc/StopBuildSelection()
         buildSelection = null
+        buildIconState = null
         buildKind = null
         buildDownTurf = null
         buildGrabbedAtom = null
@@ -113,31 +118,41 @@ client
     proc/PlaceBuildSelection(turf/T)
         if(!T || !buildSelection) return
         switch(buildKind)
-            if("turf", "mob")
+            if("turf")
+                var/turf/newT = new buildSelection(T)
+                if(buildIconState) newT.icon_state = buildIconState
+            if("mob")
                 new buildSelection(T)
             if("area")
                 var/area/target = FindAreaInstance(buildSelection)
-                if(target)
-                    // turf/loc isn't directly assignable (unlike a movable atom's) —
-                    // adding the turf to the area's own contents is the real mechanism
-                    // for reparenting it to a different area.
-                    target.contents += T
-                else if(mob)
-                    mob << output("No existing instance of that area type found in the world.", "Info")
+                if(!target)
+                    // No tile anywhere is currently that area type, so it has no
+                    // instance yet (BYOND only auto-creates one when the compiled map
+                    // itself places it) — materialize one so a GM can build an area
+                    // type into existence rather than being limited to ones the
+                    // original map already used somewhere.
+                    target = new buildSelection()
+                // turf/loc isn't directly assignable (unlike a movable atom's) —
+                // adding the turf to the area's own contents is the real mechanism
+                // for reparenting it to a different area.
+                target.contents += T
 
-    // Areas aren't placed as fresh instances per tile — a turf gets reassigned to
-    // whichever REAL instance of that area type already exists in the world (same
-    // enumeration style GMbattlemode already uses to build its own area picker list).
+    // Areas are placed by reassigning a turf to a single REAL instance per type — the
+    // first one found (same enumeration style GM_BattleMode already uses), or a freshly
+    // created one if that type has no instance anywhere in the world yet (see
+    // PlaceBuildSelection's area branch above).
     proc/FindAreaInstance(typepath)
         for(var/area/A in world)
             if(A.type == typepath) return A
         return null
 
-    // First non-turf, non-player atom on the tile — Move never grabs a real character.
+    // First non-turf atom on the tile — players included, so a GM can drag any player
+    // (or themselves) around same as any obj/monster. Delete mode's own player
+    // exclusion below is separate and unaffected: never deleting a real player is a
+    // different rule than being allowed to relocate one.
     proc/FindMovableAtom(turf/T)
         if(!T) return null
         for(var/atom/movable/A in T.contents)
-            if(istype(A, /mob/player)) continue
             return A
         return null
 
@@ -196,14 +211,17 @@ client
                 var/turf/T = locate(T1.x, yy, T1.z)
                 if(T) PlaceBuildSelection(T)
 
-    // Same-icon/icon_state contiguous BFS fill, turf-only (a "flood" of mobs or area
-    // reassignment doesn't have a clean same-icon/icon_state notion to bound itself
-    // by — restricted here rather than guessed at, the one spot flagged rougher per
-    // the build plan's own allowance for Move/Flood).
+    // Same-icon/icon_state contiguous BFS fill. The region itself is always bounded by
+    // the clicked turf's own icon/icon_state — that's the only clean "same type" notion
+    // there is — but what happens to each matched tile depends on buildKind, same as
+    // every other mode: turf replaces the tile, mob spawns buildSelection ON it (leaving
+    // the turf itself alone), area reassigns it. Routed through the shared
+    // PlaceBuildSelection() so all three stay in sync with Click/Drag/Block/Line instead
+    // of duplicating the per-kind logic a second time here.
     proc/FloodFillBuild(turf/start)
         if(!start) return
-        if(buildKind != "turf")
-            if(mob) mob << output("Flood only works with a turf selection.", "Info")
+        if(!buildKind)
+            if(mob) mob << output("Pick something to place first (GM_MakeTurf/GM_MakeMob/GM_MakeArea).", "Info")
             return
 
         var/matchIcon = start.icon
@@ -230,7 +248,7 @@ client
                 if(mob) mob << output("Flood hit the [MAX_BUILD_FILL_TILES]-tile safety cap — stopped early.", "Info")
                 return
 
-            new buildSelection(T)
+            PlaceBuildSelection(T)
             filled++
 
             for(var/d in list(NORTH, SOUTH, EAST, WEST))
@@ -240,13 +258,28 @@ client
                 visited[N] = TRUE
                 queue += N
 
+    // GM_SeeAreas' overlay (GMCommands.dm) only rebuilds when the GM steps to a new tile
+    // (AreaOverlayLoop's loc check) — a GM standing still while reassigning areas with
+    // the build tool would keep watching a stale overlay. Called once per discrete
+    // mouse action below (not per-tile inside PlaceBuildRect/PlaceBuildLine/
+    // FloodFillBuild's loops) so a big Block reassign doesn't rebuild the overlay
+    // hundreds of times over.
+    proc/RefreshAreaOverlayIfWatching()
+        if(buildKind == "area" && mob && mob.seeingAreas)
+            mob.RefreshAreaOverlay()
+
     // -----------------------------
     // Mouse dispatch
     // -----------------------------
     MouseDown(atom/object, location, control, params)
         ..()
         if(!IsMapControl(control)) return
-        if(!mob || !canBuild || !buildSelection) return
+        if(!mob || !canBuild) return
+        // Move isn't really a placement tool like the other 6 modes — it relocates
+        // whatever's already on the tile and never reads buildSelection, so (unlike
+        // Click/Drag/Block/Line/Flood/Delete) it shouldn't require a turf/mob/area to
+        // be picked first via GM_MakeTurf/GM_MakeMob/GM_MakeArea.
+        if(buildMode != BUILD_MODE_MOVE && !buildSelection) return
         var/turf/T = GetTurfOf(object)
         if(!T) return
 
@@ -265,13 +298,14 @@ client
                 ClearAndPlace(T)
             // Block/Line just record buildDownTurf above — the actual placement
             // happens on MouseUp once the second point is known.
+        RefreshAreaOverlayIfWatching()
 
     MouseUp(atom/object, location, control, params)
         ..()
         // Always clear grabbed/down state on any mouse-up, even one that lands off the
         // map (a drag released over the inventory panel, say) — otherwise a stale
         // buildDownTurf/buildGrabbedAtom would carry into the next interaction.
-        if(!mob || !canBuild || !buildSelection)
+        if(!mob || !canBuild || (buildMode != BUILD_MODE_MOVE && !buildSelection))
             buildDownTurf = null
             buildGrabbedAtom = null
             return
@@ -286,6 +320,7 @@ client
                         if(buildDownTurf) PlaceBuildLine(buildDownTurf, T)
                     if(BUILD_MODE_MOVE)
                         if(buildGrabbedAtom) buildGrabbedAtom.loc = T
+                RefreshAreaOverlayIfWatching()
 
         buildDownTurf = null
         buildGrabbedAtom = null
@@ -296,7 +331,9 @@ client
         if(!mob || !canBuild || !buildSelection) return
         if(buildMode != BUILD_MODE_DRAG) return
         var/turf/T = GetTurfOf(over_object)
-        if(T) PlaceBuildSelection(T)
+        if(T)
+            PlaceBuildSelection(T)
+            RefreshAreaOverlayIfWatching()
 
     MouseMove(atom/object, location, control, params)
         ..()
@@ -306,9 +343,9 @@ client
         if(T) UpdateBuildCursor(T)
 
 // -----------------------------
-// Shared picker apply logic — GMmaketurf/GMmakemob/GMmakearea below all follow the
+// Shared picker apply logic — GM_MakeTurf/GM_MakeMob/GM_MakeArea below all follow the
 // exact same "check access, show the list, None clears the selection, anything else
-// sets buildSelection/buildKind and reminds about GMmaketool" shape; this is that
+// sets buildSelection/buildKind and reminds about GM_MakeTool" shape; this is that
 // shape, written once instead of three times.
 // -----------------------------
 mob/proc/PickBuildSelection(list/choices, prompt, title, kind)
@@ -326,116 +363,140 @@ mob/proc/PickBuildSelection(list/choices, prompt, title, kind)
 
     client.buildSelection = picked
     client.buildKind = kind
-    src << output("[choice] selected. Use GMmaketool to pick a placement mode, then click the map.", "Info")
+    src << output("[choice] selected. Use GM_MakeTool to pick a placement mode, then click the map.", "Info")
 
 // -----------------------------
-// GMmaketurf — see Code/World/Turfs.dm's own header comment: most visual turf variants
+// GM_MakeTurf — see Code/World/Turfs.dm's own header comment: most visual turf variants
 // are deliberately collapsed into a handful of base types (painted as map-editor
-// INSTANCES with a custom icon_state, not separate hardcoded subtypes) — this list is
-// necessarily just those base types, same limitation that comment already describes.
-// bedhead itself excluded (its own comment: "Not meant to be placed directly on a map").
+// INSTANCES with a custom icon_state, not separate hardcoded subtypes), so typesof(/turf)
+// only ever surfaces those base types (Ground, Floor, Wall, ...) — none of grass's
+// brush/flowers/sand/farmland/etc, or floor's cobble/carpet/wood/etc, exist as real
+// types to enumerate. A second step picks the actual sprite: GetCachedIconStates()
+// (Code/Combat/CombatSystem.dm) reads every icon_state baked into that category's icon
+// file. Floor in particular has NO bare default state at all (every real OG floor is a
+// named variant) — leaving buildIconState null for it placed a blank/black tile, hence
+// this step being mandatory rather than skippable. bedhead excluded from the category
+// list (its own comment: "Not meant to be placed directly on a map" — bedleft/
+// woodbedleft point to it via parent_type instead of being placed directly).
 // -----------------------------
-mob/verb/GMmaketurf()
+mob/verb/GM_MakeTurf()
     set category = "GM"
-    set desc = "Pick a turf type for the build tool to place"
+    set desc = "Pick a turf type and sprite variant for the build tool to place"
 
-    var/list/choices = list(
-        "Ground" = /turf/ground,
-        "Floor" = /turf/floor,
-        "Furniture" = /turf/furniture,
-        "Bed (left)" = /turf/furniture/bedleft,
-        "Wood Bed (left)" = /turf/furniture/woodbedleft,
-        "Counter" = /turf/furniture/counter,
-        "Tree" = /turf/tree,
-        "Stairs" = /turf/stairs,
-        "Stairs Up" = /turf/stairs/stairsup,
-        "Stairs Down" = /turf/stairs/stairsdown,
-        "Wall" = /turf/wall,
-        "Fence" = /turf/fence,
-        "Sky" = /turf/sky,
-        "Bridge" = /turf/bridge,
-        "Water" = /turf/water,
-        "Warp" = /turf/warp,
-        "None" = null,
-    )
+    if(!client || !client.canBuild)
+        src << output("You don't have Builder access.", "Info")
+        return
 
-    PickBuildSelection(choices, "Choose a turf type to place (or None to cancel):", "GMmaketurf", "turf")
+    var/list/choices = GetTypeChoices(/turf, list(/turf/furniture/bedhead))
+    var/choice = input(src, "Choose a turf category to place (or None to cancel):", "GM_MakeTurf") in choices
+    var/picked = choices[choice]
+
+    if(!picked)
+        client.StopBuildSelection()
+        src << output("Build selection cleared.", "Info")
+        return
+
+    var/list/states = GetCachedIconStates(initial(picked:icon))
+    if(!states.len)
+        src << output("[choice] has no readable sprite variants — can't place it.", "Info")
+        return
+
+    // Night variants (GM_DayNight auto-toggles these in place, GMCommands.dm) get their
+    // own list rather than cluttering the day list — a GM who deliberately wants a
+    // permanently-dark tile (e.g. an indoor cave room) can still reach them via Night.
+    var/list/dayStates = list()
+    var/list/nightStates = list()
+    for(var/s in states)
+        if(IsNightVariant(s)) nightStates += s
+        else dayStates += s
+
+    var/list/finalStates = dayStates
+    if(nightStates.len)
+        var/period = input(src, "Day or Night variant of [choice]?", "GM_MakeTurf") in list("Day", "Night")
+        finalStates = (period == "Night") ? nightStates : dayStates
+
+    if(!finalStates.len)
+        src << output("[choice] has no variants in that set.", "Info")
+        return
+
+    var/stateChoice = input(src, "Choose a [choice] variant to place:", "GM_MakeTurf") in finalStates
+
+    client.buildSelection = picked
+    client.buildIconState = stateChoice
+    client.buildKind = "turf"
+    src << output("[choice] ([stateChoice]) selected. Use GM_MakeTool to pick a placement mode, then click the map.", "Info")
 
 // -----------------------------
-// GMmakemob — built from the real Stage 3 monster roster (MonsterRoster.dm) via
-// typesof(), not a hardcoded duplicate list, so it stays in sync automatically. Display
-// names derived from each type's own bare path segment (same capitalize-first-letter
-// convention MonsterRoster.dm already used for its `name` var), reusing
-// GetIconFilename() (LoginMenu.dm) for that split — it's already exactly "stringify,
-// split on /, take the last segment," it just usually gets an icon resource rather
-// than a typepath.
+// Shared type-list builder — every picker below wants the same thing: every real
+// (non-abstract) subtype of some base, minus a few that don't make sense to place
+// directly, with a capitalized bare-name label. Building this off typesof() instead of
+// a hand-maintained list means a new turf/area/monster type shows up in the build tool
+// automatically the moment it's added to its own file — no separate list to remember to
+// update here. GetIconFilename() (Code/Core/Main.dm) does the "stringify, split on /,
+// take the last segment" work; it's a generic string util, not icon-specific, despite
+// the name/original home in LoginMenu.dm.
 // -----------------------------
-mob/proc/GetMonsterChoices()
+mob/proc/GetTypeChoices(baseType, list/exclude = list())
     var/list/choices = list("None" = null)
-    for(var/type in typesof(/mob/enemy))
-        if(type == /mob/enemy) continue  // abstract base, not a real placeable monster
-        var/bareName = GetIconFilename(type)
-        var/displayName = uppertext(copytext(bareName, 1, 2)) + copytext(bareName, 2)
+    for(var/type in typesof(baseType))
+        if(type == baseType) continue  // abstract base, not a real placeable instance
+        if(type in exclude) continue
+        var/displayName = Capitalize(GetIconFilename(type))
         choices[displayName] = type
     return choices
 
-mob/verb/GMmakemob()
+// -----------------------------
+// GM_MakeMob — built from the real Stage 3 monster roster (MonsterRoster.dm), stays in
+// sync automatically.
+// -----------------------------
+mob/verb/GM_MakeMob()
     set category = "GM"
     set desc = "Pick a monster type for the build tool to place"
 
-    PickBuildSelection(GetMonsterChoices(), "Choose a monster to place (or None to cancel):", "GMmakemob", "mob")
+    PickBuildSelection(GetTypeChoices(/mob/enemy), "Choose a monster to place (or None to cancel):", "GM_MakeMob", "mob")
 
 // -----------------------------
-// GMmakearea — placing "an area" means reassigning a turf to an EXISTING instance of
+// GM_MakeArea — placing "an area" means reassigning a turf to an EXISTING instance of
 // that area type (FindAreaInstance() above), not spawning a fresh one — same
-// enumeration style GMbattlemode (GMCommands.dm) already uses to build its own list of
+// enumeration style GM_BattleMode (GMCommands.dm) already uses to build its own list of
 // real area instances. playerStart excluded (special spawn marker, not a normal
 // paintable area type — its own icon/icon_state don't even match the rest of Area.dm's
 // environment.dmi convention).
 // -----------------------------
-mob/verb/GMmakearea()
+mob/verb/GM_MakeArea()
     set category = "GM"
     set desc = "Pick an area type for the build tool to assign"
 
-    var/list/choices = list(
-        "Casino" = /area/casino,
-        "Dungeon" = /area/dungeon,
-        "Boss" = /area/boss,
-        "Forest" = /area/forest,
-        "Town (Rain)" = /area/townrain,
-        "Town" = /area/town,
-        "Battle" = /area/battle,
-        "Castle" = /area/castle,
-        "Cave" = /area/cave,
-        "Old" = /area/old,
-        "Snow" = /area/snow,
-        "Snow (Night)" = /area/snownight,
-        "Bar" = /area/bar,
-        "Jail" = /area/jail,
-        "Rain" = /area/rain,
-        "Rain (Night)" = /area/rainnight,
-        "Ceiling" = /area/ceiling,
-        "Visible" = /area/visible,
-        "Wilderness" = /area/wilderness,
-        "Temple" = /area/temple,
-        "Deep Water 1" = /area/deepwater1,
-        "Deep Water 1 (Night)" = /area/deepwaternight1,
-        "Deep Water" = /area/deepwater,
-        "Deep Water (Night)" = /area/deepwaternight,
-        "Water 1" = /area/water1,
-        "Water 1 (Night)" = /area/waternight1,
-        "Water" = /area/water,
-        "Water (Night)" = /area/waternight,
-        "Rave" = /area/rave,
-        "None" = null,
-    )
+    if(!client || !client.canBuild)
+        src << output("You don't have Builder access.", "Info")
+        return
 
-    PickBuildSelection(choices, "Choose an area type to assign (or None to cancel):", "GMmakearea", "area")
+    var/list/choices = GetTypeChoices(/area, list(/area/playerStart))
+
+    // Night areas (snownight, rainnight, waternight1, deepwaternight, ...) are their
+    // own separate area TYPES, not a toggleable icon_state like turfs — split into their
+    // own list rather than mixed alphabetically with the day ones. Substring match
+    // (not IsNightVariant's exact suffix) since some of these end in a digit after
+    // "night" (e.g. "Deepwaternight1").
+    var/list/dayChoices = list()
+    var/list/nightChoices = list()
+    for(var/label in choices)
+        if(label == "None") continue
+        if(findtext(label, "night")) nightChoices[label] = choices[label]
+        else dayChoices[label] = choices[label]
+
+    var/list/finalChoices = dayChoices
+    if(nightChoices.len)
+        var/period = input(src, "Day or Night area?", "GM_MakeArea") in list("Day", "Night")
+        finalChoices = (period == "Night") ? nightChoices : dayChoices
+    finalChoices["None"] = null
+
+    PickBuildSelection(finalChoices, "Choose an area type to assign (or None to cancel):", "GM_MakeArea", "area")
 
 // -----------------------------
-// GMmaketool — confirmed OG text ("[Mode] tool selected.") per the build plan.
+// GM_MakeTool — confirmed OG text ("[Mode] tool selected.") per the build plan.
 // -----------------------------
-mob/verb/GMmaketool()
+mob/verb/GM_MakeTool()
     set category = "GM"
     set desc = "Pick how the build tool places things (Click/Drag/Block/Line/Move/Flood/Delete)"
 
@@ -454,7 +515,7 @@ mob/verb/GMmaketool()
         "None",
     )
 
-    var/choice = input(src, "Choose a build tool mode:", "GMmaketool") in modes
+    var/choice = input(src, "Choose a build tool mode:", "GM_MakeTool") in modes
     if(choice == "None") return  // just closes — there's always a current mode
                                    // (defaults to Click), nothing to "cancel" to
 

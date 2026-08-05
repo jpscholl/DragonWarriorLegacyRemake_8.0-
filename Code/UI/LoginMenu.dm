@@ -222,12 +222,6 @@ proc/GetClassIcons(mob/M, selectedClass)
                         "Back")
     return list()
 
-//strips a compiled icon reference down to its bare filename, e.g. "dw1hero.dmi",
-//so it can be matched against DefaultIconColors' lookup keys
-proc/GetIconFilename(icon_path)
-    var/list/parts = splittext("[icon_path]", "/")
-    return parts[parts.len]
-
 //icon selection and storage
 proc/IconSelect(mob/playerTemp/M)
     var/list/iconChoices = GetClassIcons(M, M.selectedClass)
@@ -365,7 +359,7 @@ proc/FinalizePlayer(mob/playerTemp/M)
 
     C.mob = newPlayer
     // The new mob's own verb list starts fresh from its type declaration (includes
-    // GM-only verbs like GMtogglelog by default) — re-sync (AdminLevels.dm) so a
+    // GM-only verbs like GM_ToggleLog by default) — re-sync (AdminLevels.dm) so a
     // non-GM's removal carries over from the old temp mob.
     C.SyncGMVerbs()
     newPlayer.loc = PLAYER_SPAWN

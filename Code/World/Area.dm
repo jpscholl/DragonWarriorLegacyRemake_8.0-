@@ -14,9 +14,9 @@ area
 	icon = 'environment.dmi'
 	var/areaMusic   // set on a subtype to auto-play music when a mob enters
 
-	// Scaffolding for the GMbattlemode/GMcoopmode/GMindestructablemode/GMweather GM
+	// Scaffolding for the GM_BattleMode/GM_CoopMode/GM_IndestructibleMode/GM_Weather GM
 	// verbs -- each toggles one of these per specific area instance, not globally.
-	// GMbattlemode (GMCommands.dm) can still flip battleModeOn at runtime per instance;
+	// GM_BattleMode (GMCommands.dm) can still flip battleModeOn at runtime per instance;
 	// this is just each type's starting value on compile.
 	var/battleModeOn = FALSE       // FALSE = peaceful area, no attacks/skills allowed --
 	                                // overridden TRUE below on battle/dungeon/boss/temple

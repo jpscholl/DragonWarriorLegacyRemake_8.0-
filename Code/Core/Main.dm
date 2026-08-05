@@ -47,11 +47,11 @@ var/list/players = list()
 // Server mode for the text filter (Code/Core/TextFilter.dm). FALSE = general audience,
 // enforces both the always-banned list and the general-profanity list. TRUE = adult
 // server, only the always-banned list (slurs/hate speech) applies. Real var (not a
-// #define) so it can be toggled at runtime — see GMToggleProfanityFilter() in
+// #define) so it can be toggled at runtime — see GM_ToggleProfanityFilter() in
 // Code/Admin/Commands/GMCommands.dm.
 var/global/adultServer = FALSE
 
-// Day/night state — toggled by GMdaynight() in Code/Admin/Commands/GMCommands.dm.
+// Day/night state — toggled by GM_DayNight() in Code/Admin/Commands/GMCommands.dm.
 // World icons only (turfs/objs), not mobs — the OG has no night sprites for those.
 var/global/isNight = FALSE
 
@@ -68,7 +68,31 @@ proc/PlaySFXAt(atom/center, filename, channel = SFX_CHANNEL, base = 100)
         if(!M.client) continue
         M.client << sound(filename, channel = channel, volume = M.client.ScaledVolume(base))
 
-// Global battle-mode override — toggled by GMbattlemode() in
+// Bare last path segment of a typepath or icon path, e.g. /mob/enemy/slime -> "slime".
+// Generic string util (not UI- or icon-specific) — used by LoginMenu.dm for icon
+// selection and by BuildTools.dm's typesof()-driven pickers for display names.
+proc/GetIconFilename(icon_path)
+    var/list/parts = splittext("[icon_path]", "/")
+    return parts[parts.len]
+
+// First-letter-uppercase, rest untouched, e.g. "bedleft" -> "Bedleft". Generic string
+// util — used wherever a raw type/icon_state name needs to become a display label
+// (BuildTools.dm's GetTypeChoices(), GMCommands.dm's GM_CreateObj NPC naming).
+proc/Capitalize(text)
+    if(!text) return text
+    return uppertext(copytext(text, 1, 2)) + copytext(text, 2)
+
+// True if text ends with the confirmed OG night-suffix convention ("redcobble" ->
+// "redcobblenight", no separator). Shared by GM_DayNight's ToggleNightIconState
+// (Code/Admin/Commands/GMCommands.dm — the actual runtime day/night swap) and
+// BuildTools.dm's turf-variant picker (Code/Admin/Commands/BuildTools.dm — so "Day"
+// only ever offers variants GM_DayNight can actually toggle in place).
+proc/IsNightVariant(text)
+    if(!text) return FALSE
+    var/len = length(text)
+    return len > 5 && copytext(text, len - 4, len + 1) == "night"
+
+// Global battle-mode override — toggled by GM_BattleMode() in
 // Code/Admin/Commands/GMCommands.dm. Forces every area's battleModeOn to the same
 // value, disregarding each area type's own default (Code/World/Area.dm).
 var/global/battleModeGlobalOn = FALSE
@@ -174,7 +198,7 @@ mob/playerTemp
 
         EnableCommands() //now you can cause trouble in the world
         // EnableCommands() just added every /mob/verb-typed verb wholesale, including
-        // GM-only ones like GMtogglelog — re-run the GM verb sync (AdminLevels.dm) so
+        // GM-only ones like GM_ToggleLog — re-run the GM verb sync (AdminLevels.dm) so
         // that removal actually sticks for non-GMs.
         client.SyncGMVerbs()
         players << output("[src.name] has joined the world!!", "Messages")

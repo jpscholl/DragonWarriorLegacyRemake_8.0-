@@ -281,7 +281,7 @@ proc/CensorText(text)
 // excerpt, only login/logout lines carry one (and those spell it into the sentence
 // itself, "logs in at 1.2.3.4.", rather than going through this proc).
 //
-// GM-toggleable (GMtogglelog(), GMCommands.dm) — loggingEnabled only gates OUR own
+// GM-toggleable (GM_ToggleLog(), GMCommands.dm) — loggingEnabled only gates OUR own
 // lines here, not world.log itself: BYOND's automatic connect/disconnect/host events
 // keep writing to server.log regardless (that's the engine, not something this can
 // toggle without un-redirecting world.log entirely and losing those too).

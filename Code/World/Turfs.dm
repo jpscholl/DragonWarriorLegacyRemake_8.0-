@@ -26,6 +26,45 @@
 // automatically — see Step() in Code/Core/SmoothMovement.dm.
 mob/var/isSleeping = FALSE
 
+// GM-only stair travel toggles — independent per direction (see turf/stairs/
+// ToggleStairJump() below), so a GM can e.g. jump 2 levels going up while still
+// stepping 1 at a time going down. Everyone else always moves 1 level per stairway
+// regardless of these (TakeStairs() only reads them for mobs with canBuild).
+mob/var/stairJumpLevelsUp = 1
+mob/var/stairJumpLevelsDown = 1
+
+// Named-pair teleport link — shared by turf/warp (its whole purpose) and any turf/stairs
+// instance whose icon_state has no inferable up/down direction (castle/icecastle/black —
+// see turf/stairs' own header comment below). Defaults to a coordinate string at
+// creation so two freshly-placed, not-yet-linked points never accidentally match each
+// other; a GM renames one (or both) via DblClick() to link them — same name = same pair.
+turf/var/warpName = null
+
+turf/proc/EnsureWarpName()
+	if(!warpName) warpName = "[x],[y],[z]"
+
+// Finds another turf of the given family (istype-checked against baseType, e.g.
+// /turf/warp or /turf/stairs) sharing T's warpName — the other end of the pair. Doesn't
+// cross families: a warp only links to another warp, a stairs warp-point only links to
+// another stairs tile, even if a name collides across the two by coincidence.
+proc/FindWarpPartner(turf/T, baseType)
+	if(!T || !T.warpName) return null
+	for(var/turf/O in world)
+		if(O == T) continue
+		if(!istype(O, baseType)) continue
+		if(O.warpName == T.warpName) return O
+	return null
+
+// Shared rename-prompt for any warp-linked turf (turf/warp, or a non-directional
+// turf/stairs skin) — GM-only. Defaults the input to the current name so re-running it
+// without typing anything new is a no-op instead of clearing it.
+proc/RenameWarpTurf(turf/T, mob/M)
+	if(!T || !M || !M.client || !M.client.canBuild) return
+	var/newName = input(M, "Name this warp point (give the other end the SAME name to link them):", "Name Warp", T.warpName) as text|null
+	if(isnull(newName) || !length(trimtext(newName))) return
+	T.warpName = trimtext(newName)
+	M << output("This is now named \"[T.warpName]\".", "Info")
+
 // TEMPORARY VALUES — confirmed as "restore 1 of each per half second" for a BED,
 // explicitly expected to be retuned later. Real resting balance (rate, whether it
 // should scale with anything, whether an inn bed differs from one found in the world)
@@ -158,45 +197,112 @@ turf/table/longtablecenter
 		density = 1
 
 //stairs: no these aren't stairways to heaven just up or down a level
-//was: cavestairsup — now an instance (NOTE: this one never actually had stairs behavior
-//wired up even before the collapse — it had no Entered() override of its own and wasn't
-//parent_type'd to stairsup, so it was already non-functional as an up-staircase. Give it
-//parent_type = /turf/stairs/stairsup if that was supposed to work.)
+//was: cavestairsup — now an instance. This used to be non-functional (see git history)
+//because "up"/"down" behavior lived on the stairsup/stairsdown SUBTYPES only — any skin
+//painted on the bare base type (which is what the collapse above produces) inherited no
+//Entered() at all. Direction is now inferred from icon_state itself (GetStairDirection()
+//below) so EVERY skin works regardless of which of the three types (stairs/stairsup/
+//stairsdown) it's actually painted as an instance of.
 	stairs
 		icon = 'stairs.dmi'
 		density = 0
 
+		New()
+			..()
+			EnsureWarpName()
+
+		// +1/-1 for any skin whose icon_state names a direction (stoneup, wooddown,
+		// icecaveup, etc. — every real skin in stairs.dmi except castle/icecastle/black,
+		// confirmed against the actual icon_states() dump, not guessed). 0 for the ones
+		// that don't — those link by name instead, same mechanism as turf/warp (see
+		// FindWarpPartner()/RenameWarpTurf() near the top of this file).
+		proc/GetStairDirection()
+			if(findtext(icon_state, "up")) return 1
+			if(findtext(icon_state, "down")) return -1
+			return 0
+
+		// M << sound(...), not view() — view() filters by visibility rules
+		// (opacity/invisibility/see_invisible), and it turns out that filter can
+		// exclude M itself in edge cases (e.g. GM_GhostIconform sets invisibility = 1
+		// and icon = null, GMCommands.dm), so the sound silently never played for a
+		// ghosted GM taking the stairs. Sending straight to M sidesteps visibility
+		// rules entirely and guarantees the mob actually taking the stairs always
+		// hears it.
+		proc/PlayStairSound(mob/M)
+			M << sound('stairs.wav', repeat = 0, channel = SFX_CHANNEL, volume = M.client ? M.client.ScaledVolume() : 100)  // SFX_CHANNEL: .dme — not channel 1 (area music), so this doesn't interrupt it
+
+		// direction levels defaults to a plain walk-over (1); GMs can toggle their own
+		// stairJumpLevelsUp/Down between 1 and 2 via DblClick() below, which then
+		// applies to every future walk-over of that direction until toggled back.
+		proc/TakeStairs(mob/M, direction)
+			if(!M) return
+			var/levels = 1
+			if(M.client && M.client.canBuild)
+				levels = (direction > 0) ? M.stairJumpLevelsUp : M.stairJumpLevelsDown
+			PlayStairSound(M)  // has to fire BEFORE M.loc changes below, same reasoning as the comment above
+			var/turf/new_loc = locate(M.x, M.y, M.z + (direction * levels))
+			if(new_loc)
+				M.loc = new_loc
+
+		// GM-only toggle: double-clicking ANY directional stairs tile (no need to stand
+		// on it) flips stairJumpLevelsUp between 1 (normal) and 2 for EVERY stairs-up
+		// tile in the world at once — stairs-down has its own independent toggle the
+		// same way, so a GM can e.g. climb 2 levels at a time while still descending 1
+		// at a time. Handy for quickly crossing several Z-levels while building/testing
+		// without switching tools. Silent no-op for anyone without Builder access — this
+		// fires on every double-click of a completely ordinary, everyone-can-see world
+		// object, so no rejection message either.
+		//
+		// Reached two ways: DblClick() below (clicking a stairs tile from anywhere —
+		// atom click dispatch resolves normally there), and mob/DblClick() (Code/Player/
+		// Commands/PlayerVerbs.dm) for the case of standing directly ON the stairs,
+		// where your own mob sprite is the topmost atom at that screen position and the
+		// click hits yourself instead of the turf underneath — this proc is what that
+		// self-click path calls into as well.
+		proc/ToggleStairJump(mob/M, direction)
+			if(!M || !M.client || !M.client.canBuild) return
+			if(direction > 0)
+				M.stairJumpLevelsUp = (M.stairJumpLevelsUp == 1) ? 2 : 1
+				M << output("Stairs up will now move you [M.stairJumpLevelsUp] level[M.stairJumpLevelsUp == 1 ? "" : "s"] at a time.", "Info")
+			else
+				M.stairJumpLevelsDown = (M.stairJumpLevelsDown == 1) ? 2 : 1
+				M << output("Stairs down will now move you [M.stairJumpLevelsDown] level[M.stairJumpLevelsDown == 1 ? "" : "s"] at a time.", "Info")
+
+		Entered(atom/movable/A)
+			if(!ismob(A)) return
+			var/mob/M = A
+			var/direction = GetStairDirection()
+			if(direction)
+				TakeStairs(M, direction)
+			else
+				var/turf/partner = FindWarpPartner(src, /turf/stairs)
+				if(partner)
+					PlayStairSound(M)
+					M.loc = partner
+				else
+					M << output("This staircase doesn't lead anywhere yet.", "Info")
+//walking over causes player to warp levels (directional skins) or teleport to a
+//matching-named partner (castle/icecastle/black — see GetStairDirection() above)
+
+		// Directional skins toggle jump-levels (ToggleStairJump()); castle/icecastle/
+		// black have no direction to toggle, so they get the rename prompt instead
+		// (RenameWarpTurf(), top of file) — same double-click, different result
+		// depending on which skin is currently painted on this instance.
+		DblClick()
+			if(!usr) return
+			var/direction = GetStairDirection()
+			if(direction)
+				ToggleStairJump(usr, direction)
+			else
+				RenameWarpTurf(src, usr)
+
 		stairsup
 			name = "stairs"
 			icon_state = "stoneup"
-			Entered(atom/movable/A)
-				if(!ismob(A)) return
-				var/mob/M = A
-				// M << sound(...), not view() — view() filters by visibility rules
-				// (opacity/invisibility/see_invisible), and it turns out that filter
-				// can exclude M itself in edge cases (e.g. GMghostform sets
-				// invisibility = 1 and icon = null, GMCommands.dm), so the sound
-				// silently never played for a ghosted GM taking the stairs. Sending
-				// straight to M sidesteps visibility rules entirely and guarantees
-				// the mob actually taking the stairs always hears it. Also has to
-				// fire BEFORE M.loc changes below, same reasoning as before.
-				M << sound('stairs.wav', repeat = 0, channel = SFX_CHANNEL, volume = M.client ? M.client.ScaledVolume() : 100)  // SFX_CHANNEL: .dme — not channel 1 (area music), so this doesn't interrupt it
-				var/turf/new_loc = locate(M.x, M.y, M.z + 1)
-				if(new_loc)
-					M.loc = new_loc
-//walking over causes player to warp one Z level up
 
 		stairsdown
 			name = "stairs"
 			icon_state = "stonedown"
-			Entered(atom/movable/A)
-				if(!ismob(A)) return
-				var/mob/M = A
-				M << sound('stairs.wav', repeat = 0, channel = SFX_CHANNEL, volume = M.client ? M.client.ScaledVolume() : 100)  // see stairsup's notes above
-				var/turf/new_loc = locate(M.x, M.y, M.z - 1)
-				if(new_loc)
-					M.loc = new_loc
-//walking over causes player to warp one Z level down
 
 //walls: all and all we're just another brick in the wall
 //was: stonewall, stonewalledge, cobblewall, cobblewalledge, cavewall, cavewalledge,
@@ -235,7 +341,7 @@ turf/table/longtablecenter
 			M.canAct = FALSE
 			// M << sound(...), not view() -- see stairsup's note (Turfs.dm) on why:
 			// view()'s visibility filtering can exclude M itself in edge cases
-			// (e.g. GMghostform), silently swallowing the sound for exactly the
+			// (e.g. GM_GhostIconform), silently swallowing the sound for exactly the
 			// mob it's meant for. Also has to fire before the z-level change
 			// below, same reasoning as stairsup/stairsdown.
 			M << sound('fall.wav', repeat = 0, channel = SFX_CHANNEL, volume = M.client ? M.client.ScaledVolume() : 100)
@@ -264,8 +370,27 @@ turf/table/longtablecenter
 		icon = 'water.dmi'
 		density = 1
 
-//it teleports you duh (not actually built yet — no Entered()/teleport logic exists)
+//it teleports you duh — named-pair link (FindWarpPartner()/RenameWarpTurf(), top of
+//file): a GM double-clicks two warp tiles and gives them the SAME name to link them;
+//stepping on either one then sends you to the other. Same mechanism turf/stairs' non-
+//directional skins (castle/icecastle/black) use.
 //was: warp — now an instance of this type
 	warp
 		name = "warp"
 		icon = 'warp.dmi'
+
+		New()
+			..()
+			EnsureWarpName()
+
+		Entered(atom/movable/A)
+			if(!ismob(A)) return
+			var/mob/M = A
+			var/turf/partner = FindWarpPartner(src, /turf/warp)
+			if(partner)
+				M.loc = partner
+			else
+				M << output("This warp doesn't lead anywhere yet.", "Info")
+
+		DblClick()
+			if(usr) RenameWarpTurf(src, usr)

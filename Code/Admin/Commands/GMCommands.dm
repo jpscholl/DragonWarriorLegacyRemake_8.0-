@@ -1,4 +1,27 @@
 // -----------------------------
+// GM Announce
+// -----------------------------
+// Confirmed OG presentation (real screenshot): a plain "[GM] has an announcement" line,
+// then the message itself on its own line — big, bold, red, centered. `players`
+// (Code/Core/Main.dm), not `world <<`, matches the broadcast convention every other
+// server-wide message in this codebase already uses (SocialVerbs.dm's Broadcast()).
+// GM-tier power — this reaches every connected player at once.
+mob/verb/GM_Announce()
+    set category = "GM"
+    set desc = "Broadcasts a big red announcement to every connected player"
+
+    if(!client || client.adminLevel < LEVEL_GM_HOST)
+        src << output("You don't have GM access.", "Info")
+        return
+
+    var/msg = input(src, "Announcement:", "GM_Announce") as text|null
+    if(isnull(msg) || !length(trimtext(msg))) return
+    msg = trimtext(msg)
+
+    players << output("<center>[src.name] has an announcement</center>", "Messages")
+    players << output("<center><font color='red' size='5'><b>[msg]</b></font></center>", "Messages")
+
+// -----------------------------
 // GM Ghost Form
 // -----------------------------
 // GHOST_INVISIBILITY is deliberately its own tier, ABOVE obj/ceiling's
@@ -62,7 +85,7 @@ mob/proc/ToggleGhostForm()
         src << output("You disappear!", "Info")
 
 // GM verb to toggle ghostIcon form — Admin-category power (Code/Admin/AdminLevels.dm)
-mob/verb/GMghostIconform()
+mob/verb/GM_GhostIconform()
     set category = "GM"
 
     if(!client || !client.canAdmin)
@@ -76,7 +99,7 @@ mob/verb/GMghostIconform()
 // -----------------------------
 // Flips adultServer (Code/Core/Main.dm) — TRUE disables the general-profanity list,
 // leaving only banned_words_always (slurs/hate speech) enforced. Admin-category power.
-mob/verb/GMToggleProfanityFilter()
+mob/verb/GM_ToggleProfanityFilter()
     set category = "GM"
     set desc = "Turns the general-profanity filter (names/chat) on or off"
 
@@ -88,39 +111,96 @@ mob/verb/GMToggleProfanityFilter()
     src << output("Profanity filter is now [adultServer ? "OFF" : "ON"] (adultServer = [adultServer]).", "Info")
 
 // -----------------------------
-// GM Create Lockable
+// GM Create Obj
 // -----------------------------
-// Creates a lockable object and its matching key together in one step, so they can't
-// get out of sync. Builder-category power (world content creation), not Admin.
-mob/verb/GM_Create_Lockable()
+// Creates any of the game's functional world objects at the GM's own location — not
+// mouse-placed like GM_MakeTurf/GM_MakeMob/GM_MakeArea, since several of these need a
+// per-instance text prompt right at creation (a lockable's name, a sign's message) that
+// doesn't fit a click-to-place flow. Builder-category power (world content creation),
+// not Admin. NPC included per its own comment (Code/World/NPCs.dm) — no dialogue/AI
+// yet, just a placeable placeholder body for now.
+mob/verb/GM_CreateObj()
     set category = "GM"
-    set desc = "Creates a lockable object (e.g. a door) and its matching key"
+    set desc = "Creates a functional obj (or a placeholder NPC) at your location"
 
     if(!client || !client.canBuild)
         src << output("You don't have Builder access.", "Info")
         return
 
-    // Only doors exist as a lockable type for now — add more here once other lockable
-    // types exist (each needs its own is_locked var + OnInteract() check, same as
-    // obj/door's in Code/World/Obj.dm).
-    var/list/lockableTypes = list("Door" = /obj/door)
-    var/choice = input(src, "Choose a lockable object type:", "Create Lockable") in lockableTypes
-    var/lockableType = lockableTypes[choice]
+    var/list/choices = list(
+        "Door" = /obj/door,
+        "Bookcase" = /obj/stat/bookcase,
+        "Pot" = /obj/stat/pot,
+        "Drawers" = /obj/stat/drawers,
+        "Sign" = /obj/stat/sign,
+        "NPC" = /mob/npc,
+    )
 
-    var/lockName = input(src, "Name this [choice] (a matching key will be created too):", "Name It") as text|null
+    var/choice = input(src, "Choose what to create:", "GM_CreateObj") in choices
+    if(!choice) return
+    var/pickedType = choices[choice]
+
+    if(pickedType == /mob/npc)
+        CreateNPC()
+    else if(pickedType == /obj/door)
+        // Only doors exist as a lockable type for now — add more here once other
+        // lockable types exist (each needs its own is_locked var + OnInteract() check,
+        // same as obj/door's in Code/World/Obj.dm).
+        CreateDoor(pickedType, choice)
+    else if(pickedType == /obj/stat/sign)
+        CreateSign()
+    else
+        new pickedType(loc)
+        src << output("Created [choice].", "Info")
+
+// Door skins (wooden/jail/dw1/silver/gold/snow/ice, each with a night variant) are all
+// one real type (obj/door, Code/World/Obj.dm) painted as different icon_state
+// instances — same collapse convention as turfs, so GetCachedIconStates()
+// (Code/Combat/CombatSystem.dm) reads door.dmi directly instead of a hardcoded list.
+// "open" excluded — that's the shared mid-interaction sprite every skin swaps to on
+// open() (Obj.dm), not a selectable skin. Night split matches GM_MakeTurf's.
+mob/proc/CreateDoor(doorType, choiceLabel)
+    var/list/states = GetCachedIconStates(initial(doorType:icon))
+    states -= "open"
+
+    var/list/dayStates = list()
+    var/list/nightStates = list()
+    for(var/s in states)
+        if(IsNightVariant(s)) nightStates += s
+        else dayStates += s
+
+    var/list/finalStates = dayStates
+    if(nightStates.len)
+        var/period = input(src, "Day or Night door skin?", "GM_CreateObj") in list("Day", "Night")
+        finalStates = (period == "Night") ? nightStates : dayStates
+
+    var/skin = input(src, "Choose a door skin:", "GM_CreateObj") in finalStates
+    CreateLockable(doorType, choiceLabel, skin)
+
+// Creates a lockable object and its matching key together in one step, so they can't
+// get out of sync. lockableType is only known at runtime (chosen from GM_CreateObj's
+// input), so the compiler can't statically verify "name"/"is_locked"/"closed_icon_state"
+// exist on it — set them dynamically via vars[] instead, same pattern already used in
+// StatAllocation() in Code/UI/LoginMenu.dm. Typed as /atom (not left bare) so the
+// compiler knows it has a vars[] list at all — every future lockable type will still be
+// some kind of atom. icon_state itself IS a builtin /atom var (unlike the other two),
+// so that one's set directly rather than through vars[].
+mob/proc/CreateLockable(lockableType, choiceLabel, skin = null)
+    var/lockName = input(src, "Name this [choiceLabel] (a matching key will be created too):", "Name It") as text|null
     if(isnull(lockName) || !length(trimtext(lockName)))
         src << output("Cancelled — no name given.", "Info")
         return
     lockName = trimtext(lockName)
 
-    // lockableType is only known at runtime (chosen from input), so the compiler can't
-    // statically verify "name"/"is_locked" exist on it — set them dynamically via vars[]
-    // instead, same pattern already used in StatAllocation() in Code/UI/LoginMenu.dm.
-    // Typed as /atom (not left bare) so the compiler knows it has a vars[] list at all —
-    // every future lockable type will still be some kind of atom.
     var/atom/newLockable = new lockableType(loc)
     newLockable.vars["name"] = lockName
     newLockable.vars["is_locked"] = TRUE
+    if(skin)
+        // Sets both the sprite AND the sprite close() restores to (Obj.dm) — without
+        // the latter, opening then closing a freshly-skinned door would snap back to
+        // the type's compiled-in default ("wooden") instead of staying jail/silver/etc.
+        newLockable.icon_state = skin
+        newLockable.vars["closed_icon_state"] = skin
 
     var/obj/item/key/newKey = new
     newKey.keyName = lockName
@@ -133,27 +213,57 @@ mob/verb/GM_Create_Lockable()
 
     src << output("Created a locked [lockName] and put its key in your inventory.", "Info")
 
+// Signs are otherwise plain (Code/World/Obj.dm) except for their per-instance message
+// var — set it right at creation instead of leaving it at the default "..." (its own
+// comment already called out a GM-creation verb setting this per-instance).
+mob/proc/CreateSign()
+    var/message = input(src, "What should this sign say?", "Sign Message") as text|null
+    if(isnull(message) || !length(trimtext(message))) message = "..."
+    else message = trimtext(message)
+
+    var/obj/stat/sign/newSign = new(loc)
+    newSign.message = message
+    src << output("Created a sign.", "Info")
+
+// icon_state offered here comes straight from npc.dmi's own real sprite set
+// (GetCachedIconStates(), Code/Combat/CombatSystem.dm) — merchant/guard/priest/etc. —
+// not hardcoded, so a new sprite added to the file is selectable immediately.
+mob/proc/CreateNPC()
+    var/list/states = GetCachedIconStates('npc.dmi')
+    if(!states.len)
+        src << output("No NPC sprites found.", "Info")
+        return
+    var/stateChoice = input(src, "Choose an NPC appearance:", "GM_CreateObj") in states
+
+    var/npcName = input(src, "Name this NPC:", "Name It") as text|null
+    npcName = (isnull(npcName) || !length(trimtext(npcName))) ? Capitalize(stateChoice) : trimtext(npcName)
+
+    var/mob/npc/newNPC = new(loc)
+    newNPC.icon_state = stateChoice
+    newNPC.name = npcName
+
+    src << output("Created [npcName] the NPC.", "Info")
+
 // -----------------------------
 // GM Day/Night Toggle
 // -----------------------------
 // Appends/strips the "night" suffix on one atom's icon_state — shared by both the
 // turf and obj loops below, which used to each duplicate this logic once per
-// direction (4 near-identical blocks total).
+// direction (4 near-identical blocks total). IsNightVariant() (Code/Core/Main.dm) is
+// the shared "does this end in the night suffix" check.
 proc/ToggleNightIconState(atom/A, toNight)
     if(!A.icon_state) return
     if(toNight)
         A.icon_state += "night"
-    else
-        var/len = length(A.icon_state)
-        if(len > 5 && copytext(A.icon_state, len - 4, len + 1) == "night")
-            A.icon_state = copytext(A.icon_state, 1, len - 4)
+    else if(IsNightVariant(A.icon_state))
+        A.icon_state = copytext(A.icon_state, 1, length(A.icon_state) - 4)
 
 // Swaps every turf/obj's icon_state to its night variant and back. Confirmed OG
 // convention: night states are just the day icon_state with "night" appended directly
 // (e.g. "redcobble" -> "redcobblenight"), no separator, and it's world-icons only —
 // mobs don't have night sprites. GM-tier power (both Builder+Admin combined), not
 // Admin or Builder alone.
-mob/verb/GMdaynight()
+mob/verb/GM_DayNight()
     set category = "GM"
     set desc = "Toggles day/night for every turf and obj in the world"
 
@@ -179,7 +289,7 @@ mob/verb/GMdaynight()
 // events keep writing to server.log regardless — that's the engine, not this. GM-tier
 // power, not Admin, since it's about who can talk without being logged, not general
 // server admin — players never see this verb at all (not just gated on use).
-mob/verb/GMtogglelog()
+mob/verb/GM_ToggleLog()
     set category = "GM"
     set desc = "Turns chat/login logging (server.log) on or off"
 
@@ -198,7 +308,7 @@ mob/verb/GMtogglelog()
 // side effects LevelCheck() does on a real level-up (StatPoints, RecalculateVitals())
 // instead, so this actually increases Level rather than just being a shortcut to it.
 // GM-tier power, matching the confirmed OG command name.
-mob/verb/GMlevelincrease()
+mob/verb/GM_LevelIncrease()
     set category = "GM"
     set desc = "Increases your level by a chosen amount, same as leveling up normally"
 
@@ -206,7 +316,7 @@ mob/verb/GMlevelincrease()
         src << output("You don't have GM access.", "Info")
         return
 
-    var/amount = input(src, "How many levels to add?", "GMlevelincrease", 1) as num
+    var/amount = input(src, "How many levels to add?", "GM_LevelIncrease", 1) as num
     if(isnull(amount) || amount < 1) return
     amount = round(amount)
 
@@ -228,7 +338,7 @@ mob/verb/GMlevelincrease()
 // battleModeOn on the base area type (Code/World/Area.dm) and InBattleArea()
 // (Code/Combat/CombatSystem.dm), which checks it. GM-tier power, matching the
 // original design notes.
-mob/verb/GMbattlemode()
+mob/verb/GM_BattleMode()
     set category = "GM"
     set desc = "Toggles battle mode for one area, or every area at once"
 
@@ -240,12 +350,12 @@ mob/verb/GMbattlemode()
     for(var/area/A in world)
         areaChoices["[A.name] ([A.type])"] = A
 
-    var/choice = input(src, "Choose an area to toggle battle mode (or All Areas):", "GMbattlemode") in areaChoices
+    var/choice = input(src, "Choose an area to toggle battle mode (or All Areas):", "GM_BattleMode") in areaChoices
     var/selection = areaChoices[choice]
     if(!selection) return  // "None" selected, cancel
 
     if(selection == "ALL")
-        // Global override, same shape as GMdaynight() above — disregards each area
+        // Global override, same shape as GM_DayNight() above — disregards each area
         // type's own default (Area.dm) while active.
         battleModeGlobalOn = !battleModeGlobalOn
         for(var/area/A in world)
@@ -255,6 +365,54 @@ mob/verb/GMbattlemode()
         var/area/target = selection
         target.battleModeOn = !target.battleModeOn
         src << output("[target.name] is now [target.battleModeOn ? "a dangerous area" : "a peaceful area"].", "Info")
+
+// -----------------------------
+// GM Kill Monsters
+// -----------------------------
+// Kills monsters through the real death pipeline (Die()/CleanUpDead(), CombatSystem.dm)
+// instead of a raw del() — so they play the actual hit sound, get the "sleep" icon_state
+// knockout pose Die() sets on every enemy death, credit src with exp/gold same as a real
+// kill, and linger as a corpse for CleanUpDead()'s normal delay before disappearing,
+// exactly like dying in combat. Deliberately skips TakeDamage()'s RollDodge()/damage
+// math though — this is meant to always land ("Overpowered attack that instant kills"),
+// not be a normal attack that can whiff or get reduced by defending.
+//
+// "All option at the top, then every real type" shape matches GM_BattleMode's own area
+// list above. Monster type entries reuse GetTypeChoices(/mob/enemy)
+// (Code/Admin/Commands/BuildTools.dm) — the same typesof()-driven list GM_MakeMob
+// builds its picker from — rather than re-deriving the type/display-name list here.
+// Destructive world-wide action, so GM-tier power like GM_DayNight/GM_BattleMode, not
+// just Builder-tier.
+mob/verb/GM_KillMonsters()
+    set category = "GM"
+    set desc = "Instantly kills monsters through the real death process, by type or all at once"
+
+    if(!client || client.adminLevel < LEVEL_GM_HOST)
+        src << output("You don't have GM access.", "Info")
+        return
+
+    var/list/choices = list("All" = "all")
+    var/list/monsterChoices = GetTypeChoices(/mob/enemy)
+    monsterChoices -= "None"
+    choices += monsterChoices
+
+    var/choice = input(src, "Kill which monsters?", "GM_KillMonsters") in choices
+    if(!choice) return
+    var/picked = choices[choice]
+
+    var/killed = 0
+    for(var/mob/enemy/E in world)
+        if(E.HP <= 0) continue  // already dead and lingering through CleanUpDead()'s delay
+        if(picked != "all" && E.type != picked) continue
+
+        flick("hit", E)
+        PlaySFXAt(E, 'enemyhit.wav')
+        E.HP = 0
+        E.Die(src)
+        E.CleanUpDead()
+        killed++
+
+    world << output("[src] killed [killed] monster[killed == 1 ? "" : "s"][picked == "all" ? "" : " ([choice])"].", "Info")
 
 // -----------------------------
 // GM See Areas Toggle
@@ -285,7 +443,7 @@ mob/var/list/areaOverlayImages
 mob/var/seeingAreas = FALSE
 mob/var/turf/areaOverlayLastLoc
 
-mob/verb/GMseeareas()
+mob/verb/GM_SeeAreas()
     set category = "GM"
     set desc = "Toggles a visual overlay showing which area each tile belongs to"
 

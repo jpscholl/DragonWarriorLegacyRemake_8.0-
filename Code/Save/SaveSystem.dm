@@ -128,7 +128,7 @@ datum/SaveManager
         var/client/C = M.client
         C.mob = newPlayer
         // The new mob's own verb list starts fresh from its type declaration (includes
-        // GM-only verbs like GMtogglelog by default) — re-sync (AdminLevels.dm) so a
+        // GM-only verbs like GM_ToggleLog by default) — re-sync (AdminLevels.dm) so a
         // non-GM's removal carries over from the old temp mob.
         C.SyncGMVerbs()
         newPlayer.loc = PLAYER_SPAWN
