@@ -89,7 +89,7 @@ menu "menu"
 window "Main"
 	elem "Main"
 		type = MAIN
-		pos = 291,0
+		pos = 572,236
 		size = 1400x860
 		anchor1 = -1,-1
 		anchor2 = -1,-1
@@ -100,7 +100,7 @@ window "Main"
 		macro = "macro"
 		menu = "menu"
 		outer-size = 1416x919
-		outer-pos = 291,0
+		outer-pos = 572,236
 		inner-size = 1400x860
 		inner-pos = 8,51
 		screen-size = 2560x1392
@@ -114,24 +114,24 @@ window "Main"
 		letterbox = false
 	elem "StatsCommands"
 		type = INFO
-		pos = 832,0
-		size = 750x279
+		pos = 836,0
+		size = 750x255
 		anchor1 = 52,0
 		anchor2 = 100,31
 		saved-params = ""
 		tab-background-color = none
 	elem "Info"
 		type = OUTPUT
-		pos = 832,279
-		size = 750x310
+		pos = 836,259
+		size = 750x284
 		anchor1 = 52,31
-		anchor2 = 100,66
+		anchor2 = 100,65
 		saved-params = "max-lines"
 	elem "Messages"
 		type = OUTPUT
-		pos = 832,589
-		size = 750x311
-		anchor1 = 52,66
+		pos = 836,547
+		size = 750x285
+		anchor1 = 52,65
 		anchor2 = 100,100
 		saved-params = "max-lines"
 

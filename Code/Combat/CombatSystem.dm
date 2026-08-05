@@ -253,7 +253,7 @@ mob/proc
 // Elemental scaffolding — real, working code, but currently inert: nothing anywhere
 // yet actually sets elementalWeakness/elementalResistance on a player or monster, so
 // these checks never trigger in practice until something does. Same pattern as
-// Area.dm's battleModeOn/weather vars before GMbattlemode wired them up — the
+// Area.dm's battleModeOn/weather vars before GM_BattleMode wired them up — the
 // plumbing exists now, behavior gets populated later. Confirmed remake idea (not
 // OG-derived) — see TODOList.md Phase 6 for the bigger open questions this doesn't
 // answer yet (how many elements, whether player affinity is a creation-time choice).
@@ -346,7 +346,7 @@ proc/IsCardinallyAdjacent(atom/A, atom/B, range=1)
 
 mob/proc
     // Check if the mob is in a battle-enabled area — checks the real per-area
-    // battleModeOn var (Code/World/Area.dm), set via GMbattlemode
+    // battleModeOn var (Code/World/Area.dm), set via GM_BattleMode
     // (Code/Admin/Commands/GMCommands.dm).
     InBattleArea()
         var/turf/T = src.loc

@@ -11,6 +11,23 @@ mob/verb/Help()
     src << browse("<h3>Dragon Warrior Legacy Remake</h3><p>Help content coming soon.</p>", "window=help;size=400x300")
 
 // -----------------------------
+// Self-click dispatch
+// -----------------------------
+// Standing on the stairs and double-clicking your own tile hits your own mob sprite —
+// the topmost atom at that screen position — not the turf beneath it, so
+// turf/stairs/DblClick() (Code/World/Turfs.dm) never sees that click. This catches
+// exactly that case (clicking yourself while on a stairs tile) and hands off to the
+// same ToggleStairJump() the turf's own DblClick() uses for the "clicked a stairs tile
+// you're NOT standing on" case, so both paths land in one place. Falls through to ..()
+// for every other double-click (e.g. mob/enemy/DblClick()'s pet menu, EnemyNPCs.dm).
+mob/DblClick()
+    if(usr == src && istype(loc, /turf/stairs))
+        var/turf/stairs/S = loc
+        S.ToggleStairJump(src)
+        return
+    ..()
+
+// -----------------------------
 // General Player Verbs
 // -----------------------------
 mob/verb/Interact()
@@ -72,7 +89,7 @@ mob/verb/Interact()
 // until the real data (TODOList.md Phase 2/4) exists.
 // -----------------------------
 mob/verb/Look()
-    set category = "Inventory/Action"
+    set category = "Action"
     set desc = "Shows players in view and their basic info"
 
     src << output("<b>Players in view:</b>", "Info")
@@ -93,7 +110,7 @@ mob/verb/Look()
 // direction you're already facing actually steps.
 // -----------------------------
 mob/verb/TurnWalk()
-    set category = "Inventory/Action"
+    set category = "Action"
     set desc = "Toggle: face a new direction before walking that way, instead of moving instantly"
 
     turnWalkMode = !turnWalkMode

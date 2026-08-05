@@ -42,7 +42,7 @@ obj/item
     verb/Drop()
         set src in usr
         set name = "Drop"
-        set category = "Inventory/Action"
+        set category = "Action"
 
         if(!ismob(loc)) return
         var/mob/M = loc
@@ -55,7 +55,7 @@ obj/item
     verb/Give(mob/player/target in view(5, usr))
         set src in usr
         set name = "Give"
-        set category = "Inventory/Action"
+        set category = "Action"
 
         if(!ismob(loc)) return
         var/mob/M = loc
@@ -77,9 +77,6 @@ obj/item/key
     icon = 'key.dmi'
     icon_state = "key"
     var/keyName
-
-    UseItem(mob/user)
-        user << output("This is a key named \"[keyName]\".", "Info")
 
     // Double-clicking a key while carrying it and facing a matching-named door toggles
     // that door's lock. Requires a name match, same as OnInteract()'s access check in

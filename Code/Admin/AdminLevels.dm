@@ -66,47 +66,51 @@ client
 
     // Every verb below now lives in the single consolidated "GM" category (Stage 5
     // verb reorg — was split across Admin/Builder/GM). This used to only cover
-    // GMtogglelog ("every OTHER GM verb here is still visible-to-everyone-but-
+    // GM_ToggleLog ("every OTHER GM verb here is still visible-to-everyone-but-
     // rejected-on-use" per the old comment, matching TODOList.md's Admin verbs note) —
-    // extended to all 10 so a player without sufficient access doesn't see a verb they
-    // can't use at all, instead of seeing it and getting rejected on click. Each verb
-    // still keeps its own internal canBuild/canAdmin/adminLevel check too (defense in
-    // depth) — this only controls whether it's offered in the first place. Verbs live
+    // extended to all of them so a player without sufficient access doesn't see a verb
+    // they can't use at all, instead of seeing it and getting rejected on click. Each
+    // verb still keeps its own internal canBuild/canAdmin/adminLevel check too (defense
+    // in depth) — this only controls whether it's offered in the first place. Verbs live
     // per-mob, not per-client, so this needs re-running whenever `mob` changes — called
     // here (ApplyAdminLevel(), covers the initial mob/playerTemp) and again from
     // FinalizePlayer() (LoginMenu.dm)/LoadCharacter() (SaveSystem.dm)/BecomeSage()
     // (PlayerTemplate.dm) once the real mob/player character takes over.
     //
     // MAINTENANCE NOTE: this is the one central place a verb's access tier is
-    // declared — its own internal check (e.g. GMmaketurf's `if(!client.canBuild)`)
+    // declared — its own internal check (e.g. GM_MakeTurf's `if(!client.canBuild)`)
     // only rejects on USE, it doesn't hide the verb. A future GM verb that gets its
     // internal check right but isn't added to one of the three lists below will still
     // be visible-but-rejected for anyone below that tier — the exact bug this proc was
-    // extended to fix for the other 10. DM verbs can't carry their own custom
-    // metadata to read back generically here, so there's no way to derive these lists
-    // automatically; a new GM verb needs a manual entry below.
+    // extended to fix for the others (GM_KillMonsters was missing here entirely until
+    // this pass — same bug, just never caught since nothing failed loudly). DM verbs
+    // can't carry their own custom metadata to read back generically here, so there's
+    // no way to derive these lists automatically; a new GM verb needs a manual entry
+    // below. Naming convention: every GM verb is GM_PascalCase (e.g. GM_MakeMob) — one
+    // consistent style makes accidental omissions like the GM_KillMonsters one easier
+    // to spot by eye.
     proc/SyncGMVerbs()
         if(!mob) return
 
         var/list/builderVerbs = list(
-            /mob/verb/TestBuilderVerb,
-            /mob/verb/GM_Create_Lockable,
-            /mob/verb/GMseeareas,
-            /mob/verb/GMmaketurf,
-            /mob/verb/GMmakemob,
-            /mob/verb/GMmakearea,
-            /mob/verb/GMmaketool,
+            /mob/verb/GM_CreateObj,
+            /mob/verb/GM_SeeAreas,
+            /mob/verb/GM_MakeTurf,
+            /mob/verb/GM_MakeMob,
+            /mob/verb/GM_MakeArea,
+            /mob/verb/GM_MakeTool,
         )
         var/list/adminVerbs = list(
-            /mob/verb/TestAdminVerb,
-            /mob/verb/GMghostIconform,
-            /mob/verb/GMToggleProfanityFilter,
+            /mob/verb/GM_GhostIconform,
+            /mob/verb/GM_ToggleProfanityFilter,
         )
         var/list/gmHostVerbs = list(
-            /mob/verb/GMdaynight,
-            /mob/verb/GMtogglelog,
-            /mob/verb/GMlevelincrease,
-            /mob/verb/GMbattlemode,
+            /mob/verb/GM_DayNight,
+            /mob/verb/GM_ToggleLog,
+            /mob/verb/GM_LevelIncrease,
+            /mob/verb/GM_BattleMode,
+            /mob/verb/GM_KillMonsters,
+            /mob/verb/GM_Announce,
         )
 
         if(canBuild)
@@ -124,25 +128,3 @@ client
         else
             mob.verbs -= gmHostVerbs
 
-// -----------------------------
-// Test verbs — confirm who gets what before any real Builder/Admin tools exist
-// -----------------------------
-mob/verb/TestBuilderVerb()
-    set category = "GM"
-    set desc = "Test verb - requires Builder-category access"
-
-    if(!client || !client.canBuild)
-        src << output("You don't have Builder access.", "Info")
-        return
-
-    src << output("Builder test verb worked! (adminLevel=[client.adminLevel])", "Info")
-
-mob/verb/TestAdminVerb()
-    set category = "GM"
-    set desc = "Test verb - requires Admin-category access"
-
-    if(!client || !client.canAdmin)
-        src << output("You don't have Admin access.", "Info")
-        return
-
-    src << output("Admin test verb worked! (adminLevel=[client.adminLevel])", "Info")

@@ -131,9 +131,8 @@ obj
 			var/message = "..."   // shown to whoever reads the sign
 
 			// World-placed signs get their message set per-instance via the map
-			// editor now, like their name/icon. Player-placed signs (via the future
-			// GM_MakeObj verb) will set this per-instance too — this proc doesn't
-			// care which happened.
+			// editor. GM-placed signs (GM_CreateObj's CreateSign(), GMCommands.dm) set
+			// this per-instance too — this proc doesn't care which happened.
 			OnInteract(mob/user)
 				user << output("<b>[name]</b><br>[message]", "Messages")
 				return TRUE

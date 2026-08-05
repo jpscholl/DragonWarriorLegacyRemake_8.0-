@@ -74,6 +74,7 @@
 #include "Code\UI\PaletteManager.dm"
 #include "Code\World\Area.dm"
 #include "Code\World\Interaction.dm"
+#include "Code\World\NPCs.dm"
 #include "Code\World\Obj.dm"
 #include "Code\World\Turfs.dm"
 #include "Maps\OGDWLv8.0.dmm"
