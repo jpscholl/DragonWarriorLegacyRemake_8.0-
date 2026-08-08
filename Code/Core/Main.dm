@@ -21,6 +21,15 @@
 */
 
 // -------------------- Global Settings --------------------
+
+// Remake's own version, independent of the "8.0" in the OG this is based on (see
+// header above) — pre-1.0 SemVer. Bump the middle number for a build pass that adds
+// a feature set (a commit like "Mechanics-first build pass" or "GM moderation tools"),
+// the last number for a fix-only commit in between, and land on 1.0.0 once the game is
+// playable start to finish. Shown on the login menu (ShowLoginMenu(), LoginMenu.dm) and
+// logged in CHANGELOG.md alongside what each bump actually changed.
+#define GAME_VERSION "0.7.0"
+
 var/list/players = list()
 
 // Volume slider fallbacks for a player who's never touched them (SaveManager.

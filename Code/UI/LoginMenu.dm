@@ -50,7 +50,7 @@ proc/ShowLoginMenu(mob/playerTemp/M)
 
     options += "Quit"
 
-    var/choice = input(M, "Welcome to Dragon Warrior Legacy", "Login Menu") in options
+    var/choice = input(M, "Welcome to Dragon Warrior Legacy", "Login Menu v[GAME_VERSION]") in options
 
     if(findtext(choice, "Load "))
         var/slot = text2num(copytext(choice, findtext(choice, "Slot ") + 5))
