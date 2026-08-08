@@ -142,6 +142,63 @@ area
 		icon_state = "rave"
 
 
+// -----------------------------
+// World spawn markers — confirmed OG names "playerstart" (login) / "playerspawn"
+// (after-death respawn), confirmed distinct from each other (GMCommandsReference.md's
+// Builder tier section: GMseeareas shows login spawns and death/respawn spawns as
+// separately-marked types). Built as plain OBJECTS, not areas — a turf only ever
+// belongs to ONE area, so an area-based marker painted onto an existing Town/Dungeon/
+// etc. tile would silently strip that tile of its real area's music/battle-mode/
+// everything else. An object sitting on top of a tile doesn't touch its area at all.
+// Also matches the OG closer than an area would have: GMmakestat (the OG's stat-object
+// placement tool) lists both of these among its stat types, not among area types.
+//
+// invisibility this high keeps them unseen by every normal client regardless of
+// indoor/outdoor see_invisible swings (area/ceiling's Entered()/Exited() above only
+// ever sets 0 or 1) — "can only be seen as an area for GMs" means GM_SeeAreas'
+// overlay specifically, not merely being a GM; nothing renders these directly, ever.
+#define SPAWN_MARKER_INVISIBILITY 100
+
+obj/spawnMarker
+	density = 0
+	invisibility = SPAWN_MARKER_INVISIBILITY
+
 	playerStart
 		icon = 'door.dmi'
 		icon_state = "wooden"
+
+	playerSpawn
+		icon = 'sign.dmi'
+		icon_state = "church"
+
+// Finds a random tile with a marker of the given type on it — lets a host building
+// their own map just place the marker wherever they want (playerStart for the world
+// login point, playerSpawn for after-death respawn) instead of a hardcoded coordinate
+// baked into the code. Multiple markers of the same type are all pooled together so a
+// host can lay down more than one without extra work. Falls back to PLAYER_SPAWN (the
+// old hardcoded coordinate, .dme) with a log line if the map has no such marker at
+// all yet, so a map that hasn't been updated for this system (or is just missing the
+// marker by mistake) doesn't strand a spawning/respawning player.
+proc/FindSpawnTurf(markerType, markerLabel)
+	var/list/candidates = list()
+	for(var/obj/spawnMarker/M in world)
+		if(!istype(M, markerType)) continue
+		if(M.loc) candidates += M.loc
+
+	if(candidates.len) return pick(candidates)
+
+	world.log << "WARNING: no [markerLabel] marker found on this map — falling back to PLAYER_SPAWN."
+	return PLAYER_SPAWN
+
+// World login point — character creation (FinalizePlayer(), LoginMenu.dm), character
+// load (LoadCharacter(), SaveSystem.dm), and the Return spell (SkillCatalog.dm) all
+// use this same spot.
+proc/GetPlayerSpawnTurf()
+	return FindSpawnTurf(/obj/spawnMarker/playerStart, "playerStart (world login point)")
+
+// After-death respawn — Respawn verb (PlayerVerbs.dm) only. Deliberately separate
+// from GetPlayerSpawnTurf() above: confirmed OG design ("playerspawn", distinct from
+// "playerstart") uses a different marker (church sign vs. wooden door) for this, not
+// the same spot as the world login point.
+proc/GetRespawnTurf()
+	return FindSpawnTurf(/obj/spawnMarker/playerSpawn, "playerSpawn (after-death respawn)")

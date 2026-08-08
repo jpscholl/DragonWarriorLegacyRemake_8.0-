@@ -223,7 +223,7 @@ turf/table/longtablecenter
 
 		// M << sound(...), not view() — view() filters by visibility rules
 		// (opacity/invisibility/see_invisible), and it turns out that filter can
-		// exclude M itself in edge cases (e.g. GM_GhostIconform sets invisibility = 1
+		// exclude M itself in edge cases (e.g. GM_GhostForm sets invisibility = 1
 		// and icon = null, GMCommands.dm), so the sound silently never played for a
 		// ghosted GM taking the stairs. Sending straight to M sidesteps visibility
 		// rules entirely and guarantees the mob actually taking the stairs always
@@ -341,7 +341,7 @@ turf/table/longtablecenter
 			M.canAct = FALSE
 			// M << sound(...), not view() -- see stairsup's note (Turfs.dm) on why:
 			// view()'s visibility filtering can exclude M itself in edge cases
-			// (e.g. GM_GhostIconform), silently swallowing the sound for exactly the
+			// (e.g. GM_GhostForm), silently swallowing the sound for exactly the
 			// mob it's meant for. Also has to fire before the z-level change
 			// below, same reasoning as stairsup/stairsdown.
 			M << sound('fall.wav', repeat = 0, channel = SFX_CHANNEL, volume = M.client ? M.client.ScaledVolume() : 100)

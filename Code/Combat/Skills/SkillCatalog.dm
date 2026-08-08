@@ -649,8 +649,8 @@ datum/skill/Meditate
             user.canAct = TRUE
 
 // Teleports the caster back to the spawn point — the confirmed Dragon Warrior "return
-// to town" spell. PLAYER_SPAWN is the same define FinalizePlayer()/LoadCharacter()
-// (LoginMenu.dm/SaveSystem.dm) already use.
+// to town" spell. GetPlayerSpawnTurf() (Area.dm) is the same world-login-point lookup
+// FinalizePlayer()/LoadCharacter() (LoginMenu.dm/SaveSystem.dm) already use.
 datum/skill/Return
     parent_type = /datum/skill
     New()
@@ -676,7 +676,7 @@ datum/skill/Return
 
         spawn(cast_time)
             if(!user.isDead)
-                user.loc = PLAYER_SPAWN
+                user.loc = GetPlayerSpawnTurf()
                 user << output("You return to town!", "Info")
 
         spawn(user.GetAttackDelay(src, FALSE))

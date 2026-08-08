@@ -566,7 +566,7 @@ not gospel). New confirmed mechanics not previously in this file:
       #include-order reason as `SPRITE_PIXEL_Y_OFFSET`) and put every one-shot
       combat/event sound on it explicitly: `attack`/`enemyattack`/`hit`/`enemyhit`/
       `dodge`/`enemydodge`/`spell.wav` (`CombatSystem.dm`), `stairs.wav`/`fall.wav`
-      (`Turfs.dm`), `door.wav` (`Obj.dm`), and `GMghostIconform`'s `spell.WAV`
+      (`Turfs.dm`), `door.wav` (`Obj.dm`), and `GM_GhostForm`'s `spell.WAV`
       (`GMCommands.dm`). `levelup.wav` already had its own channel (2), so it was
       never part of this bug and was left alone.
 - [x] Skill datum base + 2 skills (Attack, Fireball) (`SkillDatum.dm`) — **both are
@@ -972,9 +972,9 @@ not gospel). New confirmed mechanics not previously in this file:
          roof sprite, `Obj.dm`, is hidden from them) and 1 (outdoors, roof visible to
          them, covering the interior via its high `layer = 100`). So the ceiling half
          genuinely just needs the border half built alongside it, not a rework.
-      Also just fixed a real bug here: `GMghostIconform` (`GMCommands.dm`) used to
+      Also just fixed a real bug here: `GM_GhostForm` (`GMCommands.dm`) used to
       collide with this exact `invisibility = 1` tier, meaning any outdoor player
-      could see a "hidden" ghosted GM — see the `GMghostIconform` entry in Phase 9.
+      could see a "hidden" ghosted GM — see the `GM_GhostForm` entry in Phase 9.
       Ghost form now uses `GHOST_INVISIBILITY = 2` instead, so it's clear of whatever
       tier(s) the border/ceiling rework ends up using — keep new tiers below 2, or
       update `GMCommands.dm`'s comment on `GHOST_INVISIBILITY` if that no longer holds.
@@ -1033,11 +1033,23 @@ not gospel). New confirmed mechanics not previously in this file:
         `playerstart`** via `GMseeareas` (which shows login spawns, death/respawn spawns,
         and monster spawns as three separately-marked types)
       - `levelbarrier` — likely blocks players below some level threshold from passing
-      - `playerstart` — a placeable **login** spawn marker; our `PLAYER_SPAWN` define in
-        `Main.dm` is currently a single hardcoded `locate()`, not a placeable/multiple
-        stat objects like the OG has
-      - `playerspawn` — **confirmed distinct from `playerstart`**: the post-death respawn
-        location specifically, not the initial login point
+      - [x] `playerstart` — a placeable **login** spawn marker. **Built as a plain
+        object** (`obj/spawnMarker/playerStart`, `Code/World/Area.dm`, door.dmi/wooden,
+        `invisibility = 100` so it's never seen during normal play), matching
+        `GMmakestat`'s own listing — deliberately NOT an area, since a turf only
+        belongs to one area and an area-based marker would strip whatever real area
+        (Town, Dungeon, ...) the tile already had. Placed via `GM_CreateObj` ("World
+        Login Point"); `GetPlayerSpawnTurf()` picks a random tile with one on it.
+        `PLAYER_SPAWN` (the old hardcoded coordinate) is now only an emergency
+        fallback for a map that has no marker placed yet. Visible only through
+        `GMseeareas`' overlay, as an extra layer on top of the tile's normal area
+        color.
+      - [x] `playerspawn` — **confirmed distinct from `playerstart`**: the post-death
+        respawn location specifically, not the initial login point. Same
+        object-not-area treatment as above — `obj/spawnMarker/playerSpawn`
+        (`Code/World/Area.dm`, sign.dmi/church icon), placed via `GM_CreateObj`
+        ("Respawn Point") + `GetRespawnTurf()`, used only by the Respawn verb
+        (`PlayerVerbs.dm`).
       - `boulderspawn` — likely a pushable-boulder puzzle mechanic, no equivalent exists
 - [ ] Merchant/shop NPC system — `GMmakestat` surfaced `greatestamuletmerchant`,
       `foodmerchant`, `drinkmerchant` as shopkeeper NPC types. Not the Merchant *class*
@@ -1048,8 +1060,8 @@ not gospel). New confirmed mechanics not previously in this file:
 
 - [x] 6-tier hierarchy: Player/Builder/Admin/GM-Host/Aeon's Crew/Aeon, resolved fresh
       from hardcoded data every connect (`AdminLevels.dm`)
-- [x] `GMghostIconform`, `GMToggleProfanityFilter`, `GM_Create_Lockable` (`GMCommands.dm`)
-      — **found and fixed a real invisibility bug in `GMghostIconform` while
+- [x] `GM_GhostForm`, `GMToggleProfanityFilter`, `GM_Create_Lockable` (`GMCommands.dm`)
+      — **found and fixed a real invisibility bug in `GM_GhostForm` while
       investigating whether it actually hides a ghosted GM from regular players.**
       It didn't, reliably: ghost form set `invisibility = 1`, but `obj/ceiling`
       (`Obj.dm`, the roof-hiding system) also uses `invisibility = 1`, and
@@ -1076,7 +1088,8 @@ not gospel). New confirmed mechanics not previously in this file:
       (`EnableCommands()`, `Main.dm`) or a fresh mob takes over
       (`FinalizePlayer()`/`LoadCharacter()`). Every other GM verb below is still
       visible-to-everyone — this establishes the pattern, doesn't retrofit all of them.
-- [ ] Admin verbs: `GMannounce`, `GMban`, `GMboot`, `GMmute`, `GMpwipe`, `GMunban`
+- [x] Admin verbs: `GMannounce`, `GMban`/`GMunban` (combined, `GM_Ban`), `GMboot`
+      (`GM_Boot`) — all in `GMCommands.dm`. Still open: `GMmute`, `GMpwipe`.
 - [ ] Builder verbs: `GMdelobjmob`, `GMmakearea`, `GMmaketurf`, `GMmakeitem`, `GMmakestat`,
       `GMtransfer`, `GMmakemob` (some overlap with `GM_Create_Lockable`, which already
       covers a slice of `GMmakeitem`/`GMmakestat`'s job for lockables)

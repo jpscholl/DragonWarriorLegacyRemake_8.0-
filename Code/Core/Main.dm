@@ -30,11 +30,9 @@ var/list/players = list()
 #define DEFAULT_MASTER_VOLUME 50
 #define DEFAULT_CHANNEL_VOLUME 100
 
-// How many save slots each player gets. PLAYER_SPAWN used to live here too — moved to
-// the .dme itself (same #include-order reason as SPRITE_PIXEL_Y_OFFSET/SFX_CHANNEL
-// there) once Combat/Skills/SkillCatalog.dm needed it before this file compiles.
-// Shared across LoginMenu.dm and SaveSystem.dm so both stay in sync.
-#define MAX_CHARACTERS 4
+// MAX_CHARACTERS used to live here too — moved to the .dme itself (same
+// #include-order reason as PLAYER_SPAWN/SPRITE_PIXEL_Y_OFFSET/SFX_CHANNEL there)
+// once Admin/Commands/GMCommands.dm needed it before this file compiles.
 
 // Longest a character name can be.
 #define MAX_NAME_LENGTH 24
@@ -50,6 +48,13 @@ var/list/players = list()
 // #define) so it can be toggled at runtime — see GM_ToggleProfanityFilter() in
 // Code/Admin/Commands/GMCommands.dm.
 var/global/adultServer = FALSE
+
+// Toggled by GM_ToggleMultiLogin() in Code/Admin/Commands/GMCommands.dm — when TRUE,
+// the address-based double-login block below (client/New()) is skipped entirely, so
+// a GM can open a second client from the same machine to test multiplayer-facing
+// verbs (GM_Ban/GM_Boot) without needing an actual second player. Off by default —
+// this is a dev/testing escape hatch, not something a live server should leave on.
+var/global/allowMultiLogin = FALSE
 
 // Day/night state — toggled by GM_DayNight() in Code/Admin/Commands/GMCommands.dm.
 // World icons only (turfs/objs), not mobs — the OG has no night sprites for those.
@@ -163,7 +168,7 @@ client
         // "attempted double login" and immediately disconnected while the original
         // session kept running unaffected. GMs are exempt (confirmed) — e.g. testing
         // with a second window from the same machine.
-        if(adminLevel < LEVEL_GM_HOST)
+        if(!allowMultiLogin && adminLevel < LEVEL_GM_HOST)
             for(var/client/C)
                 if(C != src && C.address == address)
                     LogChat("[key]/[C.key] attempted double login at [address].")
@@ -235,12 +240,27 @@ mob/proc/SaveAndLogout()
     if(istype(src, /mob/player))
         var/mob/player/P = src
         if(P.saveManager)
-            P.saveManager.SaveCharacter(P, P.saveSlot || 1)
+            if(!P.skipSaveOnLogout)
+                P.saveManager.SaveCharacter(P, P.saveSlot || 1)
+            // Release the file handle now that this session is over (see Close()'s
+            // own comment, SaveSystem.dm, for why this matters).
+            P.saveManager.Close()
 
     players << output("[src.name] has left the world!!", "Messages")
     LogChat("[src.name]([src.key]) logs out at [client ? client.address : "unknown"].")
     players -= src
     src.loc = null
+
+    // Actually destroy the mob, not just remove it from `players`/clear its loc.
+    // BYOND matches a newly-connecting client to any EXISTING mob whose .key still
+    // matches theirs — a mob left undeleted here keeps its key forever, so
+    // reconnecting (whether after a normal disconnect or a GM_Boot/GM_Ban) silently
+    // reattaches the new client straight to this same stale mob instead of running
+    // mob/playerTemp's Login()/ShowLoginMenu() at all. Confirmed bug: that stale
+    // mob's loc was just nulled above and never gets reset, so the "skipped the
+    // login menu, logged in at 1,1,1" symptom is BYOND's fallback placement once a
+    // client is watching it again. Must be the LAST statement — src is invalid after.
+    del(src)
 
 // -------------------- Command Control --------------------
 // Disable all verbs until login is complete

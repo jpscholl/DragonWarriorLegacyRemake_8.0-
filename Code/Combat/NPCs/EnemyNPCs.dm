@@ -158,7 +158,7 @@ mob/enemy
 			if(target && target.HP <= 0)
 				target = null
 
-			// Drop target if they turn ghost mid-fight (GM_GhostIconform, GMCommands.dm)
+			// Drop target if they turn ghost mid-fight (GM_GhostForm, GMCommands.dm)
 			// — a GM shouldn't be able to get stuck fighting an enemy just because it
 			// locked on before they ghosted.
 			if(target && target.isGhostform)

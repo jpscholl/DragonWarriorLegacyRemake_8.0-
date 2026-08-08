@@ -12,6 +12,16 @@ datum/SaveManager
         // Ensure the directory exists in your project: "Player SaveFiles/"
         F = new("Player SaveFiles/[ckey].sav")
 
+    // Releases this instance's file handle — call once a character's session is
+    // truly over (SaveAndLogout(), Main.dm). Without this, F stays open in memory
+    // for the rest of the server's life (mobs aren't garbage-collected on logout,
+    // just pulled out of `players`), and a second /savefile opened on the same path
+    // later (GM_Ban's Ban List scan, GMCommands.dm) can read a stale cached copy
+    // from before this session's last write — confirmed: a just-banned character
+    // wasn't showing up in the Ban List until a full server restart.
+    proc/Close()
+        F = null
+
     // -----------------------------
     // Volume settings — stored at the ckey level (this same F), not per character
     // slot, since login music (mob/playerTemp/Login(), Main.dm) plays before any
@@ -131,7 +141,7 @@ datum/SaveManager
         // GM-only verbs like GM_ToggleLog by default) — re-sync (AdminLevels.dm) so a
         // non-GM's removal carries over from the old temp mob.
         C.SyncGMVerbs()
-        newPlayer.loc = PLAYER_SPAWN
+        newPlayer.loc = GetPlayerSpawnTurf()
 
         var/area/spawnArea = newPlayer.loc?.loc
         if(spawnArea && spawnArea.areaMusic)
@@ -156,6 +166,24 @@ datum/SaveManager
 
         F.Flush()
         return 1
+
+    // -----------------------------
+    // Ban / unban a single character slot (GM_Ban, GMCommands.dm)
+    // -----------------------------
+    // Stored as metadata alongside "[key].name" rather than inside the
+    // CharacterSaveData blob, same reasoning as the name field: checking/flipping ban
+    // status shouldn't require deserializing the whole save. The slot's actual data
+    // is never touched by this — banning freezes progress, it doesn't erase it.
+    proc/SetCharacterBanned(slot, banned)
+        if(slot < 1 || slot > MAX_CHARACTERS) return
+        F["char[slot].banned"] << banned
+        F.Flush()
+
+    proc/IsCharacterBanned(slot)
+        if(slot < 1 || slot > MAX_CHARACTERS) return FALSE
+        var/banned
+        F["char[slot].banned"] >> banned
+        return banned || FALSE
 
     // -----------------------------
     // Return a list of filled character slots with names

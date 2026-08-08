@@ -38,7 +38,10 @@ proc/ShowLoginMenu(mob/playerTemp/M)
     var/list/options = list()
 
     for(var/slot in slots)
-        options += "Load [slots[slot]] (Slot [slot])"
+        var/label = "Load [slots[slot]] (Slot [slot])"
+        if(M.client.saveManager.IsCharacterBanned(text2num(slot)))
+            label += " \[BANNED\]"
+        options += label
 
     options += "Create New Character"
 
@@ -51,7 +54,20 @@ proc/ShowLoginMenu(mob/playerTemp/M)
 
     if(findtext(choice, "Load "))
         var/slot = text2num(copytext(choice, findtext(choice, "Slot ") + 5))
-        M.client.saveManager.LoadCharacter(M, slot)
+        if(M.client.saveManager.IsCharacterBanned(slot))
+            M << output("This character has been banned and can't be loaded.", "Info")
+            ShowLoginMenu(M)
+            return
+        if(!M.client.saveManager.LoadCharacter(M, slot))
+            // LoadCharacter() failed (missing/corrupt save data, unresolvable class,
+            // etc.) — M was never handed a real character or relocated off of
+            // mob/playerTemp's default spot, which is BYOND's (1,1,1) origin (nothing
+            // ever gives playerTemp its own spawn — world.mob = /mob/playerTemp,
+            // Main.dm, with no loc override). Previously this failed completely
+            // silently, leaving the player stuck controlling that temp mob at (1,1,1)
+            // forever with no menu and no explanation.
+            M << output("Something went wrong loading that character.", "Info")
+            ShowLoginMenu(M)
         return
 
     switch(choice)
@@ -362,7 +378,7 @@ proc/FinalizePlayer(mob/playerTemp/M)
     // GM-only verbs like GM_ToggleLog by default) — re-sync (AdminLevels.dm) so a
     // non-GM's removal carries over from the old temp mob.
     C.SyncGMVerbs()
-    newPlayer.loc = PLAYER_SPAWN
+    newPlayer.loc = GetPlayerSpawnTurf()
 
     // Start whatever music belongs to the spawn area (mob -> turf -> area)
     // right away, rather than waiting for the player's first step to trigger it.

@@ -2,7 +2,7 @@
 // GM Announce
 // -----------------------------
 // Confirmed OG presentation (real screenshot): a plain "[GM] has an announcement" line,
-// then the message itself on its own line — big, bold, red, centered. `players`
+// then the message itself on its own line — big, bold, red. `players`
 // (Code/Core/Main.dm), not `world <<`, matches the broadcast convention every other
 // server-wide message in this codebase already uses (SocialVerbs.dm's Broadcast()).
 // GM-tier power — this reaches every connected player at once.
@@ -16,10 +16,10 @@ mob/verb/GM_Announce()
 
     var/msg = input(src, "Announcement:", "GM_Announce") as text|null
     if(isnull(msg) || !length(trimtext(msg))) return
-    msg = trimtext(msg)
+    msg = CensorText(trimtext(msg))
 
-    players << output("<center>[src.name] has an announcement</center>", "Messages")
-    players << output("<center><font color='red' size='5'><b>[msg]</b></font></center>", "Messages")
+    players << output("[src.name] announces:", "Messages")
+    players << output("<font color='red' size='5'><b>[msg]</b></font>", "Messages")
 
 // -----------------------------
 // GM Ghost Form
@@ -85,7 +85,7 @@ mob/proc/ToggleGhostForm()
         src << output("You disappear!", "Info")
 
 // GM verb to toggle ghostIcon form — Admin-category power (Code/Admin/AdminLevels.dm)
-mob/verb/GM_GhostIconform()
+mob/verb/GM_GhostForm()
     set category = "GM"
 
     if(!client || !client.canAdmin)
@@ -111,6 +111,192 @@ mob/verb/GM_ToggleProfanityFilter()
     src << output("Profanity filter is now [adultServer ? "OFF" : "ON"] (adultServer = [adultServer]).", "Info")
 
 // -----------------------------
+// GM Multi-Login Toggle
+// -----------------------------
+// Flips allowMultiLogin (Code/Core/Main.dm) — when ON, the address-based
+// double-login block in client/New() is skipped entirely, letting a second client
+// from the same machine connect as a non-GM (e.g. to be a GM_Ban/GM_Boot target)
+// without needing a real second player. GMs/Host+ are already always exempt from
+// that block regardless of this setting. Admin-category power, not a confirmed OG
+// verb — this is purely a dev/testing convenience.
+mob/verb/GM_ToggleMultiLogin()
+    set category = "GM"
+    set desc = "Turns the same-IP double-login block on or off (for testing with two clients)"
+
+    if(!client || !client.canAdmin)
+        src << output("You don't have Admin access.", "Info")
+        return
+
+    allowMultiLogin = !allowMultiLogin
+    src << output("Multi-login is now [allowMultiLogin ? "ALLOWED" : "BLOCKED"] (allowMultiLogin = [allowMultiLogin]).", "Info")
+
+// -----------------------------
+// GM Ban / Unban
+// -----------------------------
+// One combined verb instead of the OG's separate GMban/GMunban (Markdowns/
+// GMCommandsReference.md) — a deliberate remake UX call, not a confirmed-OG
+// behavior: a "Ban List" entry sits at the top of the same target picker, so
+// undoing a ban doesn't need its own separate verb to hunt for. Bans are per-
+// CHARACTER (one save slot), not per-account — the savefile and its other slots
+// are untouched; the banned slot just can't be loaded anymore (ShowLoginMenu(),
+// LoginMenu.dm) and stops saving the moment it's banned (skipSaveOnLogout,
+// PlayerTemplate.dm), so stats freeze at whatever was last saved rather than
+// getting erased (that's GM_Boot's — see below and GMCommandsReference.md's
+// confirmed severity ordering: boot < pwipe < ban). Admin-tier power per the
+// original design notes.
+mob/verb/GM_Ban()
+    set category = "GM"
+    set desc = "Ban a connected player's character, or unban one from the ban list"
+
+    if(!client || !client.canAdmin)
+        src << output("You don't have Admin access.", "Info")
+        return
+
+    var/list/targets = GetModerationTargets()
+
+    var/list/options = list("Ban List")
+    options += targets
+    options += "Cancel"
+
+    var/choice = input(src, "Select a player to ban, or view the Ban List to unban someone:", "GM_Ban") in options
+    if(!choice || choice == "Cancel") return
+
+    if(choice == "Ban List")
+        ShowBanList()
+        return
+
+    var/mob/player/target = targets[choice]
+    if(!target) return
+
+    // Confirmed OG step — a reason prompt, shown to the target as their parting
+    // message. Order matches the OG: reason prompt (its own OK/Cancel) first, then
+    // the remake's own extra "are you sure?" as the final gate before it lands.
+    var/reason = input(src, "Reason for banning [target.name] (shown to them):", "GM_Ban") as text|null
+    if(isnull(reason)) return  // Cancel
+    reason = length(trimtext(reason)) ? CensorText(trimtext(reason)) : "No reason given."
+
+    var/confirm = alert(src, "Ban [target.name] ([target.key])? They will not be able to log back in with this character until unbanned.", "Confirm Ban", "Yes", "No")
+    if(confirm != "Yes") return
+
+    BanCharacter(target, reason)
+    src << output("Banned [target.name] ([target.key]).", "Info")
+
+// Shared "pick another connected player, respecting GM hierarchy" target list for
+// GM_Ban/GM_Boot — confirmed OG rule: a lower (or equal) tier GM can't target
+// someone at or above their own adminLevel, and you can never target yourself.
+mob/proc/GetModerationTargets()
+    var/list/targets = list()
+    for(var/mob/player/P in players)
+        if(P == src) continue
+        if(!P.client) continue
+        if(P.client.adminLevel >= client.adminLevel) continue
+        targets["[P.name] ([P.key])"] = P
+    return targets
+
+// Bans live inside each player's own savefile (SetCharacterBanned(), SaveSystem.dm),
+// not a central registry, so there's no in-memory list to just read — has to open
+// every savefile in Player SaveFiles/ and check each slot. Cheap enough for how
+// rarely this runs (GM-invoked, not per-tick). Confirmed OG fallback: an empty ban
+// list shows a message instead of an empty picker.
+mob/proc/ShowBanList()
+    var/list/labelToTarget = list()  // label -> list(ckey, slot)
+
+    for(var/fname in flist("Player SaveFiles/"))
+        if(length(fname) < 5 || copytext(fname, length(fname) - 3) != ".sav") continue
+        var/ckey = copytext(fname, 1, length(fname) - 3)
+
+        var/savefile/F = new("Player SaveFiles/[fname]")
+        for(var/slot = 1 to MAX_CHARACTERS)
+            var/banned
+            F["char[slot].banned"] >> banned
+            if(!banned) continue
+            var/charName
+            F["char[slot].name"] >> charName
+            labelToTarget["[charName || "(unnamed)"] ([ckey], Slot [slot])"] = list(ckey, slot)
+        // Drop the reference now rather than waiting on BYOND's (non-immediate)
+        // garbage collector — otherwise this handle can still be open, on the same
+        // path, the moment something else (the unban write just below, or another
+        // GM_Ban call) opens its own fresh savefile() on that same ckey.
+        F = null
+
+    if(!labelToTarget.len)
+        src << output("Nobody is currently banned.", "Info")
+        return
+
+    var/list/options = labelToTarget.Copy()
+    options += "Cancel"
+
+    var/choice = input(src, "Select a banned character to unban:", "GM_Ban — Ban List") in options
+    if(!choice || choice == "Cancel") return
+
+    var/list/pick = labelToTarget[choice]
+    var/datum/SaveManager/SM = new(pick[1])
+    SM.SetCharacterBanned(pick[2], FALSE)
+    // Same reasoning as the scan loop's F = null above — release this handle right
+    // away instead of leaving it for GC to eventually get to.
+    SM.Close()
+    src << output("Unbanned [choice].", "Info")
+
+// Flags the target's current save slot as banned and forces their client to
+// disconnect right now. skipSaveOnLogout (PlayerTemplate.dm) stops that disconnect's
+// own Logout()/SaveAndLogout() (Main.dm) from immediately re-saving an un-banned
+// copy over the flag just set below.
+mob/proc/BanCharacter(mob/player/target, reason)
+    if(!target || !target.saveManager) return
+
+    target.saveManager.SetCharacterBanned(target.saveSlot || 1, TRUE)
+    target.skipSaveOnLogout = TRUE
+
+    var/client/C = target.client
+    if(C)
+        target << output("You have been banned by a GM. Reason: [reason]", "Info")
+        del(C)
+
+// -----------------------------
+// GM Boot
+// -----------------------------
+// Disconnects a player WITHOUT saving (skipSaveOnLogout, same mechanism as
+// GM_Ban above) — the intentional punishment is reverting to their last save, not
+// erasing the character outright (that's GMpwipe, not built yet). Same player-list/
+// hierarchy pattern as GM_Ban, Admin-tier power per the original design notes.
+mob/verb/GM_Boot()
+    set category = "GM"
+    set desc = "Disconnects a connected player without saving their progress"
+
+    if(!client || !client.canAdmin)
+        src << output("You don't have Admin access.", "Info")
+        return
+
+    var/list/targets = GetModerationTargets()
+    if(!targets.len)
+        src << output("No one eligible to boot is connected.", "Info")
+        return
+
+    var/list/options = targets.Copy()
+    options += "Cancel"
+
+    var/choice = input(src, "Select a player to boot:", "GM_Boot") in options
+    if(!choice || choice == "Cancel") return
+
+    var/mob/player/target = targets[choice]
+    if(!target) return
+
+    var/confirm = alert(src, "Boot [target.name] ([target.key])? They will lose all progress since their last save.", "Confirm Boot", "Yes", "No")
+    if(confirm != "Yes") return
+
+    BootCharacter(target)
+    src << output("Booted [target.name] ([target.key]).", "Info")
+
+mob/proc/BootCharacter(mob/player/target)
+    if(!target) return
+
+    target.skipSaveOnLogout = TRUE
+    var/client/C = target.client
+    if(C)
+        target << output("You have been booted by a GM.", "Info")
+        del(C)
+
+// -----------------------------
 // GM Create Obj
 // -----------------------------
 // Creates any of the game's functional world objects at the GM's own location — not
@@ -118,7 +304,10 @@ mob/verb/GM_ToggleProfanityFilter()
 // per-instance text prompt right at creation (a lockable's name, a sign's message) that
 // doesn't fit a click-to-place flow. Builder-category power (world content creation),
 // not Admin. NPC included per its own comment (Code/World/NPCs.dm) — no dialogue/AI
-// yet, just a placeable placeholder body for now.
+// yet, just a placeable placeholder body for now. World Login Point/Respawn Point
+// (obj/spawnMarker/playerStart, /playerSpawn — Area.dm) need no per-instance prompt,
+// just placement — this is how a host actually sets their world's spawn/respawn spots
+// (GetPlayerSpawnTurf()/GetRespawnTurf(), Area.dm) instead of a hardcoded coordinate.
 mob/verb/GM_CreateObj()
     set category = "GM"
     set desc = "Creates a functional obj (or a placeholder NPC) at your location"
@@ -134,6 +323,8 @@ mob/verb/GM_CreateObj()
         "Drawers" = /obj/stat/drawers,
         "Sign" = /obj/stat/sign,
         "NPC" = /mob/npc,
+        "World Login Point" = /obj/spawnMarker/playerStart,
+        "Respawn Point" = /obj/spawnMarker/playerSpawn,
     )
 
     var/choice = input(src, "Choose what to create:", "GM_CreateObj") in choices
@@ -190,7 +381,7 @@ mob/proc/CreateLockable(lockableType, choiceLabel, skin = null)
     if(isnull(lockName) || !length(trimtext(lockName)))
         src << output("Cancelled — no name given.", "Info")
         return
-    lockName = trimtext(lockName)
+    lockName = CensorText(trimtext(lockName))
 
     var/atom/newLockable = new lockableType(loc)
     newLockable.vars["name"] = lockName
@@ -219,7 +410,7 @@ mob/proc/CreateLockable(lockableType, choiceLabel, skin = null)
 mob/proc/CreateSign()
     var/message = input(src, "What should this sign say?", "Sign Message") as text|null
     if(isnull(message) || !length(trimtext(message))) message = "..."
-    else message = trimtext(message)
+    else message = CensorText(trimtext(message))
 
     var/obj/stat/sign/newSign = new(loc)
     newSign.message = message
@@ -236,7 +427,7 @@ mob/proc/CreateNPC()
     var/stateChoice = input(src, "Choose an NPC appearance:", "GM_CreateObj") in states
 
     var/npcName = input(src, "Name this NPC:", "Name It") as text|null
-    npcName = (isnull(npcName) || !length(trimtext(npcName))) ? Capitalize(stateChoice) : trimtext(npcName)
+    npcName = (isnull(npcName) || !length(trimtext(npcName))) ? Capitalize(stateChoice) : CensorText(trimtext(npcName))
 
     var/mob/npc/newNPC = new(loc)
     newNPC.icon_state = stateChoice
@@ -484,9 +675,28 @@ mob/proc/RefreshAreaOverlay()
     var/list/newImages = list()
     for(var/turf/T in range(AREA_OVERLAY_RADIUS, src))
         var/area/A = T.loc
-        if(!A || !A.icon_state) continue
-        var/image/I = image('environment.dmi', T, A.icon_state)
-        newImages += I
+        if(A && A.icon_state)
+            // A.icon, not a hardcoded 'environment.dmi' — every ordinary area's icon
+            // IS 'environment.dmi' (base area type, Area.dm) so this changes nothing
+            // for them, but a future area with its own distinct icon file would
+            // otherwise render as a missing/wrong sprite under this overlay.
+            var/image/areaImg = image(A.icon, T, A.icon_state)
+            // Layer 3 (below mobs' default 4, above turfs' default 2) — a plain
+            // image() otherwise defaults above mobs, which meant standing on a
+            // marked tile drew the overlay ON TOP of the GM's own sprite.
+            areaImg.layer = 3
+            newImages += areaImg
+
+        // World login/respawn markers (obj/spawnMarker/playerStart, /playerSpawn —
+        // Area.dm) are invisible to everyone normally (that's the whole point — a
+        // turf's real area, e.g. Town, stays untouched by them) and drawn here as an
+        // ADDITIONAL layer on top of the tile's own area color above, not instead of
+        // it, confirming "can only be seen as an area for GMs" without ever actually
+        // reassigning the tile's area.
+        for(var/obj/spawnMarker/M in T.contents)
+            var/image/markerImg = image(M.icon, T, M.icon_state)
+            markerImg.layer = 3
+            newImages += markerImg
 
     if(areaOverlayImages)
         client.images -= areaOverlayImages
