@@ -121,10 +121,39 @@ world
 
     New()
         . = ..()
+        // Reset on every New() — including the one world.Reboot() (GM_WorldReboot(),
+        // GMCommands.dm) triggers internally, not just the initial boot. Left alone,
+        // a post-reboot `players` list would keep referencing mobs the reboot's own
+        // object wipe just deleted.
+        players = list()
         // Redirects world.log to a persistent file — BYOND auto-timestamps every
         // line and auto-logs connect/disconnect/host events into the same stream.
         // Chat verbs write into this same log via LogChat() (Code/Core/TextFilter.dm).
         log = file("server.log")
+
+    // world.Reboot() itself only wipes/reinitializes world state — it does NOT
+    // automatically give already-connected clients a fresh mob or call Login() on
+    // it (confirmed broken in the OG's own version, GMCommandsReference.md: everyone
+    // stuck on a black screen after reboot). ..() does the actual engine-level wipe
+    // (deletes every object, re-runs world/New() above) and re-parents `mob` (already
+    // /mob/playerTemp — see this datum's own vars above) as world.mob's default for
+    // any brand-new connection, but existing clients need to be walked through login
+    // again explicitly, same as a fresh connect: a new mob/playerTemp, assigned to
+    // the client, with Login() called by hand since nothing else will call it now.
+    //
+    // CONFIRMED ENVIRONMENT QUIRK (not a bug in this override): world.Reboot() only
+    // completes properly when the server is actually running under Dream Daemon.
+    // Testing straight from Dream Seeker/DM without a real Dream Daemon process
+    // hosting the session just freezes on the call — there's no server process
+    // wrapping the world to relaunch. GM_WorldReboot (GMCommands.dm) needs a real
+    // hosted (Dream Daemon) session to test end-to-end, not a local DM.exe run.
+    Reboot()
+        . = ..()
+        for(var/client/C)
+            if(C.mob) del(C.mob)  // clear anything the engine's own wipe may have auto-assigned
+            var/mob/playerTemp/M = new()
+            C.mob = M
+            M.Login()
 
 client
     var/datum/SaveManager/saveManager   // declare the variable
