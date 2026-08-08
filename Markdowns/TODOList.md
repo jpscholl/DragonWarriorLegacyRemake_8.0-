@@ -1124,8 +1124,11 @@ not gospel). New confirmed mechanics not previously in this file:
       `RecalculateVitals()`), not just a roundabout way to reach them.
 - [ ] GM verbs: `GMblaze`, `GMcoopmode`, `GMglobalrespawn`,
       `GMkillallmonsters`, `GMnamechange`, `GMplayerstatus`,
-      `GMplaymusic`, `GMroleplaymode`, `GMsavelocation`, `GMswitchicon`, `GMweather`,
-      `GMworldreboot`
+      `GMplaymusic`, `GMroleplaymode`, `GMsavelocation`, `GMswitchicon`, `GMweather`
+- [x] `GMworldreboot` — implemented as `GM_WorldReboot` (`GMCommands.dm`), see
+      `GMCommandsReference.md` for the full flow. Fixed the OG's confirmed-broken
+      post-reboot black screen via a `world/Reboot()` override (`Main.dm`) rather than
+      copying it. Not playtested yet.
 - [ ] GM ability to designate Builder/Admin/GM status persistently (needs its own storage
       — separate from the tamper-proof hardcoded core tiers, since this is meant to be
       changeable at runtime by a Host/GM without a recompile)

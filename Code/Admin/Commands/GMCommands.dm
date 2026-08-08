@@ -747,6 +747,43 @@ mob/verb/GM_KillMonsters()
     world << output("[src] killed [killed] monster[killed == 1 ? "" : "s"][picked == "all" ? "" : " ([choice])"].", "Info")
 
 // -----------------------------
+// GM World Reboot
+// -----------------------------
+// Confirmed OG flow (GMCommandsReference.md): big red announcement, then a big red
+// countdown, then save everyone and restart. **Not copied**: the OG's own post-reboot
+// reconnect left every client on a black screen — client/mob never got a fresh
+// Login() call, since world.Reboot() doesn't do that on its own. world/Reboot()
+// (Main.dm) is a from-scratch fix for that specific gap: after the engine wipes and
+// reinitializes, every still-connected client gets a brand-new mob/playerTemp and an
+// explicit Login() call, same as if they'd just connected. GM-Host tier — the most
+// destructive single action in the whole toolkit (everyone's session ends, the map
+// resets to its compiled state), matching GM_DayNight/GM_BattleMode/GM_KillMonsters.
+mob/verb/GM_WorldReboot()
+    set category = "GM"
+    set desc = "Saves everyone, then reboots the world after a 10-second countdown"
+
+    if(!client || client.adminLevel < LEVEL_GM_HOST)
+        src << output("You don't have GM access.", "Info")
+        return
+
+    var/confirm = alert(src, "Reboot the world? Everyone will be saved, then the map resets and the server restarts.", "Confirm World Reboot", "Yes", "No")
+    if(confirm != "Yes") return
+
+    players << output("<font color='red' size='5'><b>[src.name] has announced a server reboot in 10 seconds....</b></font>", "Messages")
+
+    for(var/i = 10, i >= 0, i--)
+        players << output("<font color='red' size='6'><b>[i]</b></font>", "Messages")
+        sleep(10)
+
+    // Save every real character before the wipe — same SaveCharacter() call
+    // SaveAndLogout() (Main.dm) uses on a normal disconnect.
+    for(var/mob/player/P in players)
+        if(P.saveManager)
+            P.saveManager.SaveCharacter(P, P.saveSlot || 1)
+
+    world.Reboot()
+
+// -----------------------------
 // GM See Areas Toggle
 // -----------------------------
 // Overlays each turf CURRENTLY IN VIEW with its own area's icon/icon_state from

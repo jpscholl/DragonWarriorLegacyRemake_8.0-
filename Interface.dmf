@@ -90,7 +90,7 @@ window "Main"
 	elem "Main"
 		type = MAIN
 		pos = 572,236
-		size = 1400x860
+		size = 1600x860
 		anchor1 = -1,-1
 		anchor2 = -1,-1
 		background-color = none
@@ -99,9 +99,9 @@ window "Main"
 		statusbar = false
 		macro = "macro"
 		menu = "menu"
-		outer-size = 1416x919
+		outer-size = 1616x919
 		outer-pos = 572,236
-		inner-size = 1400x860
+		inner-size = 1600x860
 		inner-pos = 8,51
 		screen-size = 2560x1392
 	elem "Gameplay"
@@ -115,7 +115,7 @@ window "Main"
 	elem "StatsCommands"
 		type = INFO
 		pos = 836,0
-		size = 750x255
+		size = 764x255
 		anchor1 = 52,0
 		anchor2 = 100,31
 		saved-params = ""
@@ -123,14 +123,14 @@ window "Main"
 	elem "Info"
 		type = OUTPUT
 		pos = 836,259
-		size = 750x284
+		size = 764x284
 		anchor1 = 52,31
 		anchor2 = 100,65
 		saved-params = "max-lines"
 	elem "Messages"
 		type = OUTPUT
 		pos = 836,547
-		size = 750x285
+		size = 764x285
 		anchor1 = 52,65
 		anchor2 = 100,100
 		saved-params = "max-lines"

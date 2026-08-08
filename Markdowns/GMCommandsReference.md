@@ -363,6 +363,24 @@ Status key: `[ ]` not discussed yet, `[x]` confirmed behavior documented below.
       path needs to be designed fresh rather than copied, since the OG's own version of
       that part doesn't work.
 
+      **Implemented as `GM_WorldReboot` (`GMCommands.dm`), GM-Host tier.** "Are you
+      sure?" confirm, then the same red-bold styling `GM_Announce` uses (not literal
+      centering — the OUTPUT control ignores `<center>`, same finding that shaped
+      `GM_Announce`'s own formatting) for the announcement line and each countdown
+      number, 1 second apart. Every real character gets saved (`SaveCharacter()`, same
+      call `SaveAndLogout()` uses) right before `world.Reboot()` fires. **The OG's
+      broken half was fixed from scratch, not copied**: `world/Reboot()` (`Main.dm`)
+      is now overridden — after the engine's own wipe/reinit, every still-connected
+      client gets a brand-new `mob/playerTemp` and an explicit `Login()` call, exactly
+      like a fresh connection, since `world.Reboot()` alone never did that. `players`
+      is also reset in `world/New()` so a post-reboot list doesn't hang onto
+      references to mobs the wipe just deleted. Not playtested yet — a real reboot
+      cycle needs to be run to confirm reconnect actually works end to end.
+      **Confirmed environment quirk**: `world.Reboot()` only completes when the
+      session is actually hosted through Dream Daemon — testing directly from Dream
+      Seeker/DM (no real Dream Daemon process wrapping it) just freezes on the call.
+      Must playtest this one via an actual hosted session, not a local DM.exe run.
+
 ## Uncategorized — not in original design notes
 
 - [x] `GMindestructablemode` — toggles whether the **world environment** reacts to
