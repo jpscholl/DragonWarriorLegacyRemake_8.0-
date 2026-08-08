@@ -46,17 +46,29 @@ Status key: `[ ]` not discussed yet, `[x]` confirmed behavior documented below.
       **Implemented as `GM_Boot` (`GMCommands.dm`)** — same player-list/hierarchy/
       confirm pattern as `GM_Ban`. Uses a `skipSaveOnLogout` flag (`PlayerTemplate.dm`)
       to force-disconnect (`del(client)`) without the normal on-logout save firing.
-- [ ] `GMmute` — same player-list pattern as `GMban`/`GMboot`/`GMpwipe`: pick a target,
+- [x] `GMmute` — same player-list pattern as `GMban`/`GMboot`/`GMpwipe`: pick a target,
       confirm. Muted players can't talk (`Say`/`Tell`/`WorldSay`) or emote
-      (`Emote`/`WorldEmote`) — ties directly to the `isMuted` var already flagged as
-      needed in `TODOList.md` Phase 2. Not built yet — `isMuted` exists and is
-      enforced, but nothing sets it on another player yet.
-- [ ] `GMpwipe` — "player wipe": same player-list/hierarchy-check pattern as `GMban`, but
+      (`Emote`/`WorldEmote`) — ties directly to the `isMuted` var.
+
+      **Implemented as `GM_Mute` (`GMCommands.dm`)** — same combined-verb shape as
+      `GM_Ban`: a "Mute List" entry at the top of the same target picker instead of a
+      separate unmute verb. No reason prompt (unlike `GM_Ban`) since muting doesn't
+      disconnect anyone. `isMuted` stays session-only, not saved to the savefile.
+- [x] `GMpwipe` — "player wipe": same player-list/hierarchy-check pattern as `GMban`, but
       instead of disconnecting, it **deletes the target's current character from their
       savefile entirely** — erased, not recoverable; they have to pick a different save
       slot or create a brand new character afterward. **Confirmed punishment severity
       ordering: `GMboot` (revert to last save) < `GMpwipe` (lose this character
-      entirely) < `GMban` (also can't log back in at all)**. Not built yet.
+      entirely) < `GMban` (also can't log back in at all)**.
+
+      **Implemented as `GM_Pwipe` (`GMCommands.dm`)** — plain connected-player list
+      (`GetModerationTargets()`, same hierarchy rule as Ban/Boot/Mute), no separate
+      list view since a wipe has nothing left to reverse. Adds an "All" entry at the
+      bottom, gated to `LEVEL_AEON` only (checked both when the option list is built
+      and again right before it runs) — a remake-only addition, not OG-derived.
+      Single-target wipe: one confirm. All-wipe: two confirms in sequence ("are you
+      sure" then "are you REALLY sure", the second naming the exact player count about
+      to be erased).
 - [x] `GMunban` — opens a list of currently banned players to select and unban; if
       nobody is currently banned, shows a message stating so instead of an empty list.
       **Implemented as part of `GM_Ban`'s "Ban List" option** (see above) rather than

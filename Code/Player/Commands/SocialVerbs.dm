@@ -1,6 +1,6 @@
 mob
     // Shared mute gate for every chat verb below (and PartySay, PartyVerbs.dm) —
-    // isMuted itself is just a flag for now, GMmute verb not built yet (TODOList.md).
+    // isMuted is set by GM_Mute (GMCommands.dm).
     proc/CheckMuted()
         if(!isMuted) return FALSE
         src << output("You are muted and cannot speak.", "Info")
