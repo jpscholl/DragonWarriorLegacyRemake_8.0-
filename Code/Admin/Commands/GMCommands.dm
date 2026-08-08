@@ -297,6 +297,147 @@ mob/proc/BootCharacter(mob/player/target)
         del(C)
 
 // -----------------------------
+// GM Mute / Unmute
+// -----------------------------
+// Same combined-verb shape as GM_Ban — a "Mute List" entry at the top of the same
+// target picker instead of a separate GMunmute verb (GMCommandsReference.md's own
+// spec just says "pick a target, confirm", no reason prompt like GM_Ban's, since
+// nothing forces a disconnect here for it to double as a parting message). isMuted
+// (PlayerTemplate.dm) is session-only, same as before this verb existed — muting
+// doesn't touch the savefile, so it doesn't survive a reconnect. CheckMuted()
+// (SocialVerbs.dm) already enforces it on every chat verb; this is just what
+// finally sets it on someone other than yourself. Admin-tier power per the
+// original design notes.
+mob/verb/GM_Mute()
+    set category = "GM"
+    set desc = "Mute a connected player's chat, or unmute one from the mute list"
+
+    if(!client || !client.canAdmin)
+        src << output("You don't have Admin access.", "Info")
+        return
+
+    var/list/targets = GetModerationTargets()
+    // Already-muted targets belong in the Mute List below, not the mute picker.
+    for(var/label in targets)
+        var/mob/player/P = targets[label]
+        if(P.isMuted) targets -= label
+
+    var/list/options = list("Mute List")
+    options += targets
+    options += "Cancel"
+
+    var/choice = input(src, "Select a player to mute, or view the Mute List to unmute someone:", "GM_Mute") in options
+    if(!choice || choice == "Cancel") return
+
+    if(choice == "Mute List")
+        ShowMuteList()
+        return
+
+    var/mob/player/target = targets[choice]
+    if(!target) return
+
+    var/confirm = alert(src, "Mute [target.name] ([target.key])? They won't be able to speak until unmuted.", "Confirm Mute", "Yes", "No")
+    if(confirm != "Yes") return
+
+    target.isMuted = TRUE
+    target << output("You have been muted by a GM.", "Info")
+    src << output("Muted [target.name] ([target.key]).", "Info")
+
+// isMuted is session-only (no savefile field), so unlike ShowBanList this just
+// scans the live `players` list instead of every savefile on disk.
+mob/proc/ShowMuteList()
+    var/list/labelToTarget = list()
+    for(var/mob/player/P in players)
+        if(!P.isMuted) continue
+        labelToTarget["[P.name] ([P.key])"] = P
+
+    if(!labelToTarget.len)
+        src << output("Nobody is currently muted.", "Info")
+        return
+
+    var/list/options = labelToTarget.Copy()
+    options += "Cancel"
+
+    var/choice = input(src, "Select a muted player to unmute:", "GM_Mute — Mute List") in options
+    if(!choice || choice == "Cancel") return
+
+    var/mob/player/target = labelToTarget[choice]
+    if(!target) return
+
+    target.isMuted = FALSE
+    target << output("You have been unmuted by a GM.", "Info")
+    src << output("Unmuted [choice].", "Info")
+
+// -----------------------------
+// GM Pwipe
+// -----------------------------
+// "Player wipe" — confirmed severity ordering (GMCommandsReference.md): GM_Boot
+// (revert to last save) < GM_Pwipe (lose this character entirely) < GM_Ban (also
+// can't log back in). No Pwipe List like GM_Ban's Ban List — a wiped character is
+// just gone, there's nothing left afterward to reverse. Plain connected-player
+// list via GetModerationTargets() (same hierarchy rule as Ban/Boot/Mute) plus an
+// "All" entry at the bottom — gated to LEVEL_AEON only (AdminLevels.dm), checked
+// both when building the option list AND again right before it executes, since
+// Admin-tier alone is enough to open this verb at all.
+mob/verb/GM_Pwipe()
+    set category = "GM"
+    set desc = "Permanently erase a connected player's character from their savefile"
+
+    if(!client || !client.canAdmin)
+        src << output("You don't have Admin access.", "Info")
+        return
+
+    var/list/targets = GetModerationTargets()
+    if(!targets.len)
+        src << output("No one eligible to pwipe is connected.", "Info")
+        return
+
+    var/list/options = targets.Copy()
+    if(client.adminLevel == LEVEL_AEON)
+        options += "All"
+    options += "Cancel"
+
+    var/choice = input(src, "Select a player to permanently wipe their character:", "GM_Pwipe") in options
+    if(!choice || choice == "Cancel") return
+
+    if(choice == "All")
+        if(client.adminLevel != LEVEL_AEON) return  // shouldn't be reachable, safety net only
+
+        var/confirm1 = alert(src, "Pwipe EVERY connected player's character? This cannot be undone.", "Confirm All Pwipe", "Yes", "No")
+        if(confirm1 != "Yes") return
+        var/confirm2 = alert(src, "Are you REALLY sure? This will erase [targets.len] character(s) permanently, right now.", "Are You Sure?", "Yes", "No")
+        if(confirm2 != "Yes") return
+
+        for(var/label in targets)
+            PwipeCharacter(targets[label])
+        src << output("Pwiped all [targets.len] connected player(s).", "Info")
+        return
+
+    var/mob/player/target = targets[choice]
+    if(!target) return
+
+    var/confirm = alert(src, "Permanently wipe [target.name] ([target.key])'s character? This cannot be undone.", "Confirm Pwipe", "Yes", "No")
+    if(confirm != "Yes") return
+
+    PwipeCharacter(target)
+    src << output("Pwiped [target.name] ([target.key]).", "Info")
+
+// Deletes the target's current save slot outright (DeleteCharacter(), SaveSystem.dm
+// — same slot-prefix wipe GM_CreateObj/LoginMenu's own Delete Character option uses)
+// and disconnects them. skipSaveOnLogout, same mechanism as GM_Ban/GM_Boot, stops
+// SaveAndLogout() from writing a fresh copy back into the slot this just erased.
+mob/proc/PwipeCharacter(mob/player/target)
+    if(!target || !target.saveManager) return
+
+    target.saveManager.DeleteCharacter(target.saveSlot || 1)
+    target.skipSaveOnLogout = TRUE
+
+    var/client/C = target.client
+    if(C)
+        target << output("Your character has been permanently wiped by a GM.", "Info")
+        del(C)
+
+// -----------------------------
 // GM Create Obj
 // -----------------------------
 // Creates any of the game's functional world objects at the GM's own location — not

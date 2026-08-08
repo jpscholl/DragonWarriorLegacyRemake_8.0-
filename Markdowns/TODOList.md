@@ -209,7 +209,7 @@ not gospel). New confirmed mechanics not previously in this file:
       (`PlayerTemplate.dm`), `CheckMuted()` gate (`SocialVerbs.dm`) blocks `Say`/`Tell`/
       `WorldSay`/`Emote`/`WorldEmote`, plus `PartySay` (`PartyVerbs.dm`, not in the
       original confirmed list but the same category of verb). Var is session-only, no
-      persistence. `GMmute` verb itself still not built — see Admin verbs list below.
+      persistence. `GM_Mute` verb now sets it on other players — see Admin verbs list below.
 - [x] Chat + login/logout logging — new discovery, not in the original design notes, but
       a confirmed real excerpt from the OG's own server log showed connect/disconnect/
       host events and chat lines (`<Name(ckey) says:> msg`) all sharing one
@@ -1089,7 +1089,8 @@ not gospel). New confirmed mechanics not previously in this file:
       (`FinalizePlayer()`/`LoadCharacter()`). Every other GM verb below is still
       visible-to-everyone — this establishes the pattern, doesn't retrofit all of them.
 - [x] Admin verbs: `GMannounce`, `GMban`/`GMunban` (combined, `GM_Ban`), `GMboot`
-      (`GM_Boot`) — all in `GMCommands.dm`. Still open: `GMmute`, `GMpwipe`.
+      (`GM_Boot`), `GMmute`/`GMunmute` (combined, `GM_Mute`), `GMpwipe` (`GM_Pwipe`,
+      plus a remake-only "All" pwipe gated to `LEVEL_AEON`) — all in `GMCommands.dm`.
 - [ ] Builder verbs: `GMdelobjmob`, `GMmakearea`, `GMmaketurf`, `GMmakeitem`, `GMmakestat`,
       `GMtransfer`, `GMmakemob` (some overlap with `GM_Create_Lockable`, which already
       covers a slice of `GMmakeitem`/`GMmakestat`'s job for lockables)

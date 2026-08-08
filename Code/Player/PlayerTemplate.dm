@@ -31,7 +31,7 @@ mob
     var/goldReward = 0
 
     // Muted — session-only, not saved. Enforced in the chat verbs
-    // (SocialVerbs.dm/PartyVerbs.dm); GMmute verb itself not built yet (TODOList.md).
+    // (SocialVerbs.dm/PartyVerbs.dm); set by GM_Mute (GMCommands.dm).
     var
         isMuted = FALSE
 

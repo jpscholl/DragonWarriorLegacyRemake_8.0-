@@ -105,6 +105,8 @@ client
             /mob/verb/GM_ToggleProfanityFilter,
             /mob/verb/GM_Ban,
             /mob/verb/GM_Boot,
+            /mob/verb/GM_Mute,
+            /mob/verb/GM_Pwipe,
             /mob/verb/GM_ToggleMultiLogin,
         )
         var/list/gmHostVerbs = list(
