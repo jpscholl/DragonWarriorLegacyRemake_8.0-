@@ -29,23 +29,38 @@ Status key: `[ ]` not discussed yet, `[x]` confirmed behavior documented below.
       3. Text prompt for a ban reason/message, with OK/Cancel
       4. **Remake addition, not confirmed OG behavior**: an extra "are you sure?"
          confirmation before the ban actually lands, since this is a destructive action
+
+      **Implemented as `GM_Ban` (`GMCommands.dm`)** — deliberately merged with
+      `GMunban` below into one verb rather than the OG's two (a "Ban List" entry sits
+      at the top of the same target picker), and per-CHARACTER not per-account (the
+      target's OTHER save slots are unaffected) — neither of those is confirmed-OG,
+      just this remake's own call. Hierarchy check (#2), reason prompt (#3, shown to
+      the target as their parting message right before disconnect), and the "are you
+      sure?" confirm (#4) are all in.
 - [x] `GMboot` (called "kick" colloquially, but the actual verb is `GMboot`) — same
       player-list/hierarchy-check pattern as `GMban`. Critically: disconnects the player
       **without saving their current stats** — this is intentional, not a bug to fix.
       The player reverting to their last save is meant to be the punishment, which is
       enough in some situations without a full pwipe.
-- [x] `GMmute` — same player-list pattern as `GMban`/`GMboot`/`GMpwipe`: pick a target,
+
+      **Implemented as `GM_Boot` (`GMCommands.dm`)** — same player-list/hierarchy/
+      confirm pattern as `GM_Ban`. Uses a `skipSaveOnLogout` flag (`PlayerTemplate.dm`)
+      to force-disconnect (`del(client)`) without the normal on-logout save firing.
+- [ ] `GMmute` — same player-list pattern as `GMban`/`GMboot`/`GMpwipe`: pick a target,
       confirm. Muted players can't talk (`Say`/`Tell`/`WorldSay`) or emote
       (`Emote`/`WorldEmote`) — ties directly to the `isMuted` var already flagged as
-      needed in `TODOList.md` Phase 2.
-- [x] `GMpwipe` — "player wipe": same player-list/hierarchy-check pattern as `GMban`, but
+      needed in `TODOList.md` Phase 2. Not built yet — `isMuted` exists and is
+      enforced, but nothing sets it on another player yet.
+- [ ] `GMpwipe` — "player wipe": same player-list/hierarchy-check pattern as `GMban`, but
       instead of disconnecting, it **deletes the target's current character from their
       savefile entirely** — erased, not recoverable; they have to pick a different save
       slot or create a brand new character afterward. **Confirmed punishment severity
       ordering: `GMboot` (revert to last save) < `GMpwipe` (lose this character
-      entirely) < `GMban` (also can't log back in at all)**.
+      entirely) < `GMban` (also can't log back in at all)**. Not built yet.
 - [x] `GMunban` — opens a list of currently banned players to select and unban; if
       nobody is currently banned, shows a message stating so instead of an empty list.
+      **Implemented as part of `GM_Ban`'s "Ban List" option** (see above) rather than
+      its own verb.
 
 ## Builder tier (per original design notes)
 
@@ -58,9 +73,9 @@ Status key: `[ ]` not discussed yet, `[x]` confirmed behavior documented below.
       in `Code/World/Obj.dm` (the "musical bookcase" is the paused jukebox feature idea,
       also an obj as expected).
 - [x] `GMghostform` — **already implemented**, confirmed matching our existing
-      `GMghostIconform()` in `Code/Admin/Commands/GMCommands.dm` (invisible + no
-      collision + ghost sprite overlay). Naming differs slightly (`ghostform` vs
-      `ghostIconform`) but behavior matches, nothing left to do here.
+      `GM_GhostForm()` in `Code/Admin/Commands/GMCommands.dm` (invisible + no
+      collision + ghost sprite overlay). Was `GM_GhostIconform` — renamed to match
+      the OG's `GMghostform` naming exactly, nothing left to do here.
 - [x] `GMmakearea` — the area-painting tool. Areas are the unseen top layer over turfs;
       each area instance can carry its own music, battlemode, coopmode,
       indestructiblemode, and weather (confirms these all need to become per-area vars,
@@ -133,6 +148,23 @@ Status key: `[ ]` not discussed yet, `[x]` confirmed behavior documented below.
       area boundaries. Confirms `playerstart` vs `playerspawn` from `GMmakestat`'s list
       are indeed distinct (login point vs. death-respawn point), resolving the "needs
       confirming" note left on those in `TODOList.md` Phase 8.
+
+      **Implemented `playerstart`/`playerspawn` as plain OBJECTS, matching
+      `GMmakestat`'s own stat-object listing** — `obj/spawnMarker/playerStart`
+      (door.dmi/wooden) and `/playerSpawn` (sign.dmi/church), both in
+      `Code/World/Area.dm`, placed via `GM_CreateObj` ("World Login Point"/"Respawn
+      Point"). Deliberately NOT areas: a turf only ever belongs to one area, so an
+      area-based marker painted onto an existing Town/Dungeon/etc. tile would strip it
+      of that area's own music/battle-mode/everything else — an object sitting on top
+      leaves the tile's real area completely untouched. `GetPlayerSpawnTurf()`/
+      `GetRespawnTurf()` (Area.dm) pick a random tile with a marker of the right type
+      on it (falling back to the old hardcoded `PLAYER_SPAWN` coordinate with a log
+      warning if a map has none yet). The markers are invisible during normal play
+      (`invisibility = 100`) and only ever rendered via `GMseeareas`' own overlay,
+      which now draws them as an extra layer on top of the tile's normal area color —
+      matching this verb's own "GM-only-visible spawn markers, distinct from area
+      boundaries" framing exactly. Monster spawns (the third marker type mentioned
+      above) are still not built at all.
 - [x] `GMtransfer` — two-step player picker: select the player to teleport, then select
       the destination player; the first appears directly in front of the second. Special
       case: using it **on yourself** just moves you forward one tile — and does so even
@@ -279,10 +311,11 @@ Status key: `[ ]` not discussed yet, `[x]` confirmed behavior documented below.
 - [x] `GMsavelocation` — a global toggle: when ON, a player's exact (x, y, z) location is
       saved on logout and restored on their next login, instead of always spawning at
       the fixed start point. Confirmed our code currently has **no location persistence
-      at all** — every login (`Code/Save/SaveSystem.dm:81`, `Code/UI/LoginMenu.dm:337`)
-      unconditionally sets `newPlayer.loc = PLAYER_SPAWN`. This verb would need: a saved
-      x/y/z field in the savefile, and a conditional at those two call sites to use it
-      instead of `PLAYER_SPAWN` when the toggle is on.
+      at all** — every login (`Code/Save/SaveSystem.dm`, `Code/UI/LoginMenu.dm`)
+      unconditionally sets `newPlayer.loc = GetPlayerSpawnTurf()` (was a raw
+      `PLAYER_SPAWN` coordinate, now the area-based lookup, `Code/World/Area.dm`). This
+      verb would need: a saved x/y/z field in the savefile, and a conditional at those
+      two call sites to use it instead of `GetPlayerSpawnTurf()` when the toggle is on.
 - [x] `GMswitchicon` — lets a GM switch between their own custom cosmetic icons, purely
       for flair (no gameplay effect). Almost certainly what the existing
       `"Mob Icons/Custom GM"` `FILE_DIR` entry in the `.dme` is for — that folder already

@@ -34,10 +34,22 @@
 // above (Combat/CombatSystem.dm needs this and compiles before Core/Main.dm too).
 #define SFX_CHANNEL 3
 
+// EMERGENCY FALLBACK ONLY as of the area-based spawn system (GetPlayerSpawnTurf()/
+// GetRespawnTurf(), Code/World/Area.dm) — the real spawn/respawn points are now
+// wherever a host places an area/playerStart or area/respawnPoint instance on their
+// map, not this coordinate. FindSpawnTurf() (Area.dm) only falls back to this if a
+// map has no such area at all, so an old/incomplete map doesn't strand a player.
 // Same #include-order reason as SPRITE_PIXEL_Y_OFFSET/SFX_CHANNEL above —
-// Combat/Skills/SkillCatalog.dm's Return/Revive skills need PLAYER_SPAWN and compile
-// before Core/Main.dm (where this used to live exclusively) alphabetically.
+// Combat/Skills/SkillCatalog.dm's Return skill needs PLAYER_SPAWN (indirectly, via
+// Area.dm's fallback) and compiles before Core/Main.dm (where this used to live
+// exclusively) alphabetically.
 #define PLAYER_SPAWN locate(26, 8, 4)
+
+// How many save slots each player gets. Same #include-order reason as the others
+// above — Admin/Commands/GMCommands.dm's GM_Ban ban-list scan needs this and
+// compiles before Core/Main.dm (where this used to live exclusively) alphabetically.
+// Shared across LoginMenu.dm/SaveSystem.dm/GMCommands.dm so all three stay in sync.
+#define MAX_CHARACTERS 4
 
 // BEGIN_INCLUDE
 #include "Interface.dmf"

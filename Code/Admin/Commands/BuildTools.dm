@@ -150,8 +150,20 @@ client
     // (or themselves) around same as any obj/monster. Delete mode's own player
     // exclusion below is separate and unaffected: never deleting a real player is a
     // different rule than being allowed to relocate one.
+    //
+    // World login/respawn markers (obj/spawnMarker, Area.dm) are invisible during
+    // normal play, and GM_CreateObj places a freshly-created one right under the GM's
+    // own feet — meaning without this, grabbing it here would almost always find the
+    // GM's own mob first instead (whatever else was on the tile before the marker
+    // existed), making a just-placed marker impossible to reposition. Only prioritize
+    // the marker while GM_SeeAreas (seeingAreas, GMCommands.dm) is actually on, so
+    // this doesn't change Move's normal behavior the rest of the time — you shouldn't
+    // grab something you can't even see.
     proc/FindMovableAtom(turf/T)
         if(!T) return null
+        if(mob && mob.seeingAreas)
+            for(var/obj/spawnMarker/M in T.contents)
+                return M
         for(var/atom/movable/A in T.contents)
             return A
         return null
@@ -259,13 +271,17 @@ client
                 queue += N
 
     // GM_SeeAreas' overlay (GMCommands.dm) only rebuilds when the GM steps to a new tile
-    // (AreaOverlayLoop's loc check) — a GM standing still while reassigning areas with
-    // the build tool would keep watching a stale overlay. Called once per discrete
-    // mouse action below (not per-tile inside PlaceBuildRect/PlaceBuildLine/
+    // (AreaOverlayLoop's loc check) — a GM standing still while using the build tool
+    // would keep watching a stale overlay. Not just buildKind == "area": Move mode
+    // relocating a spawn marker (obj/spawnMarker, Area.dm) doesn't set buildKind to
+    // "area" at all (it ignores buildKind/buildSelection entirely — see MouseDown's
+    // comment above), so gating on that specifically left Move-mode marker relocation
+    // never refreshing the overlay. Any watched action refreshes now. Called once per
+    // discrete mouse action below (not per-tile inside PlaceBuildRect/PlaceBuildLine/
     // FloodFillBuild's loops) so a big Block reassign doesn't rebuild the overlay
     // hundreds of times over.
     proc/RefreshAreaOverlayIfWatching()
-        if(buildKind == "area" && mob && mob.seeingAreas)
+        if(mob && mob.seeingAreas)
             mob.RefreshAreaOverlay()
 
     // -----------------------------
@@ -459,9 +475,10 @@ mob/verb/GM_MakeMob()
 // GM_MakeArea — placing "an area" means reassigning a turf to an EXISTING instance of
 // that area type (FindAreaInstance() above), not spawning a fresh one — same
 // enumeration style GM_BattleMode (GMCommands.dm) already uses to build its own list of
-// real area instances. playerStart excluded (special spawn marker, not a normal
-// paintable area type — its own icon/icon_state don't even match the rest of Area.dm's
-// environment.dmi convention).
+// real area instances. The world login/respawn points (playerStart/playerSpawn) are
+// NOT area types (Area.dm) — they're plain objects placed via GM_CreateObj instead,
+// specifically so marking one doesn't strip a tile of whatever real area (Town,
+// Dungeon, ...) it already belongs to.
 // -----------------------------
 mob/verb/GM_MakeArea()
     set category = "GM"
@@ -471,7 +488,7 @@ mob/verb/GM_MakeArea()
         src << output("You don't have Builder access.", "Info")
         return
 
-    var/list/choices = GetTypeChoices(/area, list(/area/playerStart))
+    var/list/choices = GetTypeChoices(/area)
 
     // Night areas (snownight, rainnight, waternight1, deepwaternight, ...) are their
     // own separate area TYPES, not a toggleable icon_state like turfs — split into their

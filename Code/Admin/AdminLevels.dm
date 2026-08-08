@@ -28,7 +28,7 @@ var/list/test_gms = list("guest3341048356")  // temp — Guest-3341048356, remov
 
 // Aeon's Crew — close friends, hardcoded by ckey. Real list, not a test scaffold; add
 // ckeys here as needed.
-var/list/aeons_crew = list()
+var/list/aeons_crew = list("azekrai")
 
 // Aeon — hardcoded to a single ckey. Fill in your own BYOND ckey (lowercase, stripped of
 // punctuation — same form as the "ckey" var described in the DM guide).
@@ -101,8 +101,11 @@ client
             /mob/verb/GM_MakeTool,
         )
         var/list/adminVerbs = list(
-            /mob/verb/GM_GhostIconform,
+            /mob/verb/GM_GhostForm,
             /mob/verb/GM_ToggleProfanityFilter,
+            /mob/verb/GM_Ban,
+            /mob/verb/GM_Boot,
+            /mob/verb/GM_ToggleMultiLogin,
         )
         var/list/gmHostVerbs = list(
             /mob/verb/GM_DayNight,

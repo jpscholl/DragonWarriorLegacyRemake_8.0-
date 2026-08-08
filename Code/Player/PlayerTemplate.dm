@@ -35,6 +35,13 @@ mob
     var
         isMuted = FALSE
 
+    // Set right before forcibly disconnecting a client (GM_Ban/GM_Boot,
+    // GMCommands.dm) — tells SaveAndLogout() (Main.dm) to skip its normal save, so
+    // the disconnect doesn't immediately overwrite the ban flag / undo the lost
+    // progress with a fresh save on the way out.
+    var
+        skipSaveOnLogout = FALSE
+
     // Party — session-only, not saved (Code/Player/Party.dm). Declared at base mob
     // level (not mob/player) so Die()'s attacker.Party check in CombatSystem.dm
     // doesn't need an istype guard for non-player attackers.
