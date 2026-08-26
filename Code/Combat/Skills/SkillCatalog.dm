@@ -103,7 +103,7 @@ datum/skill/GenericSpell
             if(isHealing)
                 user.ApplyHeal(actualTarget, heal_amount)
             else
-                user.ApplySpellDamage(target, round(user.Intelligence * damage_multiplier), src.element)
+                user.ApplySpellDamage(target, round(user.GetEffectiveIntelligence() * damage_multiplier), src.element)
 
         spawn(user.GetAttackDelay(src, wasDefending))
             if(user.isDead) return

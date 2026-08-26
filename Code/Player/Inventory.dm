@@ -193,6 +193,199 @@ obj/item/consumable/wyvernwing
         return TRUE
 
 // -----------------------------
+// Amulets
+// -----------------------------
+// CONFIRMED OG system: 23 named amulets, a max of 2 worn at once ("You cannot wear more
+// than 2 amulets at the same time!" is verbatim), each with an /item/amulet/<x>/equip
+// override. This was an entire character-building axis with no remake equivalent at all
+// (RemakeVsOGStructure.md Part 3.6).
+//
+// The OG's own naming splits cleanly into two families, which is preserved here:
+//   "Amulet of <Stat>"  — raw stat bonuses (Strength, Agility, Vitality, Intelligence,
+//                         Spirit)
+//   "Amulet of <Power>" — derived bonuses (Power, Speed, Health, Magic, Light, ...)
+// Bonuses are applied the same way buffs are (StatusEffects.dm): to separate bonus vars,
+// never by mutating the underlying stat. Mutating would show in the Battle panel, trip
+// stat-cap checks, and — worst — could be persisted permanently by a save taken while
+// equipped, since SaveData.dm snapshots raw stats. Unequipping is then just subtraction,
+// with no risk of the bonus getting baked in.
+//
+// PLACEHOLDER bonus values — the OG stored a per-amulet `bonus` and that field isn't
+// recovered yet. ART PLACEHOLDER: same key.dmi stand-in as the consumables above.
+#define MAX_WORN_AMULETS 2
+
+// Stat bonuses granted by worn equipment. Kept separate from the buff bonus vars so a
+// buff expiring can never strip an amulet's contribution and vice versa.
+mob
+    var
+        equipStrength = 0
+        equipAgility = 0
+        equipVitality = 0
+        equipIntelligence = 0
+        equipSpirit = 0
+
+obj/item/amulet
+    icon = 'key.dmi'
+    icon_state = "key"
+    var/worn = FALSE
+
+    // Per-amulet stat contributions — subtypes set whichever they grant.
+    var
+        bonusStrength = 0
+        bonusAgility = 0
+        bonusVitality = 0
+        bonusIntelligence = 0
+        bonusSpirit = 0
+        bonusMaxHP = 0
+        bonusMaxMP = 0
+
+    UseItem(mob/user)
+        if(worn) Unequip(user)
+        else     Equip(user)
+
+    proc/CountWornAmulets(mob/user)
+        var/count = 0
+        for(var/obj/item/amulet/A in user.contents)
+            if(A.worn) count++
+        return count
+
+    proc/Equip(mob/user)
+        if(CountWornAmulets(user) >= MAX_WORN_AMULETS)
+            user << output("You cannot wear more than [MAX_WORN_AMULETS] amulets at the same time!", "Info")
+            return
+
+        worn = TRUE
+        name = "[initial(name)] (Equipped)"
+
+        user.equipStrength += bonusStrength
+        user.equipAgility += bonusAgility
+        user.equipVitality += bonusVitality
+        user.equipIntelligence += bonusIntelligence
+        user.equipSpirit += bonusSpirit
+
+        // MaxHP/MaxMP amulets work through RecalculateVitals() rather than touching the
+        // maxima directly, so they compose correctly with level-ups and class factors.
+        user.equipMaxHP += bonusMaxHP
+        user.equipMaxMP += bonusMaxMP
+        user.RecalculateVitals()
+
+        user << output("You equip [initial(name)].", "Info")
+
+    proc/Unequip(mob/user)
+        worn = FALSE
+        name = initial(name)
+
+        user.equipStrength -= bonusStrength
+        user.equipAgility -= bonusAgility
+        user.equipVitality -= bonusVitality
+        user.equipIntelligence -= bonusIntelligence
+        user.equipSpirit -= bonusSpirit
+        user.equipMaxHP -= bonusMaxHP
+        user.equipMaxMP -= bonusMaxMP
+        user.RecalculateVitals()
+
+        user << output("You remove [initial(name)].", "Info")
+
+    // Dropping or giving away a worn amulet has to strip its bonus first, or the
+    // stats stay behind on a player who no longer owns it.
+    Drop()
+        if(worn && ismob(loc)) Unequip(loc)
+        ..()
+
+    Give(mob/player/target in view(5, usr))
+        if(worn && ismob(loc)) Unequip(loc)
+        ..()
+
+// --- Raw stat amulets -------------------------------------------------------
+obj/item/amulet/strength
+    name = "Amulet of Strength"
+    description = "Raises Strength."
+    bonusStrength = 5
+
+obj/item/amulet/agility
+    name = "Amulet of Agility"
+    description = "Raises Agility."
+    bonusAgility = 5
+
+obj/item/amulet/vitality
+    name = "Amulet of Vitality"
+    description = "Raises Vitality."
+    bonusVitality = 5
+
+obj/item/amulet/intelligence
+    name = "Amulet of Intelligence"
+    description = "Raises Intelligence."
+    bonusIntelligence = 5
+
+obj/item/amulet/spirit
+    name = "Amulet of Spirit"
+    description = "Raises Spirit."
+    bonusSpirit = 5
+
+// --- Derived / themed amulets ----------------------------------------------
+obj/item/amulet/power
+    name = "Amulet of Power"
+    description = "Greatly raises Strength."
+    bonusStrength = 10
+
+obj/item/amulet/speed
+    name = "Amulet of Speed"
+    description = "Greatly raises Agility."
+    bonusAgility = 10
+
+obj/item/amulet/health
+    name = "Amulet of Health"
+    description = "Raises maximum HP."
+    bonusMaxHP = 50
+
+obj/item/amulet/magic
+    name = "Amulet of Magic"
+    description = "Raises maximum MP."
+    bonusMaxMP = 30
+
+obj/item/amulet/light
+    name = "Amulet of Light"
+    description = "Raises Intelligence and Spirit."
+    bonusIntelligence = 4
+    bonusSpirit = 4
+
+obj/item/amulet/warrior
+    name = "Warrior's Amulet"
+    description = "Raises Strength and Vitality."
+    bonusStrength = 6
+    bonusVitality = 4
+
+obj/item/amulet/wizard
+    name = "Wizard's Amulet"
+    description = "Raises Intelligence, at the cost of Vitality."
+    bonusIntelligence = 8
+    bonusVitality = -2
+
+obj/item/amulet/sky
+    name = "Amulet of the Sky"
+    description = "Raises Agility and Intelligence."
+    bonusAgility = 4
+    bonusIntelligence = 4
+
+obj/item/amulet/stars
+    name = "Amulet of the Stars"
+    description = "Raises every stat slightly."
+    bonusStrength = 2
+    bonusAgility = 2
+    bonusVitality = 2
+    bonusIntelligence = 2
+    bonusSpirit = 2
+
+obj/item/amulet/erdrick
+    name = "Erdrick's Amulet"
+    description = "The legendary amulet. Raises every stat."
+    bonusStrength = 5
+    bonusAgility = 5
+    bonusVitality = 5
+    bonusIntelligence = 5
+    bonusSpirit = 5
+
+// -----------------------------
 // Mob-side inventory helpers
 // -----------------------------
 mob/proc/GetInventoryCapacity()

@@ -21,6 +21,12 @@
 // Tops up current HP/MP by however much the max just grew, so gaining a max doesn't
 // leave the bar looking emptier than before. hasMana (Code/Player/PlayerTemplate.dm)
 // keeps 0-MP classes like Soldier at 0 regardless of Intelligence/Spirit.
+// Equipment-granted maxima (obj/item/amulet, Code/Player/Inventory.dm). Added to the
+// computed totals below rather than baked into the formula inputs, so unequipping is a
+// clean subtraction and a save taken while equipped can't make the bonus permanent.
+mob/var/equipMaxHP = 0
+mob/var/equipMaxMP = 0
+
 mob/proc/RecalculateVitals()
     var/oldMaxHP = MaxHP
     var/oldMaxMP = MaxMP
@@ -28,15 +34,38 @@ mob/proc/RecalculateVitals()
     // HPfactor/MPfactor (PlayerTemplate.dm) apply to the whole total, not just the
     // stat-derived part — a class multiplier on the base+level portion too is what
     // makes a Soldier's early HP already feel tankier, not just its per-point scaling.
-    MaxHP = round((BASE_MAX_HP + (Vitality * HP_PER_VITALITY) + (Level * HP_PER_LEVEL)) * HPfactor)
+    // GetEffective*() include equipment bonuses (amulets, Inventory.dm) so a Vitality
+    // amulet raises MaxHP exactly as real Vitality would.
+    MaxHP = round((BASE_MAX_HP + (GetEffectiveVitality() * HP_PER_VITALITY) + (Level * HP_PER_LEVEL)) * HPfactor) + equipMaxHP
     HP += max(0, MaxHP - oldMaxHP)
 
     if(hasMana)
-        MaxMP = round((BASE_MAX_MP + (Intelligence * MP_PER_INTELLIGENCE) + (Spirit * MP_PER_SPIRIT) + (Level * MP_PER_LEVEL)) * MPfactor)
+        MaxMP = round((BASE_MAX_MP + (GetEffectiveIntelligence() * MP_PER_INTELLIGENCE) + (GetEffectiveSpirit() * MP_PER_SPIRIT) + (Level * MP_PER_LEVEL)) * MPfactor) + equipMaxMP
         MP += max(0, MaxMP - oldMaxMP)
     else
         MaxMP = 0
         MP = 0
+
+// -----------------------------
+// Effective stats
+// -----------------------------
+// Base stat + equipment bonus. Every combat formula reads these rather than the raw
+// stat, so an amulet contributes exactly like real points would — without ever being
+// written into the stat itself, which is what keeps unequipping clean and stops a
+// mid-equip save from baking the bonus in permanently (SaveData.dm snapshots raw stats).
+// Floored at 1: a negative-Vitality amulet (Wizard's Amulet) must never drive a stat to
+// zero and start producing zero or negative HP.
+mob/proc
+    GetEffectiveStrength()
+        return max(1, Strength + equipStrength)
+    GetEffectiveAgility()
+        return max(1, Agility + equipAgility)
+    GetEffectiveVitality()
+        return max(1, Vitality + equipVitality)
+    GetEffectiveIntelligence()
+        return max(1, Intelligence + equipIntelligence)
+    GetEffectiveSpirit()
+        return max(1, Spirit + equipSpirit)
 
 // -----------------------------
 // Passive HP/MP regeneration
