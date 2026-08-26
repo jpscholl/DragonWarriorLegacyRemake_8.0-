@@ -99,11 +99,12 @@ obj
 
 		// was: drawers/wooden — collapsed, this is now the only drawers type
 		drawers
+			parent_type = /obj/storage
 			name = "drawers"
 			icon = 'table.dmi'
 			icon_state = "drawers"
 			density = 1
-//interaction stores and takes items
+// Storage behavior lives in /obj/storage at the bottom of this file (parent_type above).
 
 		// was: bookcase/bookcase — collapsed, this is now the only bookcase type
 		bookcase
@@ -116,11 +117,12 @@ obj
 
 		// was: chest/wooden — collapsed, this is now the only chest type
 		chest
+			parent_type = /obj/storage
 			name = "chest"
 			icon = 'table.dmi'
 			icon_state = "chestclosed"
 			density = 1
-//interaction makes this store/give items (copy-pasted comment below was wrong — chests hold items, not messages)
+// Storage behavior lives in /obj/storage at the bottom of this file (parent_type above).
 
 		// was: inn, church, wooden, grave — now instances (set icon_state, name, and
 		// message per-instance; message is just a var like any other, no behavior
@@ -139,6 +141,7 @@ obj
 
 		// was: woodpot, pot — collapsed, this is now the only pot type
 		pot
+			parent_type = /obj/storage
 			icon = 'pots.dmi'
 			density = 1
 
@@ -159,3 +162,89 @@ obj/ceiling
                 // Skip walls and ceilings
                 if(istype(T, /turf/wall))
                     T.opacity = 1
+
+// -----------------------------
+// Storage containers
+// -----------------------------
+// Fills in the "interaction stores and takes items" TODOs left on drawers/chest/pot
+// above. CONFIRMED OG shape: its own prompts are "What would you like to do?" with
+// Store / Take / Leave, and drawers/chests carry an optional name that makes them
+// lockable ("Use no name for unlockable drawers.").
+//
+// Items live in the container's own contents, the same way a player's inventory lives in
+// mob.contents (Inventory.dm) — no parallel list to keep in sync, and BYOND's own
+// containment does the work. Contents persist for the world's lifetime but are NOT
+// saved: there's no world serializer yet (RemakeVsOGStructure.md Part 3.20), so anything
+// stored is lost on reboot. Worth knowing before using one as a real stash.
+//
+// Locking reuses the existing named-key system wholesale (obj/door / obj/item/key) — a
+// container whose lockName is set opens only for a player carrying the matching key.
+obj/storage
+    density = 1
+    var/capacity = 10
+    var/lockName = null   // null = unlocked, always openable
+
+    proc/GetCount()
+        var/count = 0
+        for(var/obj/item/I in contents)
+            count++
+        return count
+
+    OnInteract(mob/user)
+        if(lockName && !user.HasMatchingKey(lockName))
+            user << output("[name] is locked.", "Info")
+            return TRUE
+
+        var/choice = input(user, "What would you like to do?", "[name]") in list("Store", "Take", "Leave")
+        switch(choice)
+            if("Store") StoreItem(user)
+            if("Take")  TakeItem(user)
+        return TRUE
+
+    proc/StoreItem(mob/user)
+        var/list/items = list()
+        for(var/obj/item/I in user.contents)
+            items[I.name] = I
+
+        if(!items.len)
+            user << output("You have nothing to store.", "Info")
+            return
+
+        if(GetCount() >= capacity)
+            user << output("[name] is full.", "Info")
+            return
+
+        var/choice = input(user, "Store which item?", "[name]") in items + "Cancel"
+        if(!choice || choice == "Cancel") return
+
+        var/obj/item/I = items[choice]
+        if(!I) return
+
+        // A worn amulet has to come off before it's stored, or its stat bonus stays
+        // applied to a player who no longer carries it (obj/item/amulet, Inventory.dm).
+        if(istype(I, /obj/item/amulet))
+            var/obj/item/amulet/A = I
+            if(A.worn) A.Unequip(user)
+
+        I.loc = src
+        user << output("You put [I.name] in [name].", "Info")
+
+    proc/TakeItem(mob/user)
+        var/list/items = list()
+        for(var/obj/item/I in contents)
+            items[I.name] = I
+
+        if(!items.len)
+            user << output("[name] is empty.", "Info")
+            return
+
+        var/choice = input(user, "Take which item?", "[name]") in items + "Cancel"
+        if(!choice || choice == "Cancel") return
+
+        var/obj/item/I = items[choice]
+        if(!I) return
+
+        if(!user.PickUpItem(I))
+            return  // PickUpItem() already explained why (inventory full)
+
+        user << output("You take [I.name] from [name].", "Info")
