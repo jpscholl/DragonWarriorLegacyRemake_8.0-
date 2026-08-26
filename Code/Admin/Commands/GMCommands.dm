@@ -541,6 +541,7 @@ mob/verb/GM_CreateObj()
         "Drawers" = /obj/stat/drawers,
         "Sign" = /obj/stat/sign,
         "NPC" = /mob/npc,
+        "Merchant" = /mob/npc/merchant,
         "World Login Point" = /obj/spawnMarker/playerStart,
         "Respawn Point" = /obj/spawnMarker/playerSpawn,
     )
@@ -549,7 +550,9 @@ mob/verb/GM_CreateObj()
     if(!choice) return
     var/pickedType = choices[choice]
 
-    if(pickedType == /mob/npc)
+    if(pickedType == /mob/npc/merchant)
+        CreateMerchant()
+    else if(pickedType == /mob/npc)
         CreateNPC()
     else if(pickedType == /obj/door)
         // Only doors exist as a lockable type for now — add more here once other
@@ -633,6 +636,27 @@ mob/proc/CreateSign()
     var/obj/stat/sign/newSign = new(loc)
     newSign.message = message
     src << output("Created a sign.", "Info")
+
+// Merchants (mob/npc/merchant, Code/World/NPCs.dm) get their own creation flow rather
+// than riding CreateNPC(): a shop needs its type chosen at placement, since that's what
+// decides both its stock and its name. Only the Item shop has real goods behind it right
+// now — the other five OG shop types are offered so a GM can lay out a town ahead of
+// their stock existing, and each will start selling the moment its item category is built.
+mob/proc/CreateMerchant()
+    var/shopChoice = input(src, "What kind of shop?", "GM_CreateObj") in list("Item", "Amulet", "Food", "Drink", "Weapons", "Armor", "Cancel")
+    if(!shopChoice || shopChoice == "Cancel") return
+
+    var/mob/npc/merchant/M = new(loc)
+    M.shopType = shopChoice
+    M.name = "[shopChoice] Merchant"
+
+    // Only the Item shop's stock exists as real item types today; the rest open with an
+    // empty stock list, which OpenShop() already handles (they can still buy FROM
+    // players, and say so plainly rather than erroring).
+    if(shopChoice != "Item")
+        M.stock = list()
+
+    src << output("Created [M.name].", "Info")
 
 // icon_state offered here comes straight from npc.dmi's own real sprite set
 // (GetCachedIconStates(), Code/Combat/CombatSystem.dm) — merchant/guard/priest/etc. —

@@ -51,11 +51,21 @@ mob/verb/Interact()
         target = get_step(target, src.dir)
         if(!target) return
 
-    // Objs on the tile get first chance to handle it, then the turf itself.
-    // Whatever's actually interactable overrides OnInteract() (see
+    // Objs on the tile get first chance to handle it, then mobs standing there, then
+    // the turf itself. Whatever's actually interactable overrides OnInteract() (see
     // Code/World/Interaction.dm) and returns TRUE; nothing else responds.
     for(var/obj/O in target.contents)
         if(O.OnInteract(src))
+            return
+
+    // Mobs were never checked here before, which meant an NPC standing in front of you
+    // was unreachable no matter what it implemented — the reason merchants needed this
+    // (mob/npc/merchant, Code/World/NPCs.dm). Skips self and anything hostile: walking
+    // into a monster should stay a combat interaction, not an interact-key one.
+    for(var/mob/M in target.contents)
+        if(M == src) continue
+        if(istype(M, /mob/enemy)) continue
+        if(M.OnInteract(src))
             return
 
     if(target.OnInteract(src))
