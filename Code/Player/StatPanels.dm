@@ -86,6 +86,9 @@ mob/player
         statpanel("Inventory")
 
         stat("Capacity: [GetInventoryCount()]/[GetInventoryCapacity()]")
+        // The OG's Inventory tab carried a "Quick Item:" line too — numpad * cycles it,
+        // numpad - uses it (Code/Player/Commands/PlayerVerbs.dm).
+        stat("Quick Item: [quickItem ? quickItem.name : "None"]")
 
         // Each item shows its own icon+name and routes clicks to its own Click()
         // (Code/Player/Inventory.dm) — same mechanism as the Battle tab's StatLinks above.

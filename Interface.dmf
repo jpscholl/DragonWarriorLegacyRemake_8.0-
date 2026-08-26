@@ -41,8 +41,23 @@ macro "macro"
 	elem 
 		name = "South+UP"
 		command = "onMoveKey 2 0"
-	elem 
+	elem
 		name = "Add"
+	elem
+		name = "Subtract"
+		command = "UseQuickItem"
+	elem
+		name = "Multiply"
+		command = "ScrollQuickItem"
+	elem
+		name = "F5"
+		command = "UseQuickSpell 5"
+	elem
+		name = "F6"
+		command = "UseQuickSpell 6"
+	elem
+		name = "F7"
+		command = "UseQuickSpell 7"
 
 
 menu "menu"
