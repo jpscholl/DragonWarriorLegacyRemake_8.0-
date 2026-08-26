@@ -241,8 +241,19 @@ turf/table/longtablecenter
 				levels = (direction > 0) ? M.stairJumpLevelsUp : M.stairJumpLevelsDown
 			PlayStairSound(M)  // has to fire BEFORE M.loc changes below, same reasoning as the comment above
 			var/turf/new_loc = locate(M.x, M.y, M.z + (direction * levels))
-			if(new_loc)
+			if(!new_loc) return
+
+			// Screen fade (PlayScreenFade(), Main.dm) masks the teleport: fade to black,
+			// move while nothing's visible, fade back in on the other side. canAct locks
+			// movement for the duration, same mechanism the sky-fall below already used —
+			// spawned so Entered()'s own dispatch (which called this) returns immediately
+			// instead of blocking on the fade's sleep()s.
+			M.canAct = FALSE
+			spawn(0)
+				M.PlayScreenFade(TRUE)
 				M.loc = new_loc
+				M.PlayScreenFade(FALSE)
+				M.canAct = TRUE
 
 		// GM-only toggle: double-clicking ANY directional stairs tile (no need to stand
 		// on it) flips stairJumpLevelsUp between 1 (normal) and 2 for EVERY stairs-up
@@ -278,7 +289,15 @@ turf/table/longtablecenter
 				var/turf/partner = FindWarpPartner(src, /turf/stairs)
 				if(partner)
 					PlayStairSound(M)
-					M.loc = partner
+					// Same fade-mask treatment as the directional branch above
+					// (TakeStairs()) — castle/icecastle/black skins link by name
+					// instead of direction, but they're still stairs to the player.
+					M.canAct = FALSE
+					spawn(0)
+						M.PlayScreenFade(TRUE)
+						M.loc = partner
+						M.PlayScreenFade(FALSE)
+						M.canAct = TRUE
 				else
 					M << output("This staircase doesn't lead anywhere yet.", "Info")
 //walking over causes player to warp levels (directional skins) or teleport to a
@@ -345,12 +364,18 @@ turf/table/longtablecenter
 			// mob it's meant for. Also has to fire before the z-level change
 			// below, same reasoning as stairsup/stairsdown.
 			M << sound('fall.wav', repeat = 0, channel = SFX_CHANNEL, volume = M.client ? M.client.ScaledVolume() : 100)
-			// Brief pause before actually dropping - placeholder gap for a real
-			// falling animation later (not built yet).
-			spawn(8)
+			// Real falling animation (PlayScreenFade(), Main.dm) — fills the "placeholder
+			// gap for a real falling animation later (not built yet)" this comment used to
+			// flag. Same fade-to-black / teleport / fade-back-in shape as stairs
+			// (TakeStairs(), above), replacing the old flat spawn(8) delay rather than
+			// stacking on top of it — the fade sequence's own ~1.6s round trip already IS
+			// the pause.
+			spawn(0)
+				M.PlayScreenFade(TRUE)
 				var/turf/new_loc = locate(M.x, M.y, M.z - 1)
 				if(new_loc)
 					M.loc = new_loc
+				M.PlayScreenFade(FALSE)
 				M.canAct = TRUE
 //walking onto this causes the player to fall one Z level down, same mechanic as
 //turf/stairs/stairsdown above just triggered by sky instead of a staircase
