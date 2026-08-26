@@ -45,6 +45,13 @@ mob
 // single var — spamming alternately between the two shouldn't dodge the limit.
 #define WORLD_CHAT_COOLDOWN 10  // world.time units (1 real second)
 
+// Chat range tiers. Say uses the client's own view (world.view is 13x13, i.e. 6 tiles
+// out — Main.dm), so these bracket it on either side. PLACEHOLDER distances: the OG's
+// exact whisper/shout radii aren't recovered, only that the three tiers existed and
+// were ordered this way.
+#define WHISPER_RANGE 1
+#define SHOUT_RANGE 12
+
 mob/var/wsayLimit = 0
 
 mob
@@ -89,6 +96,38 @@ mob
             // Send a spoken message to all players in view
             // Styled in blue, includes "says:" prefix
             DeliverChat(view(src), "<font color='blue'> \icon[src]&lt;[src.name] says:&gt; [msg]</font>")
+
+
+        // -----------------------------
+        // WHISPER — shorter range than Say
+        // -----------------------------
+        // CONFIRMED OG (string table carries both "(Muted)<name(key) whispers:>" and
+        // "<name(key) whispers:>" forms alongside says/shouts). The OG's chat was tiered
+        // by range: whisper reaches only the tiles immediately around you, Say reaches
+        // your view, Shout reaches well past it. The remake only had the middle tier.
+        Whisper(msg as text)
+            set category = "Social"
+            set desc = "Talk quietly to players standing right next to you"
+
+            if(trimtext(msg) == "") return
+            LogChat("<[src.name]([src.key]) whispers:> [msg]", src)
+            msg = CensorText(msg)
+
+            DeliverChat(view(WHISPER_RANGE, src), "<font color='gray'> \icon[src]&lt;[src.name] whispers:&gt; [msg]</font>")
+
+
+        // -----------------------------
+        // SHOUT — longer range than Say
+        // -----------------------------
+        Shout(msg as text)
+            set category = "Social"
+            set desc = "Talk loudly to players well beyond your normal view"
+
+            if(trimtext(msg) == "") return
+            LogChat("<[src.name]([src.key]) shouts:> [msg]", src)
+            msg = CensorText(msg)
+
+            DeliverChat(view(SHOUT_RANGE, src), "<font color='red'> \icon[src]&lt;[src.name] shouts:&gt; [msg]</font>")
 
 
         // -----------------------------

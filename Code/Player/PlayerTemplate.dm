@@ -128,6 +128,7 @@ mob/player
         ..()  // call base constructor
         HidePartyVerbs()  // Party tab only appears once actually in a party — see
                            // ShowPartyVerbs()/HidePartyVerbs() below and Party.dm
+        RegenLoop()  // passive HP/MP regeneration (Code/Player/StatsDatum.dm)
 
     pixel_y = SPRITE_PIXEL_Y_OFFSET
 

@@ -37,3 +37,44 @@ mob/proc/RecalculateVitals()
     else
         MaxMP = 0
         MP = 0
+
+// -----------------------------
+// Passive HP/MP regeneration
+// -----------------------------
+// CONFIRMED the OG had this: HPregen/MPregen plus cur_HPregen/cur_MPregen countdown
+// timers are all real vars in the extracted string table. The remake had no passive
+// regeneration at all — the only way to recover was sleeping in a bed (Turfs.dm) or
+// spending a Rest/Meditate cast, which made any fight away from town a one-way trip.
+//
+// The OG's help file states the governing stats plainly: "Vitality: increases max HP,
+// HP regeneration rate"; "Intelligence: increases max MP, MP regeneration rate". So the
+// stat pairing here is confirmed even though the coefficients aren't — those are
+// PLACEHOLDER, set so a fresh level-1 character (Vitality 1) ticks 1 HP roughly every
+// 5 seconds and a heavy investment is noticeably but not dramatically faster.
+#define REGEN_TICK_INTERVAL 50   // deciseconds between regeneration ticks (5 seconds)
+#define HP_REGEN_BASE 1
+#define HP_REGEN_PER_VITALITY 0.5
+#define MP_REGEN_BASE 1
+#define MP_REGEN_PER_INTELLIGENCE 0.5
+
+mob/proc
+    GetHPRegen()
+        return max(1, round(HP_REGEN_BASE + Vitality * HP_REGEN_PER_VITALITY))
+
+    GetMPRegen()
+        return max(1, round(MP_REGEN_BASE + Intelligence * MP_REGEN_PER_INTELLIGENCE))
+
+    // Runs for the life of the mob, started from mob/player/New() (PlayerTemplate.dm).
+    // Deliberately does nothing while dead — a corpse shouldn't heal its way out of the
+    // respawn wait — and stops entirely if the mob is gone.
+    RegenLoop()
+        set waitfor = 0
+        while(src)
+            sleep(REGEN_TICK_INTERVAL)
+            if(isDead) continue
+            if(HP <= 0) continue
+
+            if(HP < MaxHP)
+                HP = min(MaxHP, HP + GetHPRegen())
+            if(hasMana && MP < MaxMP)
+                MP = min(MaxMP, MP + GetMPRegen())
