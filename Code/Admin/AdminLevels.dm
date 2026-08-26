@@ -117,6 +117,7 @@ client
             /mob/verb/GM_KillMonsters,
             /mob/verb/GM_Announce,
             /mob/verb/GM_WorldReboot,
+            /mob/verb/GM_NameChange,
         )
 
         if(canBuild)
