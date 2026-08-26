@@ -195,10 +195,13 @@ world
         // line and auto-logs connect/disconnect/host events into the same stream.
         // Chat verbs write into this same log via LogChat() (Code/Core/TextFilter.dm).
         log = file("server.log")
-        // Starts the day/night clock (above). Runs here rather than at a global scope
-        // so a world.Reboot() restarts it cleanly along with everything else — the
-        // reboot's object wipe kills the old loop.
-        WorldClockLoop()
+        // Day/night clock DISABLED 2026-08-26 (user call): only useful for RP mode,
+        // which isn't built and isn't current scope — see the dwlr-current-priorities
+        // memory note. Cadence was also flagged too fast (full cycle every 24 real
+        // minutes) independent of the scope question. WorldClockLoop()/GetGameTimeString()
+        // (above) are left intact, not deleted — this is the wire-up point to re-enable
+        // once an RP mode pass actually wants it.
+        // WorldClockLoop()
 
     // world.Reboot() itself only wipes/reinitializes world state — it does NOT
     // automatically give already-connected clients a fresh mob or call Login() on
