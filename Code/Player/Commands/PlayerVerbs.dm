@@ -28,6 +28,103 @@ mob/DblClick()
     ..()
 
 // -----------------------------
+// Player click menu
+// -----------------------------
+// CONFIRMED OG feature (strings: "What shall you do?", "Give Gold", "Give Item",
+// "Cast Magic"). Clicking another player opens a small action menu — the OG's own way
+// of doing player-to-player trading and targeted support casting, and the only route it
+// had for casting a spell on someone who isn't directly in front of you.
+//
+// Range-gated to PLAYER_MENU_RANGE so this can't be used across the map. Falls through
+// to ..() for anything out of range or non-player, which keeps every existing Click()
+// behavior (inventory items, stat-panel links) working untouched.
+#define PLAYER_MENU_RANGE 5
+
+mob/player/Click()
+    // Only another player clicking us, in range, opens the menu. usr is reliable here —
+    // Click() is always driven directly by a real client action.
+    if(usr == src || !istype(usr, /mob/player) || get_dist(usr, src) > PLAYER_MENU_RANGE)
+        return ..()
+
+    var/mob/player/actor = usr
+    var/choice = input(actor, "What shall you do?", "[src.name]") in list("Give Gold", "Give Item", "Cast Magic", "Cancel")
+    switch(choice)
+        if("Give Gold")  actor.GivePlayerGold(src)
+        if("Give Item")  actor.GivePlayerItem(src)
+        if("Cast Magic") actor.CastAtPlayer(src)
+
+mob/player
+    proc/GivePlayerGold(mob/player/target)
+        if(Gold <= 0)
+            src << output("You have no gold to give.", "Info")
+            return
+
+        var/amount = input(src, "How much gold? (You have [Gold].)", "Give Gold", 0) as num
+        if(isnull(amount)) return
+        amount = round(amount)
+        // Clamped rather than rejected — a typo shouldn't cost a prompt, and a negative
+        // amount must never become a way to TAKE gold from someone else.
+        if(amount <= 0) return
+        if(amount > Gold)
+            src << output("You don't have that much gold.", "Info")
+            return
+
+        Gold -= amount
+        target.Gold += amount
+        src << output("You give [amount] gold to [target.name].", "Info")
+        target << output("[src.name] gives you [amount] gold.", "Info")
+
+    proc/GivePlayerItem(mob/player/target)
+        var/list/items = list()
+        for(var/obj/item/I in contents)
+            items[I.name] = I
+
+        if(!items.len)
+            src << output("You have nothing to give.", "Info")
+            return
+
+        var/choice = input(src, "Give which item?", "Give Item") in items + "Cancel"
+        if(!choice || choice == "Cancel") return
+
+        var/obj/item/I = items[choice]
+        if(!I) return
+
+        if(!target.PickUpItem(I))
+            src << output("[target.name]'s inventory is full.", "Info")
+            return
+
+        src << output("You give [I.name] to [target.name].", "Info")
+        target << output("[src.name] gives you [I.name].", "Info")
+
+    // Casts one of this player's known skills directly at the clicked player, bypassing
+    // the "whoever is on the tile in front of me" targeting that UseSkillSlot()
+    // (PlayerTemplate.dm) uses. This is what makes party healing practical — you can
+    // reach an ally standing beside or behind you.
+    proc/CastAtPlayer(mob/player/target)
+        var/list/castable = list()
+        for(var/datum/skill/S in skills)
+            if(S.isSpell) castable[S.skillName] = S
+
+        if(!castable.len)
+            src << output("You have no spells to cast.", "Info")
+            return
+
+        var/choice = input(src, "Cast which spell on [target.name]?", "Cast Magic") in castable + "Cancel"
+        if(!choice || choice == "Cancel") return
+
+        var/datum/skill/S = castable[choice]
+        if(!S) return
+
+        // Same central silence gate UseSkillSlot() enforces — this is a second entry
+        // point into casting, so it needs the check too or Stopspell would be bypassable
+        // just by clicking a player instead of using a numpad slot.
+        if(isSilenced)
+            src << output("You are silenced and cannot cast!", "Info")
+            return
+
+        S.OnUse(src, target)
+
+// -----------------------------
 // General Player Verbs
 // -----------------------------
 mob/verb/Interact()

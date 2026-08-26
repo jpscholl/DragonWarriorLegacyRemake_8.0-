@@ -409,30 +409,56 @@ datum/skill/Vivify
     heal_amount = 90  // PLACEHOLDER — confirmed gate ~22 Int (Hero's table,
                         // originally listed as a 21-24 range)
     mana_cost = 16  // PLACEHOLDER
-// Buff-flavored spells (Upper/Increase/Barrier) — no real buff/status-boost system
-// exists yet (TODOList.md), so these stand in as a minor self-heal until one gets
-// designed, rather than shipping as literal no-ops. Clearly flagged so they're easy to
-// find and replace once a real buff system exists.
+// Buff spells (Upper/Increase/Barrier) — real timed buffs as of 2026-08-25
+// (datum/status_effect/buff/*, StatusEffects.dm). These used to be stand-ins that
+// quietly healed a few HP instead, which was worse than not existing: the skill list
+// advertised a buff and the code did something unrelated, with no way for a player to
+// tell. They target self by default (a buff with no target is a self-buff) but can be
+// cast on an ally by facing them, same targeting rule as every other skill.
+datum/skill/BuffSpell
+    parent_type = /datum/skill/StatusSpell
+    // Unlike Sleep/Stopspell (which need an enemy), a buff with no target is a self-cast
+    // rather than an error — this is what makes noTargetMessage unnecessary here.
+    OnUse(mob/user, mob/target = null)
+        if(!user.canAct) return
+        if(!user.InBattleArea()) return
+
+        var/cost = GetManaCost()
+        if(user.MP < cost)
+            user << output("Not enough MP to cast [skillName]! (need [cost])", "Info")
+            return
+
+        var/mob/actualTarget = target || user
+
+        user.MP -= cost
+        user.canAct = FALSE
+        user << output("You cast [skillName]!", "Info")
+
+        user.PlayAttackAnimation(user, src, actualTarget)
+
+        spawn(cast_time)
+            actualTarget.ApplyStatusEffect(statusEffectType)
+
+        spawn(user.GetAttackDelay(src, FALSE))
+            if(user.isDead) return
+            user.canAct = TRUE
+
 datum/skill/Upper
-    parent_type = /datum/skill/GenericSpell
+    parent_type = /datum/skill/BuffSpell
     skillName = "Upper"
-    isHealing = TRUE
-    heal_amount = 8  // PLACEHOLDER: stand-in for a real attack-buff — confirmed
-                       // gate is 10 Int (Hero's table)
-    mana_cost = 3  // PLACEHOLDER
+    statusEffectType = /datum/status_effect/buff/upper
+    mana_cost = 3  // PLACEHOLDER — confirmed gate is 10 Int (Hero's table)
 
 datum/skill/Increase
-    parent_type = /datum/skill/GenericSpell
+    parent_type = /datum/skill/BuffSpell
     skillName = "Increase"
-    isHealing = TRUE
-    heal_amount = 8  // PLACEHOLDER: stand-in for a real defense-buff
+    statusEffectType = /datum/status_effect/buff/increase
     mana_cost = 3  // PLACEHOLDER
 
 datum/skill/Barrier
-    parent_type = /datum/skill/GenericSpell
+    parent_type = /datum/skill/BuffSpell
     skillName = "Barrier"
-    isHealing = TRUE
-    heal_amount = 10  // PLACEHOLDER: stand-in for a real shield/barrier buff
+    statusEffectType = /datum/status_effect/buff/barrier
     mana_cost = 4  // PLACEHOLDER
 // =============================================================================
 // STATUS-EFFECT SKILLS — apply a datum/status_effect (StatusEffects.dm) to the target.

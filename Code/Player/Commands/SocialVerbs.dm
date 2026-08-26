@@ -54,6 +54,27 @@ mob
 
 mob/var/wsayLimit = 0
 
+// CONFIRMED OG (strings: "You turn off worldsay and worldemote." / "X deactivates
+// worldsay."). Opting out is public — everyone is told — which is the point: it stops
+// people quietly ignoring world chat and then being blamed for not answering.
+mob/var/worldChatEnabled = TRUE
+
+mob/verb/ToggleWorldSay()
+    set category = "Social"
+    set desc = "Turn world say and world emote on or off for yourself"
+
+    worldChatEnabled = !worldChatEnabled
+    src << output("You turn [worldChatEnabled ? "on" : "off"] worldsay and worldemote.", "Info")
+    players << output("<font color='purple'>[src.name]([src.key]) [worldChatEnabled ? "activates" : "deactivates"] worldsay.</font>", "Messages")
+
+// Everyone who currently wants world chat. Opting out silences both directions — a
+// player who isn't listening doesn't get to broadcast either.
+proc/WorldChatAudience()
+    var/list/listeners = list()
+    for(var/mob/player/P in players)
+        if(P.worldChatEnabled) listeners += P
+    return listeners
+
 mob
     // Returns TRUE (and explains why) if this mob is still inside the world-chat
     // cooldown. Unlike the mute check above, this one DOES tell the player — it's a
@@ -174,13 +195,16 @@ mob
             set desc = "Emote to all players in the world"
 
             if(trimtext(msg) == "") return  // ignore empty messages
+            if(!worldChatEnabled)
+                src << output("You have worldsay turned off.", "Info")
+                return
             if(WorldChatThrottled("emote")) return
             LogChat("<[src.name]([src.key]) [msg] to the world>", src)
             msg = CensorText(msg)
 
-            // Send an emote to every player in the world
+            // Send an emote to every player who hasn't opted out
             // Styled in maroon
-            DeliverChat(players, "<font color='maroon'> \icon[src]&lt;[src.name] [msg] to the world&gt;</font>")
+            DeliverChat(WorldChatAudience(), "<font color='maroon'> \icon[src]&lt;[src.name] [msg] to the world&gt;</font>")
 
 
         // -----------------------------
@@ -191,10 +215,13 @@ mob
             set desc = "Chat to all players in the world"
 
             if(trimtext(msg) == "") return  // ignore empty messages
+            if(!worldChatEnabled)
+                src << output("You have worldsay turned off.", "Info")
+                return
             if(WorldChatThrottled("say")) return
             LogChat("<[src.name]([src.key]) wsays:> [msg]", src)
             msg = CensorText(msg)
 
-            // Send a spoken message to every player in the world
+            // Send a spoken message to every player who hasn't opted out
             // Styled in purple, "wsays:" prefix distinguishes it from local Say
-            DeliverChat(players, "<font color='purple'> \icon[src]&lt;[src.name] wsays:&gt; [msg]</font>")
+            DeliverChat(WorldChatAudience(), "<font color='purple'> \icon[src]&lt;[src.name] wsays:&gt; [msg]</font>")
