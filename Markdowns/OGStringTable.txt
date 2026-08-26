@@ -1,0 +1,4456 @@
+# Dragon Warrior Legacy.dmb  (world bin v341 / min compatibility v341)
+# string table: 4450 strings, 0xc8e7..0x2129c
+# cipher XORJUMP9: plain[i] = byte[i] ^ ((record_start + 9*i) & 0xff)
+# length field: u16 ^ (offset & 0xffff), repeated while == 0xffff (continuation)
+# byte 0xff inside a string is BYOND's string-interpolation marker (shown as \xff)
+# id<TAB>text (python-escaped)
+0	
+1	Exit
+2	Enter
+3	New
+4	Del
+5	Login
+6	Logout
+7	Stat
+8	Move
+9	Click
+10	DblClick
+11	Call
+12	Bump
+13	North
+14	South
+15	East
+16	West
+17	Northeast
+18	Northwest
+19	Southeast
+20	Southwest
+21	Center
+22	Add
+23	Remove
+24	Find
+25	Copy
+26	Cut
+27	Repop
+28	Open
+29	Close
+30	Write
+31	Read
+32	Import
+33	Export
+34	.
+35	Topic
+36	Reboot
+37	type
+38	public
+39	name
+40	desc
+41	suffix
+42	text
+43	icon
+44	icon_state
+45	visibility
+46	luminosity
+47	opacity
+48	density
+49	verbs
+50	loc
+51	x
+52	y
+53	z
+54	maxx
+55	maxy
+56	maxz
+57	len
+58	dir
+59	cd
+60	eof
+61	eye
+62	statobj
+63	statpanel
+64	lazy_eye
+65	file
+66	address
+67	gender
+68	sight
+69	client
+70	key
+71	ckey
+72	group
+73	contents
+74	inventory
+75	domain
+76	tick_lag
+77	cpu
+78	log
+79	time
+80	mob
+81	turf
+82	area
+83	realtime
+84	ping
+85	tag
+86	loop_checks
+87	show_banner
+88	neuter
+89	male
+90	female
+91	plural
+92	category
+93	sleep_offline
+94	vars
+95	script
+96	view
+97	password
+98	overlays
+99	underlays
+100	macro_mode
+101	port
+102	params
+103	SendPage
+104	inactivity
+105	url
+106	executor
+107	CGI
+108	PayDimes
+109	OpenPort
+110	show_verb_panel
+111	preload_rsc
+112	status
+113	hub
+114	version
+115	layer
+116	_debug
+117	Entered
+118	Exited
+119	OK
+120	GetConfig
+121	SetConfig
+122	admin
+123	keyban
+124	env
+125	cache_lifespan
+126	Command
+127	command_text
+128	command_prompt
+129	authenticate
+130	parent_type
+131	/obj
+132	/mob
+133	/turf
+134	/area
+135	/atom
+136	/atom/movable
+137	src
+138	ExportText
+139	ImportText
+140	CheckPassport
+141	channel
+142	default
+143	show_map
+144	MouseUp
+145	MouseDown
+146	MouseDrop
+147	MouseDrag
+148	mouse_over_pointer
+149	mouse_drag_pointer
+150	mouse_drop_pointer
+151	mouse_drop_zone
+152	mouse_pointer_icon
+153	/sound
+154	_dm_interface
+155	wait
+156	repeat
+157	/image
+158	byond_version
+159	system_type
+160	UNIX
+161	MS Windows
+162	_binobj
+163	ClearContents
+164	/client
+165	animate_movement
+166	IsBanned
+167	ipban
+168	screen
+169	screen_loc
+170	images
+171	/icon
+172	MouseEntered
+173	MouseExited
+174	Icon
+175	RscFile
+176	default_verb_category
+177	Commands
+178	perspective
+179	see_in_dark
+180	infra_luminosity
+181	invisibility
+182	see_invisible
+183	see_infrared
+184	mouse_opacity
+185	Lock
+186	Unlock
+187	pixel_x
+188	pixel_y
+189	pixel_step_size
+190	Swap
+191	Insert
+192	virtual_eye
+193	edge_limit
+194	timeofday
+195	hub_password
+196	DWOchatroom
+197	NORTH
+198	SOUTH
+199	EAST
+200	WEST
+201	NORTHEAST
+202	NORTHWEST
+203	SOUTHEAST
+204	SOUTHWEST
+205	UP
+206	DOWN
+207	BLIND
+208	SEE_MOBS
+209	SEE_OBJS
+210	SEE_TURFS
+211	SEE_SELF
+212	SEE_INFRA
+213	MOB_PERSPECTIVE
+214	EYE_PERSPECTIVE
+215	EDGE_PERSPECTIVE
+216	FLOAT_LAYER
+217	AREA_LAYER
+218	TURF_LAYER
+219	OBJ_LAYER
+220	MOB_LAYER
+221	FLY_LAYER
+222	TRUE
+223	FALSE
+224	MALE
+225	FEMALE
+226	NEUTER
+227	PLURAL
+228	MOUSE_INACTIVE_POINTER
+229	MOUSE_ACTIVE_POINTER
+230	MOUSE_DRAG_POINTER
+231	MOUSE_DROP_POINTER
+232	MOUSE_ARROW_POINTER
+233	MOUSE_CROSSHAIRS_POINTER
+234	MOUSE_HAND_POINTER
+235	MS_WINDOWS
+236	pi
+237	sqrt2
+238	e
+239	center
+240	range
+241	T
+242	ref
+243	num
+244	M
+245	A
+246	stuff
+247	dist
+248	N
+249	radius
+250	ring
+251	circle
+252	/proc/sign
+253	sign
+254	j
+255	message
+256	I
+257	Dir
+258	amount
+259	damage
+260	Physical
+261	element
+262	jumpable
+263	crit_rate
+264	X
+265	miss
+266	tmp_damage
+267	defend
+268	hitstate
+269	blockable
+270	showhitstate
+271	chance
+272	delay
+273	\xff\x02
+274	 \xff\x02
+275	count
+276	 
+277	count2
+278	O
+279	spell
+280	Heal
+281	Healmore
+282	Healmost
+283	Healus
+284	Healusmore
+285	Vivify
+286	Revive
+287	Upper
+288	Increase
+289	Barrier
+290	Sleep
+291	Sleepmore
+292	Stopspell
+293	Infernos
+294	Infermore
+295	Blaze
+296	Blazemore
+297	Blazemost
+298	Firebal
+299	Firebane
+300	Firevolt
+301	Bang
+302	Boom
+303	Explodet
+304	Icebolt
+305	Icespears
+306	Blizzard
+307	Snowstorm
+308	Zap
+309	Lightning
+310	Thordain
+311	Return
+312	Flamespears
+313	Defeat
+314	/proc/SpellCost
+315	SpellCost
+316	/proc/SpellTime
+317	SpellTime
+318	off
+319	def
+320	Fire
+321	Normal
+322	Water
+323	Ice
+324	Air
+325	Iron
+326	Plant
+327	Darkness
+328	Holy
+329	/proc/Element
+330	Element
+331	S
+332	B
+333	rain_chance
+334	end_chance
+335	rain_snow
+336	<b><center>Clouds cover the sky, and rain starts to pour down.
+337	rain
+338	rainnight
+339	<b><center>Clouds cover the sky, and snowflakes fall to the earth.
+340	snow
+341	snownight
+342	skyrain
+343	skyrainnight
+344	<b><center>The clouds fade from the sky.
+345	sky
+346	skynight
+347	minute
+348	Blazing
+349	sleep
+350	Very Hot
+351	Hot
+352	Cold
+353	Very Cold
+354	Freezing
+355	food_farmed
+356	You are too tired to farm.
+357	Cool
+358	Warm
+359	Type
+360	respawner
+361	spawn_tile
+362	spawn_time
+363	spawn_point
+364	turfs
+365	L
+366	G
+367	txt
+368	hh:mm:ss
+369	DWLlog.txt
+370	\n
+371	target
+372	sound
+373	loop
+374	.wav
+375	file_name
+376	maps/\xff\x01.dmp
+377	<center><b>Overwriting \xff\x01.dmp....
+378	<center><b>Saving \xff\x01.dmp....
+379	a
+380	b
+381	c
+382	d
+383	f
+384	g
+385	h
+386	i
+387	k
+388	l
+389	m
+390	n
+391	o
+392	p
+393	q
+394	r
+395	s
+396	t
+397	u
+398	v
+399	w
+400	C
+401	D
+402	E
+403	F
+404	H
+405	J
+406	K
+407	P
+408	Q
+409	R
+410	U
+411	V
+412	W
+413	Y
+414	Z
+415	alpha
+416	a1
+417	a2
+418	file_text
+419	(
+420	type_text
+421	search_text
+422	\xff\x02\xff\x01
+423	"\xff\x02\xff\x01" = \xff\x01\n
+424	<center><font color=green><b>Instance save successful.
+425	<center><font color=red><b>Instance save failed!
+426	<center><b>Generating map data....
+427	\n(1,1,\xff\x01) = {"\n
+428	"}\n
+429	<center><font color=green><b>World \xff\x01.dmp saved successfully.
+430	<center><font color=red><b>World \xff\x01.dmp was not saved!
+431	{
+432	edited_text
+433	\xff\x02 = list(
+434	'
+435	\\'
+436	"
+437	\\
+438	\\n
+439	\xff\x02,
+440	); 
+441	}
+442	index
+443	/proc/Cycle
+444	Cycle
+445	item
+446	/proc/Insert
+447	/proc/Replace
+448	Replace
+449	item1
+450	item2
+451	pos1
+452	pos2
+453	/proc/Swap
+454	trg
+455	min
+456	max
+457	/proc/c_dir
+458	c dir
+459	Loc1
+460	Loc2
+461	walk_dir
+462	new_icon
+463	preview_icon
+464	preview
+465	Default
+466	Red
+467	Green
+468	Blue
+469	Purple
+470	Golden
+471	Cyan
+472	Brown
+473	Grey
+474	Black
+475	Color 2
+476	Done
+477	Yellow
+478	Light Grey
+479	Orange
+480	Dark Grey
+481	Color 1
+482	main_word
+483	side_word
+484	choice
+485	What will your first color be?
+486	What will your second color be?
+487	hidden
+488	/proc/typesfrom
+489	typesfrom
+490	/proc/iswhole
+491	iswhole
+492	types
+493	/proc/typesend
+494	typesend
+495	maintext
+496	oldtext
+497	newtext
+498	newmessage
+499	/proc/sd_replacetext
+500	sd replacetext
+501	file_dir
+502	save_dir
+503	data_list
+504	DWLdata/\xff\x01.sav
+505	data
+506	action
+507	To
+508	Text
+509	Screen_Loc
+510	,
+511	pos
+512	X_Offset
+513	:
+514	\xff\x02:\xff\x01,\xff\x01
+515	Length
+516	GameController
+517	result
+518	Dragon Warrior Legacy
+519	world_version
+520	open
+521	party
+522	\xff\x02/name
+523	Version \xff\x01.\xff\x02
+524	***Dragon Warrior Legacy \xff\x01 hosted on \xff\x01 at byond://\xff\x01:\xff\x01.***\n
+525	\n***Dragon Warrior Legacy \xff\x01 killed on \xff\x01 at byond://\xff\x01:\xff\x01.***\n
+526	/world/Del
+527	base_initialized
+528	/client/proc/base_Initialize
+529	base Initialize
+530	changed_offset
+531	unsaved
+532	players/\xff\x01/\xff\x01.sav
+533	refs
+534	cycle
+535	char_name
+536	ignore
+537	orig_name
+538	\xff\x02/vars/party
+539	\xff\x02=\xff\x01
+540	\xff\x02/members
+541	<font color=#070><b>\xff\x02 has left \xff\x01.
+542	party_leader
+543	\xff\x02/vars/party_leader
+544	<font color=#070><b>Your party has been destroyed.
+545	DWLdata/party.sav
+546	names
+547	base_is_game_creator
+548	Delete
+549	Flood
+550	used_turfs
+551	select
+552	Drag
+553	Block
+554	Line
+555	base_event_cycle
+556	echo
+557	hurtself
+558	class
+559	icons
+560	/mob/proc/move
+561	move
+562	/mob/proc/CallCenter
+563	CallCenter
+564	/mob/proc/TakeDamage
+565	TakeDamage
+566	/mob/proc/MeterRefresh
+567	MeterRefresh
+568	/mob/proc/MagicMeterRefresh
+569	MagicMeterRefresh
+570	newloc
+571	slep
+572	asleep
+573	world
+574	upper
+575	upper_time
+576	upperon
+577	barrier
+578	barrier_time
+579	barrieron
+580	/mob/proc/CastSpell
+581	CastSpell
+582	/mob/proc/IncreaseHP
+583	IncreaseHP
+584	/mob/proc/IncreaseMP
+585	IncreaseMP
+586	on
+587	msg
+588	Social
+589	(Muted)<\xff\x01(\xff\x01) whispers:> \xff\x01
+590	<\xff\x01(\xff\x01) whispers:> \xff\x02
+591	(Muted)<\xff\x01(\xff\x01) shouts:> \xff\x01
+592	<\xff\x01(\xff\x01) shouts:> \xff\x02
+593	Party
+594	<font size=1 color=#070>Sharing is <b>\xff\x01</b>.
+595	online
+596	Class
+597	Level
+598	\xff\x02/vars/class
+599	\xff\x02/vars/level
+600	Wait
+601	Yes
+602	No
+603	Party Recruit
+604	skill
+605	<font color=red>You have lost 5% of your EXP as penalty for respawn.
+606	exp_percent
+607	Value
+608	Level:
+609	1,0:16
+610	XP:
+611	1,0
+612	%
+613	4:16,0
+614	HP:
+615	6,0:16
+616	MP:
+617	6,0
+618	/
+619	9:16,0:16
+620	9:16,0
+621	level
+622	4,0:16
+623	2:16,0
+624	HP
+625	7:16,0:16
+626	MP
+627	7:16,0
+628	MaxHP
+629	10,0:16
+630	MaxMP
+631	10,0
+632	13,0
+633	<b>You have gained a level!
+634	total_exp
+635	total_gold
+636	regen
+637	rest
+638	meditate
+639	<font color=red>You have drowned!
+640	image_exists
+641	ceiling
+642	ceilingnight
+643	state
+644	25
+645	50
+646	75
+647	100
+648	0
+649	cmnd
+650	Give Gold
+651	Give Item
+652	Cast Magic
+653	choice_list
+654	What shall you do?
+655	No numbers less that 1 allowed
+656	items
+657	spell_cast_list
+658	<font color=red>You are carrying too much to use skills.  Drop some items from your inventory.
+659	Master Sage
+660	Master Hero
+661	Master Wizard
+662	GM Commands
+663	rsn
+664	un
+665	Key
+666	banlist
+667	reason=DWL+ban&admin=\xff\x01&key=\xff\x01&Login=1
+668	reason=DWL+ban&admin=\xff\x01&address=\xff\x01&Login=1
+669	You can't change the time during Role Play Mode!
+670	Rain
+671	Puddles
+672	Temperature
+673	Will it rain or snow?
+674	Snow
+675	Cancel
+676	Where will you set temperature?
+677	temps
+678	obj_type
+679	None
+680	turf_type
+681	mob_type
+682	area_type
+683	tool
+684	\xff\x02 tool selected.
+685	You can now see areas.
+686	You can't see areas anymore.
+687	All
+688	players
+689	<title>Status of \xff\x01</title>
+690	html_text
+691	Nothing
+692	skills
+693	 Leader
+694	  [Muted]
+695	<br>
+696	window=GMplayerstatus&size=640x480&can_resize=0&can_minimize=0
+697	levels_added
+698	new_name
+699	<
+700	>
+701	The name "\xff\x01" already exists.
+702	Names must have a letter or number in them.
+703	Engage Battle Mode
+704	engage
+705	end
+706	been engaged!
+707	ended.
+708	dangerous
+709	peaceful
+710	Are you sure you want to reboot the world?
+711	Server Reboot
+712	What song will you play in \xff\x01?
+713	GMplaymusic \xff\x01
+714	Create New Respawn
+715	What will you call the new respawn?
+716	Name
+717	Spawn Type
+718	Area
+719	Spawn Rate
+720	What would you like to do to \xff\x01?
+721	Modify
+722	Global Respawn \xff\x01 deleted.
+723	Who will you look like?
+724	/mob/player/GM/verb/GMecho
+725	GMecho
+726	initiate
+727	What day of the week shall RP mode start on?
+728	Day
+729	Sunday
+730	Monday
+731	Tuesday
+732	Wednesday
+733	Thursday
+734	Friday
+735	Saturday
+736	de
+737	now
+738	not
+739	non PvP
+740	PvP
+741	Invalid icon.
+742	ltr
+743	players/\xff\x01/
+744	p_files
+745	path
+746	players/\xff\x01/\xff\x01
+747	\xff\x02/x
+748	\xff\x02/y
+749	\xff\x02/z
+750	Saved locations erased.
+751	info
+752	Version \xff\x01.\xff\x02 - \xff\x01
+753	World status set to "\xff\x01".
+754	Name "\xff\x01" added to player name database.
+755	old_name
+756	Name "\xff\x01" removed from player name database.
+757	 now
+758	't
+759	new_skill
+760	You learn \xff\x01!
+761	Are you sure you want to save this map to \xff\x01.dmp?
+762	Are you sure you want to delete the hosting files for DWL?
+763	Wait!
+764	<center><font size=4 color=red><b>Server files terminated.
+765	DWOchatroom.dmb
+766	DWL80.zip
+767	Desert
+768	Forest
+769	Cave
+770	Farm
+771	Building
+772	Inn
+773	arena_type
+774	floor
+775	wall
+776	ground
+777	b_turf
+778	wsay_limit
+779	current_music
+780	air
+781	swimming
+782	watching
+783	temp
+784	temp_word
+785	create_turf_image
+786	lifemeter
+787	magicmeter
+788	expmeter
+789	swimmeter
+790	create_turf_type
+791	create_mode
+792	create_arenastool
+793	weight
+794	max_weight
+795	lifetime
+796	magictime
+797	exptime
+798	swimtime
+799	turn_walk
+800	party_share
+801	resting
+802	str_max
+803	agi_max
+804	vit_max
+805	int_max
+806	spr_max
+807	HPfactor
+808	MPfactor
+809	HPregen
+810	cur_HPregen
+811	MPregen
+812	cur_MPregen
+813	pay
+814	respawn
+815	blaze
+816	fader
+817	skill_selected
+818	ceiling_images
+819	muted
+820	buildpowers
+821	GM_level
+822	hunger
+823	thirst
+824	exp_needed
+825	exp_min
+826	exp_start
+827	stat_points
+828	original_icon
+829	nwskill
+830	seskill
+831	swskill
+832	inskill
+833	quick_cast
+834	quick_5
+835	quick_6
+836	quick_7
+837	str_obj
+838	agi_obj
+839	vit_obj
+840	int_obj
+841	spr_obj
+842	quickitem
+843	other_skills
+844	amulets
+845	(Muted)<\xff\x01(\xff\x01) says:> \xff\x01
+846	<\xff\x01(\xff\x01) says:> \xff\x02
+847	You must wait 1 second between each world say
+848	(Muted)<\xff\x01(\xff\x01) wsays:> \xff\x01
+849	<\xff\x01(\xff\x01) wsays:> \xff\x02
+850	(Muted)<\xff\x01(\xff\x01) \xff\x01>
+851	<\xff\x01(\xff\x01) \xff\x01>
+852	You must wait 1 second between each world emote
+853	(Muted)(World)<\xff\x01(\xff\x01) \xff\x01>
+854	(World)<\xff\x01(\xff\x01) \xff\x01>
+855	You turn off worldsay and worldemote.
+856	\xff\x02(\xff\x01) deactivates worldsay.
+857	You turn on worldsay and worldemote.
+858	\xff\x02(\xff\x01) activates worldsay.
+859	Actions
+860	not 
+861	You will \xff\x01turn to the direction you press.
+862	party_name
+863	none
+864	You are already in a party!
+865	short
+866	long
+867	That party name is too \xff\x01. Please choose another.
+868	The party name "\xff\x01" is taken. Choose another one.
+869	\xff\x02/leader
+870	\xff\x02/share
+871	\xff\x02 has been successfully created.
+872	\xff\x02(\xff\x01) forms party \xff\x01.
+873	window=reading&size=480x320&can_resize=0&can_minimize=0
+874	quickitems
+875	Which hotkey will you change?
+876	Quick Cast Hotkeys
+877	You have no spells that can be hotkeyed.
+878	F5
+879	F6
+880	F7
+881	You dive underwater.
+882	You return to the surface.
+883	color
+884	hit
+885	dead
+886	respawn_time
+887	<b>You will auto-respawn in 60 seconds.  You may press 5 on your numpad to respawn before then.
+888	original_invisibility
+889	cost
+890	You need at least \xff\x01 MP to cast \xff\x01!
+891	atck
+892	numbers
+893	WizDragon
+894	Dark Link
+895	Tarq
+896	\xff\x02(\xff\x01) logs in at \xff\x01.
+897	OldLoc
+898	bang
+899	<font color=red><b>You are carrying too much to use skills.  Drop some items from your inventory.
+900	step_dir
+901	Status
+902	Class:
+903	Party:
+904	Hit Points:
+905	Magic Points:
+906	GM Level:
+907	CPU:
+908	Experience Points:
+909	Gold:
+910	Average Paycheck:
+911	Time:
+912	Hunger:
+913	\xff\x02/100
+914	Thirst:
+915	Sleepiness:
+916	Temperature:
+917	Players online:
+918	Inventory
+919	Inventory -
+920	 (Encumbered)
+921	\xff\x02/\xff\x01 items\xff\x01
+922	Quick Item:
+923	Battle
+924	Strength:
+925	Agility:
+926	Vitality:
+927	Intelligence:
+928	Spirit:
+929	Stat Points:
+930	no_skills
+931	Free Skills -
+932	                 >
+933	Hero
+934	Soldier
+935	Fighter
+936	Goof Off
+937	Pilgrim
+938	Wizard
+939	Sage
+940	Child
+941	hostile
+942	run_percentage
+943	Wander Close
+944	command
+945	drop_type
+946	drop_rate
+947	first_hit
+948	mob_dist
+949	thick
+950	weapon
+951	attack
+952	punch_side
+953	\xff\x02weapon
+954	\xff\x02attack
+955	jump
+956	morningstar
+957	original_dir
+958	demonhammer
+959	icesaber
+960	heal
+961	healmore
+962	ex_dir
+963	thordainns
+964	thordainew
+965	Loc
+966	Respawner
+967	Cat
+968	Slime
+969	Dog
+970	Red Slime
+971	Bat
+972	Fox
+973	Babble
+974	Skeleton
+975	Drakee
+976	Healer
+977	Snail Slime
+978	Magician
+979	Yellow Slime
+980	Sizarmage
+981	Frost Cat
+982	right
+983	left
+984	Ghost
+985	Wolf
+986	Magidrakee
+987	Reptile
+988	Arctic Fox
+989	Panther
+990	Gremlin
+991	Acolyte
+992	Blazeghost
+993	Tiger
+994	Yeti
+995	Man O' War
+996	Wolf Lord
+997	Drakeema
+998	Bloodhound
+999	Warlock
+1000	Silver Fox
+1001	Familiar
+1002	Giant Eyeball
+1003	White Wolf
+1004	Wraith
+1005	Curer
+1006	Leaonar
+1007	Werewolf
+1008	Weretiger
+1009	Metal Slime
+1010	Ozwarg
+1011	Water Imp
+1012	Vulpes
+1013	Rogue Knight
+1014	enemies
+1015	Mini Demon
+1016	Ice Sloth
+1017	Iroid
+1018	Steel Bones
+1019	Dark Priest
+1020	wounded
+1021	Fairy Dragon
+1022	Bengal
+1023	Metal Babble
+1024	Squid
+1025	Frozen Bones
+1026	Green Dragon
+1027	Cloud Puff
+1028	Mad Clown
+1029	Magma Knight
+1030	Cyclops
+1031	Infurnus Knight
+1032	Blue Lion
+1033	Manticore
+1034	Rogue Whisper
+1035	targets
+1036	blocked
+1037	Blue Dragon
+1038	Specter
+1039	Ferocial
+1040	Devil
+1041	Metal Healer
+1042	Necrodain
+1043	Ice Knight
+1044	Archbishop
+1045	Lethal Armor
+1046	Black Lion
+1047	Necromancer
+1048	Red Dragon
+1049	King Slime
+1050	Floormaster
+1051	Flare Cat
+1052	Chameleon
+1053	Crystal Slime
+1054	Saro's Shadow
+1055	King Healer
+1056	King Metal
+1057	Cold Devil
+1058	Leviathan
+1059	Fenrir
+1060	Cloud Knight
+1061	Dragonlord
+1062	.click
+1063	/mob/verb/NoClick
+1064	.dblclick
+1065	/mob/verb/NoDblClick
+1066	created
+1067	/mob/ChoosingCharacter/verb/QuickItem
+1068	QuickItem
+1069	/mob/ChoosingCharacter/verb/ScrollItem
+1070	ScrollItem
+1071	new_class
+1072	new_mob
+1073	special_class
+1074	special_icon
+1075	<font color=red><b>You can't be logged in as two different players at the same time.
+1076	options
+1077	chars
+1078	\xff\x02/vars/name
+1079	Create New Character
+1080	Delete Character
+1081	Quit
+1082	If this is your first time playing, please take the time to skim the help file. Thanks.
+1083	Welcome to Dragon Warrior Legacy
+1084	Which character would you like to delete?
+1085	Confirm Deletion
+1086	char_type
+1087	new_ref
+1088	r\xff\x01
+1089	val
+1090	*r
+1091	tmp_val
+1092	What is your character's name?
+1093	help_text
+1094	Names must be between 3 and 28 characters long. Please try another name.
+1095	Names cannot contain the ', < or > symbols. Please try another name.
+1096	You must have a letter or number in your name.
+1097	classes
+1098	What class will you be?
+1099	str
+1100	agi
+1101	vit
+1102	int
+1103	spr
+1104	current
+1105	Strength: 1
+1106	Agility: 1
+1107	Vitality: 1
+1108	Intelligence: 1
+1109	Spirit: 1
+1110	display
+1111	points
+1112	Choose a stat to increase.  (\xff\x01 points remaining)
+1113	Assign Stats
+1114	\xff\x02: \xff\x01
+1115	If you need help, use the help command in-game.
+1116	Help
+1117	move_speed
+1118	action_limit
+1119	wake_up
+1120	onstairs
+1121	upper_on
+1122	upper_amt
+1123	barrier_on
+1124	boomerang
+1125	burning
+1126	gold
+1127	exp
+1128	world_time
+1129	/datum/proc/base_EventCycle
+1130	base EventCycle
+1131	c_dirs
+1132	c_dirs_text
+1133	spawn_type
+1134	monsters
+1135	boss_chance
+1136	Monsters
+1137	/obj/GlobalRespawn/Del
+1138	walking
+1139	screen_x
+1140	screen_y
+1141	new_count
+1142	new_dir
+1143	\xff\x02,\xff\x01
+1144	select_type
+1145	bonus
+1146	/obj/menu/proc/Select
+1147	Select
+1148	/obj/menu/proc/Choose
+1149	Choose
+1150	/obj/menu/proc/DblChoose
+1151	DblChoose
+1152	stat_value
+1153	\xff\x02_max
+1154	max_value
+1155	\xff\x02+\xff\x01
+1156	Maxed
+1157	\xff\x02 points to increase
+1158	/obj/menu/proc/Update
+1159	Update
+1160	required_points
+1161	/obj/menu/strength/Choose
+1162	How many points will you add?
+1163	Strength
+1164	/obj/menu/strength/DblChoose
+1165	/obj/menu/strength/Update
+1166	/obj/menu/agility/Choose
+1167	Agility
+1168	/obj/menu/agility/DblChoose
+1169	/obj/menu/vitality/Choose
+1170	Vitality
+1171	/obj/menu/vitality/DblChoose
+1172	/obj/menu/vitality/Update
+1173	/obj/menu/intelligence/Choose
+1174	Intelligence
+1175	/obj/menu/intelligence/DblChoose
+1176	/obj/menu/spirit/Choose
+1177	Spirit
+1178	/obj/menu/spirit/DblChoose
+1179	/obj/menu/spirit/Update
+1180	SOUTHWEST to NORTHEAST
+1181	black
+1182	1,0 to 13,0
+1183	stat
+1184	position
+1185	/obj/proc/MouseDropped
+1186	MouseDropped
+1187	flammable
+1188	/obj/map/proc/use
+1189	use
+1190	/obj/map/proc/Customize
+1191	Customize
+1192	boulder
+1193	dstate
+1194	nstate
+1195	main
+1196	Main
+1197	/obj/boulder/proc/DayTime
+1198	DayTime
+1199	/obj/boulder/proc/NightTime
+1200	NightTime
+1201	ll
+1202	llnight
+1203	bumped
+1204	back
+1205	front
+1206	lr
+1207	lrnight
+1208	ul
+1209	ulnight
+1210	ur
+1211	urnight
+1212	/proj/proc/Get_Step
+1213	Get Step
+1214	Damage
+1215	flameblast
+1216	blazehit
+1217	sickle
+1218	chain
+1219	thornwhip
+1220	whip
+1221	iceblast
+1222	icespearhit
+1223	thunderblast
+1224	lightninghit
+1225	lightswordblast
+1226	stopspell
+1227	infernos
+1228	infermore
+1229	obstacle
+1230	dir_to
+1231	blazemore
+1232	burn
+1233	Burn
+1234	Time
+1235	/proj/firebane/New
+1236	explodet
+1237	/proj/explodet/New
+1238	icespear
+1239	blizzard
+1240	lightning
+1241	flamespear
+1242	flamespearhit
+1243	defeat
+1244	owner
+1245	firebane
+1246	explodetflame
+1247	snowstorm
+1248	healmost
+1249	area_music
+1250	magical
+1251	coop
+1252	town
+1253	townrain
+1254	bar
+1255	temple
+1256	castle
+1257	battle
+1258	wilderness
+1259	rave
+1260	/area/rave/New
+1261	cave
+1262	old
+1263	jail
+1264	dungeon
+1265	casino
+1266	forest
+1267	boss
+1268	/area/underwater/Entered
+1269	water
+1270	waternight
+1271	deepwater
+1272	deepwaternight
+1273	visible
+1274	RolePlayManager
+1275	multiple_players
+1276	indes
+1277	day
+1278	reboot_count
+1279	weather
+1280	BattleMode
+1281	save_loc
+1282	blank_obj
+1283	party_list
+1284	cast_icons
+1285	flash_icons
+1286	snow_icons
+1287	icon_list
+1288	class_list
+1289	skill_list
+1290	learn_list
+1291	no_turfs
+1292	no_stats
+1293	<center><b>Role play mode has been engaged!
+1294	12:00 PM
+1295	new_minute
+1296	new_hour
+1297	\xff\x02:\xff\x01\xff\x01 \xff\x01M
+1298	\xff\x02\xff\x01:00 \xff\x01M
+1299	\xff\x02\xff\x01M
+1300	 1:00\xff\x01
+1301	 6:00 PM
+1302	<center><b>The sun sinks below the horizon and night falls over the land.
+1303	<center><b>The last rays of sunlight fade away as the sun sets.
+1304	<center><b>The sky fades to black as the sun sinks away.
+1305	<center><b>The sky darkens quickly as the sun sets behind the clouds.
+1306	<center><b>The rain continues to fall as the sun falls below the horizon.
+1307	<center><b>Snowflakes tumble down to earth gently as the sun sinks into the west.
+1308	<center><b>The sky darkens as the sun sets behind the clouds.
+1309	paycheck
+1310	You receive your paycheck for the day: <b>\xff\x01</b> gold.
+1311	12:00 AM
+1312	days
+1313	day_position
+1314	 6:00 AM
+1315	<center><b>The sun rises in the east and a new day is born.
+1316	<center><b>The first rays of sunlight appear over the horizon as a new day begins.
+1317	<center><b>The sky gradually lights up as the sun slowly rises.
+1318	<center><b>The sky lights up as the sun rises up from behind a cloudy shield.
+1319	<center><b>Rain continues to fall as the sun steadily rises.
+1320	<center><b>Snowflakes gently fall to the ground as the sun gives birth to a new day.
+1321	<center><b>The sky lightens as the sun floats upward behind the clouds.
+1322	<center><b>Role play mode has ended.
+1323	/RolePlayManager/Del
+1324	tarq
+1325	209.6.178.57
+1326	/atom/proc/Bumped
+1327	Bumped
+1328	savecontents
+1329	dense
+1330	NewLoc
+1331	/atom/movable/proc/MoveEffect
+1332	MoveEffect
+1333	\n<html>\n<b>Welcome to Dragon Warrior Legacy!</b>\n<hr>\nDragon Warrior Legacy is a half-fan game created by Tarq (key:\nWizDragon). This game, although it uses some of the ideas and most\nof the graphics of Dragon Warrior, has gameplay very different from\nDragon Warrior. This help file will tell you how to play, what to\ndo, and what the general rules are.\n<hr>\n<p>\n<b>Note: The following is outdated.  Some information may be\nincorrect.</b>\n<p>\n<b>Creating a Character</b>\n<p>\nAfter putting in your name, you will be prompted to choose your\nclass.  Here is a quick overview of the classes:\n<ul><li>\nHero: Balanced in all areas.  Use this class if you plan on soloing\nmost of the time.\n</li><li>\nSoldier: Very strong physical power, defense, and HP.  Soldiers are\nthe best class at taking damage.\n</li><li>\nFighter: This class attacks extremely quickly and can deal huge\namounts of physical damage, but is not so good at taking damage.\n</li><li>\nGoof Off: This odd class is weaker than the rest, but at level 25\nthey can turn into the very powerful Sage class.\n</li><li>\nPilgrim: Specializes in healing and defensive magic, but is also fair\nin physical combat.\n</li><li>\nWizard: Very weak in physical combat, but has the most powerful\noffensive magic of any class.\n</li><li>\nSage: A combination of Wizard and Pilgrim.  This class learns both\noffensive and defensive magic, but is horrible in physical combat.\n</li></ul>\nAfter choosing a class, you will be asked to choose and color your\nicon.  Once this has been done, your character will be made.\n<hr>\n<b>Battle</b>\n<p>\nIn certain areas, you will be able to fight monsters, or sometimes\nother players.  Your skills are listed in the Battle tab, and your\nvitals are listed in the HUD at the bottom of the screen.  To use a\nskill, drag it onto whatever numpad slot you want, and press that\nbutton to use the skill.  (Note: Numlock must be off, and some skills\ncan be used outside of battle areas.)  Alternatively, you can double\nclick a skill if it is not assigned to a slot to use it.\n\nTo target a skill on other players, either click the player and\nchoose Cast Spell off the menu.  You can also click on yourself to\nchoose a quick spell.  After doing so, you can just click on whatever\nand it will cast the spell on them.\n<hr>\n<b>Leveling Up</b>\n<p>\nFighting monsters nets you EXP, and when you get enough EXP you will\nlevel up, as in practically every other RPG on the planet.  When you\nlevel up, your HP (and MP if you are a magic-user) will rise, you may\nlearn a new skill, and you will gain stat points.  Stat points can be\nused to increase your stats by clicking on them.  Here's a quick\noverview of what the stats do:\n<ul><li>\nStrength: Increases physical damage and the number of items you can\ncarry.\n</li><li>\nAgility: Increases attack speed, casting speed, and physical defense.\n</li><li>\nVitality: Increases max HP, HP regeneration rate, physical defense,\nand magic defense.\n</li><li>\nIntelligence: Increases max MP, MP regeneration rate, magic power,\nand magic defense.\n</li><li>\nLuck: Increases critical hit rate the chance for monsters to drop\nitems.\n</li></ul>\n<hr>\n<b>Quick Item</b>\n<p>\nQuick items are a way to use items without having to click on them in\nyour inventory.  To choose a quick item, drag it onto the slot in\nyour inventory or press * on your numpad to cycle through items.  To\nuse your quick item, press - on your numpad.\n<hr>\n<b>Rules</b>\n<p>\n<ul><li>\n<b>Don't flame or harrass other players.</b>  If you have a dispute,\nsettle it like actual people instead of 2nd grade children, or take\nit to pager.\n</li><li>\n<b>Listen to the GMs.</b>  GMs are anyone with a fancier icon than\nnormal.  If they are telling you to do something, listen to them.\n</li><li>\n<b>Don't spam.</b>  Spamming is filling up the chat applet with\nuseless messages.  Any kind of spamming will be dealt with very\nseriously.\n</li><li>\n<b>Don't steal kills or loot.</b>  When someone else is fighting a\nmonster, don't help unless they ask for it!  You won't get any EXP or\ngold from it unless you hit it first, anyway.  Likewise, if a monster\ndrops something and you didn't kill it, don't pick it up.\n</li><li>\n<b>Respect people so long as they deserve it.</b>  Have courtesy in\nthis game.  Behind every little 32x32 icon, there is an actual person\nwith feelings and opinions.  Don't pretend that person doesn't exist.\nI don't expect this to be a perfect little community of harmony and\nsunshine, but I don't want it to be a hellhole, either.\n</li></ul>\n<hr>\nBy Tarq (WizDragon)\n</html>\n
+1334	table
+1335	#ffffff
+1336	side
+1337	Dragon Warrior 1 Hero
+1338	#005cff
+1339	Dragon Warrior 2 Hero
+1340	#007cff
+1341	Dragon Warrior 3 Hero
+1342	Dragon Warrior 4 Male Hero
+1343	#00bc00
+1344	Dragon Warrior 4 Female Hero
+1345	Dragon Warrior 4 Elf
+1346	#0058f8
+1347	#00b800
+1348	Dragon Warrior 1 Soldier
+1349	#7f7f7f
+1350	Dragon Warrior 2 Soldier
+1351	#e05c10
+1352	Dragon Warrior 3 Male Soldier
+1353	#e0005c
+1354	#402cbc
+1355	Dragon Warrior 3 Female Soldier
+1356	#e7005b
+1357	#472bbf
+1358	Dragon Warrior 3 Guard
+1359	#0078f8
+1360	Dragon Warrior 4 Ragnar
+1361	#ff7cff
+1362	#6c40ff
+1363	Dragon Warrior 4 Female Guard
+1364	#e75f13
+1365	#f87858
+1366	Dragon Warrior 4 Male Guard
+1367	Dragon Warrior 1 Fighter
+1368	#8b1700
+1369	Dragon Warrior 2 Fighter
+1370	Dragon Warrior 3 Male Fighter
+1371	#00ab00
+1372	#ab1300
+1373	Dragon Warrior 3 Female Fighter
+1374	Dragon Warrior 4 Alena
+1375	#ff7c5c
+1376	Dragon Warrior 3 Male Goof Off
+1377	Dragon Warrior 3 Female Goof Off
+1378	Dragon Warrior 3 Bard
+1379	#00ab47
+1380	Dragon Warrior 4 Bard
+1381	#6b47ff
+1382	#f878f8
+1383	Dragon Warrior 2 Prince
+1384	#ff3c00
+1385	Dragon Warrior 3 Male Pilgrim
+1386	Dragon Warrior 3 Female Pilgrim
+1387	Dragon Warrior 4 Cristo
+1388	Dragon Warrior 4 Nara
+1389	#900080
+1390	Dragon Warrior 1 Wizard
+1391	Dragon Warrior 2 Princess
+1392	Dragon Warrior 2 Wizard
+1393	Dragon Warrior 3 Male Wizard
+1394	#00ac40
+1395	Dragon Warrior 3 Female Wizard
+1396	Dragon Warrior 4 Brey
+1397	Dragon Warrior 4 Mara
+1398	Dragon Warrior 3 Male Sage
+1399	Dragon Warrior 3 Female Sage
+1400	Dragon Warrior 4 Male Child
+1401	Dragon Warrior 4 Female Child
+1402	Dragon Warrior 4 Horse
+1403	Dragon Warrior 4 Wagon
+1404	Shiny Tarq
+1405	Wizard Tarq
+1406	Police Tarq
+1407	Lego Tarq
+1408	King Tarq
+1409	Water Tarq
+1410	Forest Tarq
+1411	MasterG
+1412	Shiny MasterG
+1413	Evil MasterG
+1414	Ghost MasterG
+1415	Blazer
+1416	Snow Blazer
+1417	Dark Blazer
+1418	Angel Blazer
+1419	DeathWyvern
+1420	XxXDeathWyvernxXx
+1421	Saro
+1422	Foobar Master
+1423	Knucks
+1424	Judecca21
+1425	Robin
+1426	L33t Robin
+1427	lock
+1428	wizdragon&darklink&tarq
+1429	masterg&mstrg
+1430	blazor07&hiryuu
+1431	value
+1432	drop
+1433	stack
+1434	eqp
+1435	/item/verb/search
+1436	search
+1437	x\xff\x01
+1438	/item/proc/StackUp
+1439	StackUp
+1440	/item/proc/StackDown
+1441	StackDown
+1442	x1
+1443	/item/New
+1444	/item/Del
+1445	blank
+1446	new_text
+1447	Title
+1448	The title you chose is \xff\x01 characters long, which is \xff\x01 over the limit. Please choose a different one.
+1449	Writing
+1450	Your writing is \xff\x01 characters long, which is \xff\x01 too big for the paper. Please shorten it.
+1451	written
+1452	<HR>By \xff\x01(\xff\x01)
+1453	paper
+1454	Red Gem of Mesron
+1455	red
+1456	Green Gem of Mesron
+1457	green
+1458	Blue Gem of Mesron
+1459	blue
+1460	Wizard's Ring
+1461	You are at full MP!
+1462	heal_amount
+1463	Bubble Drop
+1464	Crown of Barlow
+1465	crown
+1466	worn
+1467	/item/amulet/proc/equip
+1468	equip
+1469	Equipped
+1470	You cannot wear more than 2 amulets at the same time!
+1471	Amulet of Strength
+1472	strength
+1473	/item/amulet/strength/equip
+1474	Amulet of Power
+1475	power
+1476	/item/amulet/power/equip
+1477	Amulet of Agility
+1478	agility
+1479	/item/amulet/agility/equip
+1480	Amulet of Speed
+1481	speed
+1482	/item/amulet/speed/equip
+1483	Amulet of Vitality
+1484	vitality
+1485	/item/amulet/vitality/equip
+1486	Amulet of Health
+1487	health
+1488	/item/amulet/health/equip
+1489	Amulet of Intelligence
+1490	intelligence
+1491	/item/amulet/intelligence/equip
+1492	Amulet of Magic
+1493	magic
+1494	/item/amulet/magic/equip
+1495	Amulet of Spirit
+1496	luck
+1497	/item/amulet/spirit/equip
+1498	Amulet of Light
+1499	fortune
+1500	/item/amulet/light/equip
+1501	Amulet of the Sky
+1502	/item/amulet/sky/equip
+1503	Amulet of the Stars
+1504	stars
+1505	/item/amulet/stars/equip
+1506	Warrior's Amulet
+1507	warrior
+1508	/item/amulet/warrior/equip
+1509	Wizard's Amulet
+1510	wizard
+1511	/item/amulet/wizard/equip
+1512	Amulet of Stepguard
+1513	stepguard
+1514	Amulet of Increase
+1515	increase
+1516	Amulet of Barrier
+1517	Amulet of Awakening
+1518	awake
+1519	Erdrick's Amulet
+1520	erdrick
+1521	Golden Amulet
+1522	Wanderer's Amulet
+1523	Amulet of the Sun
+1524	sun
+1525	Amulet of the Moon
+1526	moon
+1527	babblesoda
+1528	Tick.
+1529	tiles
+1530	burnable
+1531	wing of wyvern
+1532	wyvern
+1533	But the strange force contains the wing's powers!
+1534	medical herb
+1535	healingherb
+1536	You are not hurt!
+1537	herbal tea
+1538	tea
+1539	leaf of the world tree
+1540	worldtreeleaf
+1541	Face another player to use this item, or give it to them while they are dead.
+1542	/item/herb/leaf/use
+1543	uncooked
+1544	food_amount
+1545	slimejello
+1546	slime jello
+1547	roastedbeetle
+1548	roasted beetle claws
+1549	ravenwings
+1550	baked raven wing
+1551	drakeewings
+1552	fried drakee wings
+1553	rattailpasta
+1554	rat's tail pasta
+1555	snail
+1556	escargot
+1557	bbqdogribs
+1558	barbequed hound ribs
+1559	mothsalad
+1560	moth's antennae salad
+1561	yellowslimejello
+1562	yellow slime jello
+1563	herb
+1564	drink_amount
+1565	babble soda
+1566	redslimejelly
+1567	red slime juice
+1568	storage
+1569	locked
+1570	/stat/DblClick
+1571	/stat/proc/DayTime
+1572	/stat/proc/NightTime
+1573	/stat/New
+1574	talker
+1575	first
+1576	Message
+1577	signnight
+1578	inn
+1579	innnight
+1580	snowsign
+1581	snowsignnight
+1582	snowinn
+1583	snowinnnight
+1584	church
+1585	churchnight
+1586	star
+1587	weaponnight
+1588	weapons
+1589	armor
+1590	armornight
+1591	grave
+1592	gravenight
+1593	wing
+1594	wingnight
+1595	jailnight
+1596	closed_state
+1597	/stat/switchdoor/DayTime
+1598	/stat/switchdoor/NightTime
+1599	time_limit
+1600	/stat/switchdoor/proc/close
+1601	close
+1602	door
+1603	closing
+1604	/stat/door/DayTime
+1605	/stat/door/NightTime
+1606	\xff\x02 key
+1607	/stat/door/proc/close
+1608	wooden
+1609	woodennight
+1610	silver
+1611	silvernight
+1612	ice
+1613	icenight
+1614	goldnight
+1615	bookcase
+1616	bookcasenight
+1617	dw1
+1618	dw1night
+1619	drawers
+1620	What will the drawers be called? (Use no name for unlockable drawers.)
+1621	input
+1622	What would you like to do?
+1623	Store
+1624	Take
+1625	Leave
+1626	drawersnight
+1627	snowdrawers
+1628	snowdrawersnight
+1629	pot
+1630	potnight
+1631	woodpot
+1632	woodpotnight
+1633	icepot
+1634	icepotnight
+1635	chest
+1636	open_state
+1637	dopen_state
+1638	nopen_state
+1639	What will the drawers be called? (Use no name for an unlockable chest.)
+1640	/stat/chest/DayTime
+1641	/stat/chest/NightTime
+1642	chestclosed
+1643	chestclosednight
+1644	chestopen
+1645	chestopennight
+1646	icechestclosed
+1647	icechestclosednight
+1648	icechestopen
+1649	icechestopennight
+1650	daymsg
+1651	nightmsg
+1652	face
+1653	/stat/npc/Move
+1654	Day Speech
+1655	Night Speech
+1656	Action
+1657	Stand
+1658	Walk
+1659	Direction
+1660	Face
+1661	merchant
+1662	shoptype
+1663	\xff\x02 Merchant
+1664	/stat/merchant/New
+1665	coldmerchant
+1666	reptile
+1667	inputs
+1668	Welcome to the \xff\x01 shop! What would you like to do?
+1669	\xff\x02 Shop
+1670	Buy
+1671	Sell
+1672	\xff\x02: \xff\x01 gold
+1673	What would you like to buy? (You have \xff\x01 gold.)
+1674	buying
+1675	Come again.
+1676	You don't have enough money to buy \xff\x01!
+1677	Thank you for shopping. Please come again soon!
+1678	You have nothing to sell me. Sorry.
+1679	What would you like to sell? (You have \xff\x01 gold.)
+1680	selling
+1681	Item
+1682	Amulet
+1683	Food
+1684	Drink
+1685	/stat/bookcase/Enter
+1686	Quotes
+1687	\n"I would rather eat a sandwich than have sex" - Makiten\n<br>\n"If anyone here is more important than my ego, I want them caught and shot right now." - Seige\n<br>\n"You wish your penis was as large as mine" - Balzack\n<br>\n"When did I realize I was God? Well I was praying, and I suddenly realized I was talking to myself." - Seige\n<br>\n"If you worldsay loud enough, she'll be able to hear you while she's offline" - Saro\n
+1688	You have nothing to add!
+1689	What would you like to read?
+1690	Musical key
+1691	area_played
+1692	Area Played
+1693	Which song of yours would you like to play for \xff\x01? (Please keep the file size to a minumum.)
+1694	warp
+1695	warpnight
+1696	warpto
+1697	warpdir
+1698	Warp Target
+1699	dirs
+1700	Warp Direction
+1701	statue
+1702	statuenight
+1703	possible_locs
+1704	/stat/respawn/New
+1705	/stat/respawn/Del
+1706	Monster Type
+1707	/stat/respawn/MoveEffect
+1708	evilthrone
+1709	evilthronenight
+1710	lbound
+1711	ubound
+1712	Lower Level Limit
+1713	Upper Level Limit
+1714	level \xff\x01
+1715	between levels \xff\x01 and \xff\x01
+1716	You may only pass if you are \xff\x01.
+1717	/stat/levelbarrier/proc/Pass
+1718	Pass
+1719	icestatue
+1720	icestatuenight
+1721	How long will it take to spawn a boulder? (from 6 to 600)
+1722	Delay
+1723	underwater
+1724	quickcast
+1725	/skill/New
+1726	new_eqp
+1727	/skill/proc/use
+1728	atk
+1729	/skill/attack/use
+1730	/skill/defend/use
+1731	/skill/punch/use
+1732	\xff\x02claw
+1733	/skill/ironclaw/use
+1734	\xff\x02fireclaw
+1735	\xff\x02goldclaw
+1736	/skill/goldclaw/use
+1737	/skill/thornwhip/use
+1738	/skill/chainsickle/use
+1739	club
+1740	/skill/club/use
+1741	/skill/morningstar/use
+1742	/skill/boomerang/use
+1743	magicknife
+1744	/skill/magicknife/use
+1745	flamesword
+1746	thundersword
+1747	lightsword
+1748	battleaxe
+1749	/skill/battleaxe/use
+1750	swordoflethargy
+1751	dragonkiller
+1752	/skill/dragonkiller/use
+1753	falconsword
+1754	/skill/falconsword/use
+1755	/skill/rest/use
+1756	/skill/meditate/use
+1757	cur_HP
+1758	cur_loc
+1759	/skill/hide/use
+1760	\xff\x02 casts Heal on \xff\x01!
+1761	/skill/heal/use
+1762	\xff\x02 casts Healmore on \xff\x01!
+1763	/skill/healmore/use
+1764	\xff\x02 casts Healmost on \xff\x01!
+1765	/skill/healmost/use
+1766	\xff\x02 casts Healus!
+1767	healed
+1768	heal_amt
+1769	/skill/healus/use
+1770	\xff\x02 casts Healusmore!
+1771	/skill/healusmore/use
+1772	\xff\x02 casts Vivify on \xff\x01!
+1773	<font color=blue>\xff\x02 is revived!
+1774	Vivify fails.
+1775	/skill/vivify/use
+1776	\xff\x02 casts Revive on \xff\x01!
+1777	/skill/revive/use
+1778	\xff\x02 casts Upper on \xff\x01!
+1779	/skill/upper/use
+1780	\xff\x02 casts Increase!
+1781	/skill/increase/use
+1782	\xff\x02 casts Barrier on \xff\x01!
+1783	/skill/barrier/use
+1784	/skill/sleep/use
+1785	/skill/sleepmore/use
+1786	/skill/stopspell/use
+1787	/skill/infernos/use
+1788	/skill/infermore/use
+1789	/skill/blaze/use
+1790	/skill/blazemore/use
+1791	turn_dir
+1792	/skill/blazemost/use
+1793	/skill/firebal/use
+1794	/skill/firebane/use
+1795	/skill/bang/use
+1796	/skill/boom/use
+1797	/skill/explodet/use
+1798	/skill/icebolt/use
+1799	/skill/blizzard/use
+1800	/skill/zap/use
+1801	/skill/lightning/use
+1802	\xff\x02 casts Return!
+1803	But the strange force contains Return!
+1804	/skill/Return/use
+1805	You must unequip everything before you can change your class.
+1806	Are you sure you want to change your class to Sage?  (You will keep all your items and gold, but you will be set back to level 1.)
+1807	stat_up
+1808	new_stat
+1809	zenithian
+1810	/skill/zenithiansword/use
+1811	/skill/defeat/use
+1812	overwrite
+1813	burned
+1814	snow_image
+1815	/turf/proc/DayTime
+1816	/turf/proc/NightTime
+1817	/turf/proc/Customize
+1818	/turf/proc/use
+1819	bridge
+1820	bridgenight
+1821	bridgeh
+1822	bridgehnight
+1823	stonebridge
+1824	stonebridgenight
+1825	snowbridge
+1826	snowbridgenight
+1827	snowbridgeh
+1828	snowbridgehnight
+1829	pathnight
+1830	snowpath
+1831	snowpathnight
+1832	redcobble
+1833	redcobblenight
+1834	stonecobble
+1835	stonecobblenight
+1836	fancycobble
+1837	fancycobblenight
+1838	icecobble
+1839	icecobblenight
+1840	sandcobble
+1841	sandcobblenight
+1842	burntcobble
+1843	burntcobblenight
+1844	woodfloor
+1845	woodfloornight
+1846	stool
+1847	stoolnight
+1848	snowstool
+1849	snowstoolnight
+1850	watch_loc
+1851	dancefloor
+1852	stream
+1853	/turf/floor/barrier/Entered
+1854	chair
+1855	chairnight
+1856	carpet
+1857	carpetnight
+1858	tile
+1859	tilenight
+1860	switch
+1861	switchnight
+1862	door_open
+1863	The tile underneath \xff\x01 lowers down slightly and clicks.
+1864	old_door_open
+1865	/turf/floor/switchtile/Entered
+1866	snowswitch
+1867	snowswitchnight
+1868	The snow crunches as \xff\x01 steps on the tile, which makes a small click.
+1869	/turf/floor/snowswitchtile/Entered
+1870	dw1brick
+1871	dw1bricknight
+1872	grass
+1873	grassnight
+1874	brush
+1875	brushnight
+1876	flowers
+1877	flowersnight
+1878	sand
+1879	sandnight
+1880	swamp
+1881	swampnight
+1882	/turf/grass/swamp/Entered
+1883	farmland
+1884	farmlandnight
+1885	cavedirt
+1886	cavedirtnight
+1887	dirt
+1888	caveice
+1889	caveicenight
+1890	ash
+1891	dw1grass
+1892	dw1grassnight
+1893	counter
+1894	counternight
+1895	snowcounter
+1896	snowcounternight
+1897	tablenight
+1898	woodtable
+1899	woodtablenight
+1900	bedright
+1901	bedrightnight
+1902	bed
+1903	woodbedright
+1904	woodbedrightnight
+1905	snowbedright
+1906	snowbedrightnight
+1907	bedleft
+1908	bedleftnight
+1909	woodbedleft
+1910	woodbedleftnight
+1911	snowbedleft
+1912	snowbedleftnight
+1913	throne
+1914	sandthrone
+1915	sandthronenight
+1916	thronecenter
+1917	thronecenternight
+1918	throneleft
+1919	throneleftnight
+1920	throneright
+1921	thronerightnight
+1922	thronedown
+1923	thronedownnight
+1924	icethronecenter
+1925	icethronecenternight
+1926	icethroneleft
+1927	icethroneleftnight
+1928	icethroneright
+1929	icethronerightnight
+1930	icethronedown
+1931	icethronedownnight
+1932	sandstatue
+1933	sandstatuenight
+1934	stonetable
+1935	stonetablenight
+1936	icetable
+1937	icetablenight
+1938	stove
+1939	stovenight
+1940	What would you like to cook?
+1941	cooking...
+1942	cooked
+1943	tub
+1944	tubnight
+1945	full
+1946	/turf/table/tub/DayTime
+1947	tubempty
+1948	tubemptynight
+1949	woodtableleft
+1950	woodtableleftnight
+1951	woodtableright
+1952	woodtablerightnight
+1953	plant
+1954	plantnight
+1955	snowplant
+1956	snowplantnight
+1957	slots
+1958	slotsnight
+1959	You don't have enough money!
+1960	sword
+1961	positions
+1962	prizes
+1963	slot1
+1964	slot2
+1965	slot3
+1966	prize
+1967	\xff\x02 wins \xff\x01 gold from the slots!
+1968	dw1counter
+1969	dw1counternight
+1970	tree
+1971	treenight
+1972	snowtree
+1973	snowtreenight
+1974	dw1tree
+1975	dw1treenight
+1976	stone
+1977	stonenight
+1978	stoneedge
+1979	stoneedgenight
+1980	tallstoneedge
+1981	tallstoneedgenight
+1982	pillarup
+1983	pillarupnight
+1984	pillardown
+1985	pillardownnight
+1986	lion
+1987	lionnight
+1988	window
+1989	windownight
+1990	leftcastlecorner
+1991	leftcastlecornernight
+1992	rightcastlecorner
+1993	rightcastlecornernight
+1994	leftcastledirt
+1995	leftcastledirtnight
+1996	rightcastledirt
+1997	rightcastledirtnight
+1998	leftcastle
+1999	leftcastlenight
+2000	rightcastle
+2001	rightcastlenight
+2002	stairsleft
+2003	stairsleftnight
+2004	stairs
+2005	stairscenter
+2006	stairscenternight
+2007	stairsright
+2008	stairsrightnight
+2009	icestone
+2010	icestonenight
+2011	icestoneedge
+2012	icestoneedgenight
+2013	icetallstoneedge
+2014	icetallstoneedgenight
+2015	icepillarup
+2016	icepillarupnight
+2017	icepillardown
+2018	icepillardownnight
+2019	icelion
+2020	icelionnight
+2021	iceceiling
+2022	iceceilingnight
+2023	iceleftcastlecorner
+2024	iceleftcastlecornernight
+2025	icerightcastlecorner
+2026	icerightcastlecornernight
+2027	iceleftcastle
+2028	iceleftcastlenight
+2029	icerightcastle
+2030	icerightcastlenight
+2031	icestairsleft
+2032	icestairsleftnight
+2033	icestairscenter
+2034	icestairscenternight
+2035	icestairsright
+2036	icestairsrightnight
+2037	sandstone
+2038	sandstonenight
+2039	sandstoneedge
+2040	sandstoneedgenight
+2041	sandtallstoneedge
+2042	sandtallstoneedgenight
+2043	wood
+2044	woodnight
+2045	woodedge
+2046	woodedgenight
+2047	wooddown
+2048	wooddownnight
+2049	wooddownleft
+2050	wooddownleftnight
+2051	wooddownright
+2052	wooddownrightnight
+2053	woodupleft
+2054	woodupleftnight
+2055	woodupright
+2056	wooduprightnight
+2057	cobble
+2058	cobblenight
+2059	cobbleedge
+2060	cobbleedgenight
+2061	lognight
+2062	snowlog
+2063	snowlognight
+2064	fence
+2065	fencenight
+2066	sandfence
+2067	sandfencenight
+2068	snowfence
+2069	snowfencenight
+2070	cavewall
+2071	cavewallnight
+2072	cavewalledge
+2073	cavewalledgenight
+2074	icecavewall
+2075	icecavewallnight
+2076	icecavewalledge
+2077	icecavewalledgenight
+2078	waterwall
+2079	waterwallnight
+2080	waterfall
+2081	waterfallnight
+2082	curtains
+2083	curtainsnight
+2084	streamwall
+2085	streamup
+2086	dw1stone
+2087	dw1stonenight
+2088	fountain
+2089	fountainnight
+2090	lava
+2091	lavanight
+2092	slid
+2093	spin
+2094	move_dir
+2095	blocker
+2096	icefountain
+2097	icefountainnight
+2098	upedge
+2099	upedgenight
+2100	downedge
+2101	downedgenight
+2102	leftedge
+2103	leftedgenight
+2104	rightedge
+2105	rightedgenight
+2106	upleftedge
+2107	upleftedgenight
+2108	downleftedge
+2109	downleftedgenight
+2110	downrightedge
+2111	downrightedgenight
+2112	uprightedge
+2113	uprightedgenight
+2114	upleftcorner
+2115	upleftcornernight
+2116	downleftcorner
+2117	downleftcornernight
+2118	uprightcorner
+2119	uprightcornernight
+2120	downrightcorner
+2121	downrightcornernight
+2122	puddle
+2123	under_turf
+2124	/turf/water/swimlava/Entered
+2125	dw1water
+2126	dw1waternight
+2127	/turf/sky/upsky/Enter
+2128	/turf/sky/upsky/DayTime
+2129	/turf/sky/upsky/NightTime
+2130	streamback
+2131	cloud
+2132	cloudnight
+2133	cloudup
+2134	cloudupnight
+2135	clouddown
+2136	clouddownnight
+2137	cloudleft
+2138	cloudleftnight
+2139	cloudright
+2140	cloudrightnight
+2141	cloudupleft
+2142	cloudupleftnight
+2143	cloudupright
+2144	clouduprightnight
+2145	clouddownleft
+2146	clouddownleftnight
+2147	clouddownright
+2148	clouddownrightnight
+2149	cloudsky
+2150	cloudskynight
+2151	direction
+2152	/turf/stairs/Enter
+2153	up
+2154	down
+2155	stoneup
+2156	stoneupnight
+2157	stonedown
+2158	stonedownnight
+2159	caveup
+2160	caveupnight
+2161	cavedown
+2162	cavedownnight
+2163	iceup
+2164	iceupnight
+2165	icedown
+2166	icedownnight
+2167	icecaveup
+2168	icecaveupnight
+2169	icecavedown
+2170	icecavedownnight
+2171	woodup
+2172	woodupnight
+2173	castlenight
+2174	icecastle
+2175	icecastlenight
+2176	streamstairsup
+2177	streamstairsdown
+2178	iceslider
+2179	iceslidernight
+2180	isld
+2181	/turf/warp/Enter
+2182	What will you call the warp?
+2183	What is the name of the warp that this warp will lead to?
+2184	/sound/proc/RscFile
+2185	frame
+2186	moving
+2187	/icon/proc/Icon
+2188	/icon/proc/RscFile
+2189	/icon/proc/IconStates
+2190	IconStates
+2191	angle
+2192	/icon/proc/Turn
+2193	Turn
+2194	/icon/proc/Flip
+2195	Flip
+2196	offset
+2197	wrap
+2198	/icon/proc/Shift
+2199	Shift
+2200	/icon/proc/SetIntensity
+2201	SetIntensity
+2202	/icon/proc/SwapColor
+2203	SwapColor
+2204	y1
+2205	x2
+2206	y2
+2207	/icon/proc/DrawBox
+2208	DrawBox
+2209	/icon/proc/Insert
+2210	startx
+2211	starty
+2212	endx
+2213	endy
+2214	/proc/xrange
+2215	xrange
+2216	/proc/get_steps
+2217	get steps
+2218	/proc/allclear
+2219	allclear
+2220	/proc/getturf
+2221	getturf
+2222	/proc/cardinal
+2223	cardinal
+2224	/proc/cardinal_stuff
+2225	cardinal stuff
+2226	/proc/cardinals
+2227	cardinals
+2228	/proc/cardinals_stuff
+2229	cardinals stuff
+2230	/proc/midpoint
+2231	midpoint
+2232	/proc/distance
+2233	distance
+2234	/proc/getring
+2235	getring
+2236	/proc/getcircle
+2237	getcircle
+2238	/proc/getblock
+2239	getblock
+2240	px
+2241	py
+2242	line
+2243	dx
+2244	dy
+2245	dxabs
+2246	dyabs
+2247	sdx
+2248	sdy
+2249	/proc/getline
+2250	getline
+2251	/proc/image_dir
+2252	image dir
+2253	base_def
+2254	/proc/fallasleep
+2255	fallasleep
+2256	/proc/flash
+2257	flash
+2258	/proc/flash_num
+2259	flash num
+2260	/proc/densecheck
+2261	densecheck
+2262	/proc/fulldensecheck
+2263	fulldensecheck
+2264	/proc/emptycheck
+2265	emptycheck
+2266	/proc/DayTime
+2267	/proc/NightTime
+2268	sky_state
+2269	snow_offset
+2270	snow_amount
+2271	under_turf_type
+2272	/proc/RainCheck
+2273	RainCheck
+2274	tick3
+2275	tick4
+2276	tick6
+2277	tick8
+2278	tick10
+2279	tick30
+2280	/proc/Minute
+2281	Minute
+2282	After an hour of farming, you manage to grow \xff\x06\xff\x03, but the farming has tired you out.
+2283	/proc/Hour
+2284	Hour
+2285	A_temp
+2286	diff
+2287	/proc/Temperature
+2288	/proc/NewMonster
+2289	NewMonster
+2290	/proc/Respawns
+2291	Respawns
+2292	/proc/RespawnNames
+2293	RespawnNames
+2294	[\xff\x01]\xff\x01\n
+2295	/proc/Log
+2296	Log
+2297	/proc/TalkText
+2298	TalkText
+2299	music
+2300	/proc/PlaySound
+2301	PlaySound
+2302	\xff\x02\xff\x01,
+2303	\xff\x02\xff\x01)
+2304	/proc/SaveWorld
+2305	SaveWorld
+2306	/proc/BurnTurf
+2307	BurnTurf
+2308	"\xff\x02",
+2309	"\xff\x02"
+2310	\xff\x02 = \xff\x01; 
+2311	\\"
+2312	/proc/SaveInstance
+2313	SaveInstance
+2314	/proc/c_step_rand
+2315	c step rand
+2316	old_loc
+2317	/proc/c_step_to
+2318	c step to
+2319	/proc/c_step_away
+2320	c step away
+2321	/proc/c_step_towards
+2322	c step towards
+2323	/proc/c_step_from
+2324	c step from
+2325	/proc/get_c_dir
+2326	get c dir
+2327	Loc3
+2328	/proc/get_c_dist
+2329	get c dist
+2330	/proc/c_walk
+2331	c walk
+2332	/proc/c_walk_towards
+2333	c walk towards
+2334	main_colors
+2335	side_colors
+2336	main_color
+2337	side_color
+2338	Color
+2339	#960000
+2340	#009600
+2341	#000096
+2342	#640064
+2343	#969600
+2344	#009696
+2345	#966432
+2346	#4b4b4b
+2347	#000000
+2348	#ff0000
+2349	#00ff00
+2350	#0000ff
+2351	#ff00ff
+2352	#00ffff
+2353	#ffff00
+2354	#c8c8c8
+2355	#ff9600
+2356	#7d7d7d
+2357	/proc/CustomizeIcon
+2358	CustomizeIcon
+2359	/proc/objmobview
+2360	objmobview
+2361	/proc/BattleArea
+2362	BattleArea
+2363	/proc/CoopArea
+2364	CoopArea
+2365	/proc/banlist
+2366	views
+2367	M_inside
+2368	X_inside
+2369	/proc/blackview
+2370	blackview
+2371	/proc/blackoview
+2372	blackoview
+2373	/proc/monsterview
+2374	monsterview
+2375	/proc/monsteroview
+2376	monsteroview
+2377	/proc/giveview
+2378	giveview
+2379	/proc/getsline
+2380	getsline
+2381	/proc/wsayworld
+2382	wsayworld
+2383	/proc/transferworld
+2384	transferworld
+2385	/proc/isGM
+2386	isGM
+2387	/proc/wz_replacetext
+2388	wz replacetext
+2389	/proc/ReadLData
+2390	ReadLData
+2391	/proc/WriteLData
+2392	WriteLData
+2393	/proc/ReadData
+2394	ReadData
+2395	/proc/WriteData
+2396	WriteData
+2397	/proc/ReadDData
+2398	ReadDData
+2399	/proc/HudText
+2400	HudText
+2401	/proc/NewChars
+2402	NewChars
+2403	initialized
+2404	/BaseCamp/GameController/proc/Initialize
+2405	Initialize
+2406	receiver
+2407	Client
+2408	player_mobs
+2409	BaseCamp: Illegal attempt to write GameController to savefile!
+2410	/BaseCamp/GameController/Write
+2411	cycle_delay
+2412	cycle_active
+2413	_event_cycle_receivers
+2414	/BaseCamp/GameController/Initialize
+2415	online_clients
+2416	game_creator_client
+2417	/client/New
+2418	/client/proc/UpdateEye
+2419	UpdateEye
+2420	\xff\x02/type
+2421	\xff\x02/key
+2422	\xff\x02/ref/r\xff\x01
+2423	\xff\x02/vars/\xff\x01
+2424	*r\xff\x01
+2425	/\xff\x01/vars
+2426	/client/proc/SaveChar
+2427	SaveChar
+2428	/client/proc/DeleteChar
+2429	DeleteChar
+2430	/client/base_Initialize
+2431	/client/Del
+2432	\xff\x02 connected at \xff\x01.
+2433	\xff\x02 disconnected at \xff\x01.
+2434	/client/Center
+2435	/client/Northwest
+2436	/client/Southwest
+2437	/client/Southeast
+2438	/client/North
+2439	/client/South
+2440	/client/East
+2441	/client/West
+2442	overtype
+2443	atom_type
+2444	/client/Click
+2445	/client/MouseEntered
+2446	/client/MouseDrag
+2447	/client/MouseDrop
+2448	/mob/New
+2449	/mob/Del
+2450	/mob/Move
+2451	/mob/proc/BattleCheck
+2452	BattleCheck
+2453	/mob/proc/SpecialIcons
+2454	SpecialIcons
+2455	/mob/proc/Relocate
+2456	Relocate
+2457	/mob/proc/FallAsleep
+2458	FallAsleep
+2459	/mob/proc/Upper
+2460	/mob/proc/Barrier
+2461	/mob/proc/AttackDelay
+2462	AttackDelay
+2463	/mob/player/BattleCheck
+2464	/mob/player/proc/setverbs
+2465	setverbs
+2466	sharing
+2467	<font color=#070><b>Party sharing is \xff\x01.
+2468	/mob/player/proc/partyverbs
+2469	partyverbs
+2470	/mob/player/proc/buildverbs
+2471	buildverbs
+2472	/mob/player/proc/adminverbs
+2473	adminverbs
+2474	<font size=1>\xff+<font color=blue>&lt;\xff\x01 whispers:> \xff\x01
+2475	/mob/player/proc/whisper
+2476	whisper
+2477	<font size=3>\xff+<font color=blue>&lt;\xff\x01 shouts:> \xff\x01
+2478	/mob/player/proc/shout
+2479	shout
+2480	\xff+<font color=#070>&lt;\xff\x01 psays:> \xff\x01
+2481	(Muted)<\xff\x01(\xff\x01) psays to \xff\x01:> \xff\x01
+2482	<\xff\x01(\xff\x01) psays to \xff\x01:> \xff\x02
+2483	/mob/player/proc/partysay
+2484	partysay
+2485	<font color=#070><b>\xff\x02
+2486	\xff+<font size=1 color=#070>\xff\x01(\xff\x01)  <b>Class:</b> \xff\x01  <b>Level:</b> \xff\x01
+2487	offline
+2488	\xff+<font size=1 color=#070>\xff\x01(\xff\x01)  (Logging in)
+2489	\xff+<font size=1 color=#070>\xff\x01(\xff\x01)  <b>Class:</b> \xff\x01  <b>Level:</b> \xff\x01  (Offline)
+2490	/mob/player/proc/partywho
+2491	partywho
+2492	Are you sure you want to leave \xff\x01?
+2493	\xff\x02(\xff\x01) leaves party \xff\x01.
+2494	<font color=#070><b>\xff\x02 has been destroyed by \xff\x01.
+2495	\xff\x02(\xff\x01) destroys party \xff\x01.
+2496	/mob/player/proc/partyleave
+2497	partyleave
+2498	\xff\x02 is already in a party!
+2499	\xff\x02 has invited you to join \xff\x01. Will you join?
+2500	<font color=#070><b>\xff\x02 has been recruited into \xff\x01 by \xff\x01.
+2501	\xff\x02(\xff\x01) recruits \xff\x01(\xff\x01) into party \xff\x01.
+2502	<font color=#070>Party sharing is <b>\xff\x01</b>.
+2503	\xff\x02 declines your party invitation.
+2504	/mob/player/proc/partyrecruit
+2505	partyrecruit
+2506	<font color=#070><b>\xff\x02 has been kicked out of \xff\x01 by \xff\x01.
+2507	\xff\x02(\xff\x01) kicks \xff\x01(\xff\x01) out of party \xff\x01.
+2508	/mob/player/proc/partykick
+2509	partykick
+2510	<font color=#070><b>Party sharing has been turned \xff\x01.
+2511	\xff\x02(\xff\x01) turns party sharing \xff\x01 in party \xff\x01.
+2512	/mob/player/proc/partyshare
+2513	partyshare
+2514	/mob/player/proc/SkillUse
+2515	SkillUse
+2516	/mob/player/proc/Respawn
+2517	Respawn
+2518	/mob/player/proc/RespawnCheck
+2519	RespawnCheck
+2520	/mob/player/proc/ExpMeterRefresh
+2521	ExpMeterRefresh
+2522	/mob/player/proc/SwimMeterRefresh
+2523	SwimMeterRefresh
+2524	/mob/player/proc/HudRefresh
+2525	HudRefresh
+2526	/mob/player/proc/new_hud
+2527	new hud
+2528	You cannot set \xff\x01 to your quickitem.
+2529	/mob/player/proc/SetQuickItem
+2530	SetQuickItem
+2531	/mob/player/proc/LevelCheck
+2532	LevelCheck
+2533	\xff\x02_obj
+2534	/mob/player/proc/SkillCheck
+2535	SkillCheck
+2536	party_members
+2537	/mob/player/proc/KillReward
+2538	KillReward
+2539	cur_regen
+2540	/mob/player/proc/SetMaxHP
+2541	SetMaxHP
+2542	/mob/player/proc/SetMaxMP
+2543	SetMaxMP
+2544	/mob/player/proc/AirCheck
+2545	AirCheck
+2546	/mob/player/proc/DayTime
+2547	/mob/player/proc/NightTime
+2548	/mob/player/proc/FadeOut
+2549	FadeOut
+2550	/mob/player/proc/FadeIn
+2551	FadeIn
+2552	How much gold will you give to \xff\x01?
+2553	Give Gold to \xff\x01
+2554	give_gold
+2555	You don't have \xff\x01 gold!
+2556	\xff\x02 gives \xff\x01 gold to \xff\x01.
+2557	\xff\x02 is too far away!
+2558	You have no items to give to \xff\x01!
+2559	Which item shall you give to \xff\x01?
+2560	Give Item to \xff\x01
+2561	gift
+2562	\xff\x02 gives \xff\x01 to \xff\x01.
+2563	\xff\x02 doesn't have enough room for \xff\x01!
+2564	You have no spells to cast on \xff\x01!
+2565	What spell will you cast on \xff\x01?
+2566	Cast Magic on \xff\x01
+2567	spell_cast
+2568	/mob/player/proc/Command
+2569	/mob/player/proc/GetWeight
+2570	GetWeight
+2571	\xff\x02 has an announcement<font color=red><font size=4><b><center>\xff\x01
+2572	\xff\x02(\xff\x01) announces: \xff\x01
+2573	/mob/player/GM/verb/GMannounce
+2574	GMannounce
+2575	\xff\x02 was booted by \xff\x01.
+2576	\xff\x02 was booted by \xff\x01 for reason:<font color=red><b><center>\xff\x01
+2577	\xff\x02(\xff\x01) boots \xff\x01(\xff\x01) at \xff\x01 for reason: \xff\x01
+2578	/mob/player/GM/verb/GMboot
+2579	GMboot
+2580	\xff\x02 was pwiped by \xff\x01.
+2581	\xff\x02 was pwiped by \xff\x01 for reason:<font color=purple><b><center>\xff\x01
+2582	\xff\x02(\xff\x01) pwipes \xff\x01(\xff\x01) at \xff\x01 for reason: \xff\x01
+2583	/mob/player/GM/verb/GMpwipe
+2584	GMpwipe
+2585	\xff\x02 reappears.
+2586	\xff\x02 disappears.
+2587	/mob/player/GM/verb/GMghostform
+2588	GMghostform
+2589	<font color=blue><b>You have secretly \xff\x01muted \xff\x01.
+2590	\xff\x02(\xff\x01) mutes \xff\x01(\xff\x01).
+2591	/mob/player/GM/verb/GMmute
+2592	GMmute
+2593	/mob/player/GM/verb/GMtransfer
+2594	GMtransfer
+2595	\xff\x02 was banned by \xff\x01.
+2596	\xff\x02 was banned by \xff\x01 for reason:<font color=blue><b><center>\xff\x01
+2597	\xff\x02(\xff\x01) bans \xff\x01(\xff\x01) at \xff\x01 for reason: \xff\x01
+2598	Address
+2599	reason=DWL+ban&admin=\xff\x01&address=\xff\x01
+2600	reason=DWL+ban&admin=\xff\x01&key=\xff\x01
+2601	/mob/player/GM/verb/GMban
+2602	GMban
+2603	\xff\x02 unbans key \xff\x01.
+2604	\xff\x02(\xff\x01) unbans \xff\x01 (\xff\x01).
+2605	/mob/player/GM/verb/GMunban
+2606	GMunban
+2607	/mob/player/GM/verb/GMdaynight
+2608	GMdaynight
+2609	What will the temperature be in \xff\x01?
+2610	\xff\x02 is now \xff\x01.
+2611	/mob/player/GM/verb/GMweather
+2612	GMweather
+2613	/mob/player/GM/verb/GMmakestat
+2614	GMmakestat
+2615	/mob/player/GM/verb/GMmakeitem
+2616	GMmakeitem
+2617	/mob/player/GM/verb/GMmaketurf
+2618	GMmaketurf
+2619	/mob/player/GM/verb/GMmakemob
+2620	GMmakemob
+2621	/mob/player/GM/verb/GMmakearea
+2622	GMmakearea
+2623	/mob/player/GM/verb/GMmaketool
+2624	GMmaketool
+2625	/mob/player/GM/verb/GMdelobjmob
+2626	GMdelobjmob
+2627	/mob/player/GM/verb/GMseeareas
+2628	GMseeareas
+2629	player(\xff\x01).dmi
+2630	<img src=player(\xff\x01).dmi>\xff\x02(\xff\x01, \xff\x01)<br>
+2631	 x\xff\x01
+2632	\xff\x02\xff\x01, 
+2633	\xff\x02, 
+2634	\n\t\t\t\t\tClass: \xff\x01  Level: \xff\x01  Party: \xff\x01\xff\x01\xff\x01<br>\n\t\t\t\t\tEXP: \xff\x01/\xff\x01 (\xff\x01)  Gold: \xff\x01<br>\n\t\t\t\t\tHP: \xff\x01/\xff\x01  MP: \xff\x01/\xff\x01  Stat Points:  \xff\x01<br>\n\t\t\t\t\tStrength: \xff\x01+\xff\x01  Agility: \xff\x01+\xff\x01  Vitality: \xff\x01+\xff\x01  Intelligence: \xff\x01+\xff\x01  Spirit: \xff\x01+\xff\x01<br>\n\t\t\t\t\tInventory: \xff\x01<br>\n\t\t\t\t\tSkills: \xff\x01<br>\n\t\t\t\t\t
+2635	/mob/player/GM/verb/GMplayerstatus
+2636	GMplayerstatus
+2637	\xff\x02(\xff\x01) levels \xff\x01(\xff\x01) \xff\x01 levels.
+2638	/mob/player/GM/verb/GMlevelincrease
+2639	GMlevelincrease
+2640	\xff\x02's name set to \xff\x01.
+2641	\xff\x02(\xff\x01) renames \xff\x01(\xff\x01) to \xff\x01.
+2642	/mob/player/GM/verb/GMnamechange
+2643	GMnamechange
+2644	Are you sure you want to \xff\x01 Battle Mode?
+2645	<center><font size=4><b>Battle Mode has \xff\x01
+2646	\xff\x02 is now a \xff\x01 area.
+2647	/mob/player/GM/verb/GMbattlemode
+2648	GMbattlemode
+2649	<center><font size=4><b>\xff\x02 has announced a server reboot in 10 seconds....
+2650	\xff\x02(\xff\x01) engages a world reboot.
+2651	<center><b>\xff\x02
+2652	<center><font size=4><b>\xff\x02 has cancelled the server reboot.
+2653	\xff\x02(\xff\x01) disengages the world reboot.
+2654	/mob/player/GM/verb/GMworldreboot
+2655	GMworldreboot
+2656	song
+2657	/mob/player/GM/verb/GMplaymusic
+2658	GMplaymusic
+2659	What monster will \xff\x01 spawn?
+2660	In what area will \xff\x01 spawn monsters?
+2661	On what Z level will \xff\x01 spawn monsters? (Levels are 1-\xff\x01; use 0 for all levels.)
+2662	How many monsters will \xff\x01 spawn?
+2663	Global Respawn \xff\x01 created.
+2664	What will you call \xff\x01?
+2665	Global Respawn \xff\x01 modified.
+2666	/mob/player/GM/verb/GMglobalrespawn
+2667	GMglobalrespawn
+2668	/mob/player/GM/verb/GMswitchicon
+2669	GMswitchicon
+2670	/mob/player/GM/verb/GMblaze
+2671	GMblaze
+2672	\xff\x02(\xff\x01) kills all \xff\x01 in \xff\x01.
+2673	/mob/player/GM/verb/GMkillallmonsters
+2674	GMkillallmonsters
+2675	Are you sure you want to \xff\x01 Role Play Mode?
+2676	/mob/player/GM/verb/GMroleplaymode
+2677	GMroleplaymode
+2678	<center><font size=4><b>Indestructable mode has been \xff\x01activated.
+2679	/mob/player/GM/verb/GMindestructablemode
+2680	GMindestructablemode
+2681	Players will \xff\x01 be saved to their locations when they log out.
+2682	/mob/player/GM/verb/GMsavelocation
+2683	GMsavelocation
+2684	/mob/player/GM/verb/GMcoopmode
+2685	GMcoopmode
+2686	Choose an icon to upload for \xff\x01.
+2687	GMuploadicon \xff\x01
+2688	/mob/player/GM/proc/GMuploadicon
+2689	GMuploadicon
+2690	/mob/player/GM/proc/GMreverticon
+2691	GMreverticon
+2692	/mob/player/GM/proc/GMerasesaveloc
+2693	GMerasesaveloc
+2694	/mob/player/GM/proc/GMworldstatus
+2695	GMworldstatus
+2696	/mob/player/GM/proc/GMaddname
+2697	GMaddname
+2698	/mob/player/GM/proc/GMremovename
+2699	GMremovename
+2700	You can\xff\x01 log in on the same computer.
+2701	\xff\x02(\xff\x01) turns multiple logins \xff\x01.
+2702	/mob/player/GM/proc/GMmultipleplayers
+2703	GMmultipleplayers
+2704	\xff\x02 already knows that skill!
+2705	/mob/player/GM/proc/GMmakeskillobj
+2706	GMmakeskillobj
+2707	\xff\x02(\xff\x01) saves the map as \xff\x01.dmp.
+2708	/mob/player/GM/proc/GMsavemap
+2709	GMsavemap
+2710	Are you sure you want to grant building powers to \xff\x01?
+2711	<b>You have been granted building powers by \xff\x01
+2712	<b>You have granted \xff\x01 building powers
+2713	\xff\x02(\xff\x01) grants building powers to \xff\x01(\xff\x01).
+2714	Are you sure you want to revoke building powers from \xff\x01?
+2715	<b>Your building powers have been revoked by \xff\x01
+2716	<b>You have revoked building powers from \xff\x01
+2717	\xff\x02(\xff\x01) revokes building powers from \xff\x01(\xff\x01).
+2718	/mob/player/GM/proc/GMgrantbuildpowers
+2719	GMgrantbuildpowers
+2720	Are you sure you want to grant administrative powers to \xff\x01?
+2721	<b>You have been granted administrative powers by \xff\x01
+2722	<b>You have granted \xff\x01 administrative powers
+2723	\xff\x02(\xff\x01) grants administrative powers to \xff\x01(\xff\x01).
+2724	Are you sure you want to revoke administrative powers from \xff\x01?
+2725	<b>Your administrative powers have been revoked by \xff\x01
+2726	<b>You have revoked administrative powers from \xff\x01
+2727	\xff\x02(\xff\x01) revokes administrative powers from \xff\x01(\xff\x01).
+2728	/mob/player/GM/proc/GMgrantadminpowers
+2729	GMgrantadminpowers
+2730	/mob/player/GM/proc/GMkillserver
+2731	GMkillserver
+2732	bed_loc
+2733	back_loc
+2734	/mob/player/GM/proc/GMarenasettings
+2735	GMarenasettings
+2736	neskill
+2737	\xff+<font color=blue>&lt;\xff\x01 says:> \xff\x01
+2738	/mob/player/verb/say
+2739	say
+2740	\xff+<font color=purple>&lt;\xff\x01 wsays:> \xff\x01
+2741	/mob/player/verb/worldsay
+2742	worldsay
+2743	\xff+&lt;\xff\x01 \xff\x01>
+2744	/mob/player/verb/emote
+2745	emote
+2746	\xff+<font color=#a04>&lt;\xff\x01 \xff\x01>
+2747	/mob/player/verb/worldemote
+2748	worldemote
+2749	\xff+<font color=#00a>&lt;\xff\x01 tells you:> \xff\x01
+2750	<\xff\x01 tells \xff\x01:> \xff\x02
+2751	(Muted)<\xff\x01(\xff\x01) tells \xff\x01(\xff\x01):> \xff\x01
+2752	\xff+<font color=#00a>&lt;You tell \xff\x01:> \xff\x01
+2753	/mob/player/verb/tell
+2754	tell
+2755	/mob/player/verb/toggleworldsay
+2756	toggleworldsay
+2757	\xff+<font color=blue size=1>\xff\x01(\xff\x01)  <b>Class:</b> \xff\x01  <b>Level:</b> \xff\x01  <b>Party:</b> \xff\x01
+2758	\xff+<font color=blue><font size=1>\xff\x01(\xff\x01)
+2759	/mob/player/verb/who
+2760	who
+2761	<font size=1>You see: \xff+\xff\x01(\xff\x01)  <b>Class:</b> \xff\x01  <b>Level:</b> \xff\x01  <b>Party:</b> \xff\x01
+2762	/mob/player/verb/look
+2763	look
+2764	/mob/player/verb/turn_walk
+2765	turn walk
+2766	/mob/player/verb/create_party
+2767	create party
+2768	/mob/player/verb/help
+2769	help
+2770	/mob/player/verb/Inskill
+2771	Inskill
+2772	/mob/player/verb/QuickItem
+2773	quickitem_pos
+2774	/mob/player/verb/ScrollItem
+2775	Quick cast set to \xff\x01.
+2776	/mob/player/verb/QuickSpell5
+2777	QuickSpell5
+2778	/mob/player/verb/QuickSpell6
+2779	QuickSpell6
+2780	/mob/player/verb/QuickSpell7
+2781	QuickSpell7
+2782	F5: \xff\x01
+2783	F6: \xff\x01
+2784	F7: \xff\x01
+2785	hotkeys
+2786	What spell will you change \xff\x01 to?
+2787	\xff\x02 Hotkey
+2788	quickskill
+2789	\xff\x02 set to \xff\x01.
+2790	/mob/player/verb/QuickSpellSet
+2791	QuickSpellSet
+2792	/mob/player/MeterRefresh
+2793	/mob/player/MagicMeterRefresh
+2794	/mob/player/CallCenter
+2795	<font color=red>\xff\x02 has died!
+2796	<font color=red><b>\xff\x02 killed \xff\x11!
+2797	<font color=red><b>\xff\x02 killed \xff\x01 in battle!
+2798	<font color=red>\xff\x02 killed \xff\x01 in battle!
+2799	/mob/player/TakeDamage
+2800	original_dense
+2801	/mob/player/Relocate
+2802	/mob/player/CastSpell
+2803	\xff\x02 has joined the world.
+2804	/mob/player/Login
+2805	\xff\x02 has left the world.
+2806	/mob/player/Logout
+2807	/mob/player/MoveEffect
+2808	/mob/player/Bump
+2809	You don't have enough room for \xff\x01.
+2810	/mob/player/Enter
+2811	You get \xff\x01.
+2812	/mob/player/Entered
+2813	/mob/player/Exited
+2814	/mob/player/Click
+2815	/mob/player/move
+2816	\xff\x02/\xff\x01
+2817	\xff\x02/\xff\x01 (\xff\x01%)
+2818	\xff\x02, \xff\x01
+2819	Numpad 9\xff\x01
+2820	Numpad 7\xff\x01
+2821	Numpad 3\xff\x01
+2822	Numpad 1\xff\x01
+2823	Numpad 0\xff\x01
+2824	/mob/player/Stat
+2825	/mob/monster/BattleCheck
+2826	/mob/monster/proc/BattleEvent
+2827	BattleEvent
+2828	/mob/monster/proc/PeacefulEvent
+2829	PeacefulEvent
+2830	/mob/monster/proc/Fight
+2831	Fight
+2832	/mob/monster/proc/Walk
+2833	/mob/monster/proc/Run
+2834	Run
+2835	/mob/monster/proc/Idle
+2836	Idle
+2837	/mob/monster/proc/InView
+2838	InView
+2839	/mob/monster/proc/Command
+2840	/mob/monster/proc/Customize
+2841	/mob/monster/proc/CardCheck
+2842	CardCheck
+2843	/mob/monster/proc/LineCheck
+2844	LineCheck
+2845	/mob/monster/proc/HealCheck
+2846	HealCheck
+2847	/mob/monster/proc/Attack
+2848	Attack
+2849	/mob/monster/proc/Punch
+2850	Punch
+2851	/mob/monster/proc/Dash
+2852	Dash
+2853	/mob/monster/proc/Quakejump
+2854	Quakejump
+2855	/mob/monster/proc/Fireclaw
+2856	Fireclaw
+2857	/mob/monster/proc/Thornwhip
+2858	Thornwhip
+2859	/mob/monster/proc/Chainsickle
+2860	Chainsickle
+2861	/mob/monster/proc/Morningstar
+2862	Morningstar
+2863	T2
+2864	/mob/monster/proc/Demonhammer
+2865	Demonhammer
+2866	/mob/monster/proc/Icesaber
+2867	Icesaber
+2868	/mob/monster/proc/Flamesword
+2869	Flamesword
+2870	/mob/monster/proc/Thundersword
+2871	Thundersword
+2872	/mob/monster/proc/Heal
+2873	/mob/monster/proc/Healmore
+2874	/mob/monster/proc/Healus
+2875	/mob/monster/proc/MUpper
+2876	MUpper
+2877	/mob/monster/proc/Sleep
+2878	/mob/monster/proc/Sleepmore
+2879	/mob/monster/proc/Stopspell
+2880	/mob/monster/proc/Infernos
+2881	/mob/monster/proc/Blaze
+2882	/mob/monster/proc/Blazemore
+2883	/mob/monster/proc/Firebal
+2884	/mob/monster/proc/Firebane
+2885	/mob/monster/proc/Firevolt
+2886	/mob/monster/proc/Bang
+2887	/mob/monster/proc/Boom
+2888	/mob/monster/proc/Icebolt
+2889	/mob/monster/proc/Icespears
+2890	/mob/monster/proc/Blizzard
+2891	/mob/monster/proc/Snowstorm
+2892	/mob/monster/proc/Zap
+2893	/mob/monster/proc/Lightning
+2894	/mob/monster/proc/Thordain
+2895	/mob/monster/Click
+2896	/mob/monster/DblClick
+2897	/mob/monster/New
+2898	/mob/monster/base_EventCycle
+2899	/mob/monster/CastSpell
+2900	<font color=red>\xff\x02 killed \xff\x11!
+2901	<font color=red>\xff\x02 killed \xff\x01!
+2902	/mob/monster/TakeDamage
+2903	/mob/monster/healer/Walk
+2904	/mob/monster/healer/Run
+2905	/mob/monster/healer/Idle
+2906	/mob/monster/magician/Fight
+2907	/mob/monster/magician/Walk
+2908	/mob/monster/sizarmage/Fight
+2909	/mob/monster/sizarmage/Walk
+2910	/mob/monster/frostcat/Fight
+2911	/mob/monster/magidrakee/Fight
+2912	/mob/monster/magidrakee/Walk
+2913	/mob/monster/gremlin/Fight
+2914	/mob/monster/gremlin/Walk
+2915	/mob/monster/acolyte/Walk
+2916	/mob/monster/acolyte/Run
+2917	/mob/monster/acolyte/Idle
+2918	/mob/monster/blazeghost/Fight
+2919	/mob/monster/blazeghost/Walk
+2920	/mob/monster/tiger/Fight
+2921	/mob/monster/wolflord/Walk
+2922	/mob/monster/drakeema/Walk
+2923	/mob/monster/drakeema/Run
+2924	/mob/monster/drakeema/Idle
+2925	/mob/monster/warlock/Fight
+2926	/mob/monster/warlock/Walk
+2927	/mob/monster/familiar/Walk
+2928	/mob/monster/whitewolf/Walk
+2929	/mob/monster/curer/Walk
+2930	/mob/monster/curer/Run
+2931	/mob/monster/curer/Idle
+2932	/mob/monster/leaonar/Walk
+2933	/mob/monster/ozwarg/Fight
+2934	/mob/monster/ozwarg/Walk
+2935	/mob/monster/waterimp/Fight
+2936	/mob/monster/waterimp/Walk
+2937	/mob/monster/vulpes/Walk
+2938	/mob/monster/rogueknight/Fight
+2939	/mob/monster/minidemon/Fight
+2940	/mob/monster/minidemon/Walk
+2941	/mob/monster/steelbones/Walk
+2942	/mob/monster/darkpriest/Fight
+2943	/mob/monster/darkpriest/Walk
+2944	/mob/monster/darkpriest/Run
+2945	/mob/monster/darkpriest/Idle
+2946	/mob/monster/fairydragon/Walk
+2947	/mob/monster/fairydragon/Run
+2948	/mob/monster/fairydragon/Idle
+2949	/mob/monster/bengal/Fight
+2950	/mob/monster/bengal/Walk
+2951	/mob/monster/wizard/Fight
+2952	/mob/monster/wizard/Walk
+2953	/mob/monster/greendragon/Walk
+2954	/mob/monster/madclown/Fight
+2955	/mob/monster/madclown/Walk
+2956	/mob/monster/magmaknight/Walk
+2957	/mob/monster/infurnusknight/Fight
+2958	/mob/monster/manticore/Walk
+2959	/mob/monster/roguewhisper/Fight
+2960	/mob/monster/roguewhisper/Walk
+2961	/mob/monster/bluedragon/Walk
+2962	/mob/monster/specter/Walk
+2963	/mob/monster/ferocial/Fight
+2964	/mob/monster/devil/Fight
+2965	/mob/monster/devil/Walk
+2966	/mob/monster/metalhealer/Walk
+2967	/mob/monster/metalhealer/Run
+2968	/mob/monster/metalhealer/Idle
+2969	/mob/monster/iceknight/Walk
+2970	/mob/monster/archbishop/Fight
+2971	/mob/monster/archbishop/Walk
+2972	/mob/monster/archbishop/Run
+2973	/mob/monster/archbishop/Idle
+2974	/mob/monster/lethalarmor/Fight
+2975	/mob/monster/lethalarmor/Walk
+2976	/mob/monster/necromancer/Fight
+2977	/mob/monster/necromancer/Walk
+2978	/mob/monster/reddragon/Walk
+2979	/mob/monster/boss/kingslime/Run
+2980	/mob/monster/boss/kingslime/Idle
+2981	/mob/monster/boss/floormaster/Move
+2982	/mob/monster/boss/flarecat/Fight
+2983	/mob/monster/boss/flarecat/Walk
+2984	/mob/monster/boss/chameleon/Walk
+2985	/mob/monster/boss/crystalslime/Walk
+2986	/mob/monster/boss/saroshadow/Fight
+2987	/mob/monster/boss/saroshadow/Walk
+2988	/mob/monster/boss/kinghealer/Run
+2989	/mob/monster/boss/kinghealer/Idle
+2990	/mob/monster/boss/colddevil/Fight
+2991	/mob/monster/boss/colddevil/Walk
+2992	/mob/monster/boss/fenrir/Walk
+2993	/mob/monster/boss/cloudknight/Fight
+2994	/mob/monster/boss/cloudknight/Walk
+2995	/mob/monster/boss/dragonlord/Walk
+2996	\xff\x02/\xff\x01 attempted double login at \xff\x01.
+2997	/mob/ChoosingCharacter/Login
+2998	/mob/ChoosingCharacter/Logout
+2999	selection
+3000	char_del
+3001	Are you sure you want to delete \xff\x01?
+3002	/\xff\x01/ref
+3003	/mob/ChoosingCharacter/proc/ChooseCharacter
+3004	ChooseCharacter
+3005	name_len
+3006	The name "\xff\x01" is already taken. Please choose another name.
+3007	/mob/ChoosingCharacter/proc/NewName
+3008	NewName
+3009	/mob/ChoosingCharacter/proc/NewClass
+3010	NewClass
+3011	/mob/ChoosingCharacter/proc/NewIcon
+3012	NewIcon
+3013	/mob/ChoosingCharacter/proc/CustomIcon
+3014	CustomIcon
+3015	/mob/ChoosingCharacter/proc/ResetIcon
+3016	ResetIcon
+3017	/mob/ChoosingCharacter/proc/AssignStats
+3018	AssignStats
+3019	/mob/ChoosingCharacter/proc/Finish
+3020	Finish
+3021	/mob/Bumped
+3022	/mob/Bump
+3023	/obj/GlobalRespawn/New
+3024	/obj/GlobalRespawn/proc/SpawnMonsters
+3025	SpawnMonsters
+3026	/obj/GlobalRespawn/proc/DelMonsters
+3027	DelMonsters
+3028	/obj/GlobalRespawn/proc/Customize
+3029	/obj/slots/New
+3030	/obj/menu/MouseDropped
+3031	/obj/menu/Click
+3032	/obj/menu/DblClick
+3033	/obj/menu/selectquickitem/Select
+3034	/obj/menu/neskill/Select
+3035	/obj/menu/neskill/Choose
+3036	/obj/menu/nwskill/Select
+3037	/obj/menu/nwskill/Choose
+3038	/obj/menu/seskill/Select
+3039	/obj/menu/seskill/Choose
+3040	/obj/menu/swskill/Select
+3041	/obj/menu/swskill/Choose
+3042	/obj/menu/inskill/Select
+3043	/obj/menu/inskill/Choose
+3044	/obj/fade/New
+3045	/obj/hud/New
+3046	/obj/MouseDrop
+3047	/obj/boulder/New
+3048	/obj/boulder/proc/Roll
+3049	Roll
+3050	/obj/boulder/ll/New
+3051	/proj/proc/Collide
+3052	Collide
+3053	/proj/proc/Step
+3054	Step
+3055	/proj/New
+3056	/proj/sickle/New
+3057	/proj/sickle/Collide
+3058	/proj/sickle/Step
+3059	/proj/sickle/Del
+3060	/proj/chain/New
+3061	/proj/thorn/New
+3062	/proj/thorn/Collide
+3063	/proj/thorn/Step
+3064	/proj/thorn/Del
+3065	/proj/whip/New
+3066	/proj/boomerang/New
+3067	/proj/boomerang/Collide
+3068	/proj/sleep/Collide
+3069	/proj/infernos/Step
+3070	/proj/infernos/Collide
+3071	/proj/infermore/Step
+3072	/proj/infermore/Collide
+3073	/proj/blaze/New
+3074	/proj/blazemore/New
+3075	bump
+3076	/proj/firebane/Collide
+3077	/proj/bang/Collide
+3078	/proj/boom/Collide
+3079	/proj/explodet/Collide
+3080	/proj/lightning/Collide
+3081	/burn/New
+3082	/burn/proc/Burn
+3083	/area/New
+3084	/area/Entered
+3085	/area/proc/DayTime
+3086	/area/proc/NightTime
+3087	/area/underwater/DayTime
+3088	/area/underwater/NightTime
+3089	/area/underwater/deepwater/DayTime
+3090	/area/underwater/deepwater/NightTime
+3091	\xff\x02 \xff\x01 clicked
+3092	/area/underwater/Click
+3093	/area/ceiling/visible/Entered
+3094	whitetext
+3095	bluetext
+3096	greentext
+3097	redtext
+3098	rednum
+3099	bluenum
+3100	greennum
+3101	purplenum
+3102	yellownum
+3103	/RolePlayManager/New
+3104	/RolePlayManager/base_EventCycle
+3105	/PagerBanManager/New
+3106	/PagerBanManager/base_EventCycle
+3107	/atom/movable/proc/Put
+3108	Put
+3109	/atom/movable/Move
+3110	You can't drop \xff\x01-it's equipped.
+3111	You store \xff\x01 in \xff\x01.
+3112	You drop \xff\x01.
+3113	/item/verb/drop
+3114	You can't give \xff\x01 to \xff\x01--it's equipped.
+3115	/item/verb/give
+3116	give
+3117	/item/Click
+3118	/item/MouseDropped
+3119	What will \xff\x01 be called? (To make a key work for a door, you must name it the name of the door, followed by " key".
+3120	/item/key/Customize
+3121	\xff\x02 \xff\x01locks \xff\x01 with \xff\x01.
+3122	\xff\x02 isn't the right key to \xff\x01!
+3123	/item/key/use
+3124	What shall you entitle \xff\x01?
+3125	What shall you write on \xff\x01?
+3126	<html><head><title>\xff\x02</title></head><body>\xff\x01</body></html>
+3127	/item/paper/use
+3128	You use \xff\x01 and gain \xff\x01 MP.
+3129	/item/gem/ring/use
+3130	You equip \xff\x01.
+3131	You unequip \xff\x01.
+3132	/item/amulet/use
+3133	/item/bomb/use
+3134	/item/bomb/proc/Explode
+3135	Explode
+3136	\xff\x02 throws \xff\x01 into the air!
+3137	/item/wyvernwing/use
+3138	You eat \xff\x01, and gain \xff\x01 HP.
+3139	/item/herb/medical/use
+3140	You drink \xff\x01, and gain \xff\x01 MP.
+3141	/item/herb/tea/use
+3142	<font color=blue>\xff\x02 uses \xff\x01 on \xff\x01!
+3143	/item/herb/leaf/give
+3144	\xff\x02 must be cooked to be eaten!
+3145	\xff\x02 eats \xff\x01.
+3146	/item/food/use
+3147	\xff\x02 drinks \xff\x01.
+3148	/item/drink/use
+3149	/stat/Click
+3150	You can't put \xff\x01 inside of \xff\x01--it's equipped.
+3151	You can't lock \xff\x01's key inside of itself.
+3152	\xff\x02 doesn't have enough room for \xff\x01.
+3153	/stat/proc/StorageCheck
+3154	StorageCheck
+3155	You need the \xff\x01 to open \xff\x01!
+3156	/stat/proc/lockedcheck
+3157	lockedcheck
+3158	<b>\xff\x02: \xff\x01
+3159	/stat/sign/use
+3160	What will you name \xff\x01?
+3161	What will you write on \xff\x01?
+3162	/stat/sign/Customize
+3163	What shall you call \xff\x01?
+3164	/stat/switchdoor/Customize
+3165	/stat/switchdoor/proc/open
+3166	What will \xff\x01 be called? (Use no name for an unlockable door.)
+3167	/stat/door/Customize
+3168	/stat/door/use
+3169	/stat/door/base_EventCycle
+3170	/stat/door/proc/open
+3171	/stat/drawers/Customize
+3172	What will you store in \xff\x01?
+3173	stored_obj
+3174	There's nothing in \xff\x01!
+3175	What will you take out of \xff\x01?
+3176	obj_taken
+3177	You take \xff\x01 out of \xff\x01.
+3178	/stat/drawers/use
+3179	/stat/pot/use
+3180	/stat/chest/Customize
+3181	/stat/chest/verb/search
+3182	/stat/fooddrawers/New
+3183	food_taken
+3184	You get \xff\x06\xff\x03.
+3185	/stat/fooddrawers/use
+3186	/stat/npc/New
+3187	What is \xff\x01's name?
+3188	What will \xff\x01 say during the day?
+3189	What will \xff\x01 say at night?
+3190	Will \xff\x01 stand still or walk around?
+3191	Which direction shall \xff\x01 face?
+3192	Shall \xff\x01 always face \xff\x01?
+3193	/stat/npc/Customize
+3194	\xff+<font color=#070>&lt;\xff\x01 says:&gt; \xff\x01
+3195	/stat/npc/use
+3196	/stat/npc/base_EventCycle
+3197	What will \xff\x01 look like?
+3198	What direction shall \xff\x01 be facing?
+3199	/stat/merchant/Customize
+3200	/stat/merchant/use
+3201	/stat/merchant/foodmerchant/New
+3202	/stat/merchant/drinkmerchant/New
+3203	/stat/bookcase/New
+3204	What would you like to add to \xff\x01?
+3205	You add \xff\x01 to \xff\x01.
+3206	/stat/bookcase/use
+3207	What will \xff\x01 be called?
+3208	Which area will be affected by \xff\x01?
+3209	/stat/musicalbookcase/Customize
+3210	/stat/musicalbookcase/use
+3211	To where will \xff\x01 lead?
+3212	When warped to \xff\x01, which direction will people be warped towards?
+3213	/stat/warppoint/Customize
+3214	/stat/warppoint/proc/Warp
+3215	Warp
+3216	/stat/respawn/proc/SetLocs
+3217	SetLocs
+3218	/stat/respawn/proc/SpawnMonsters
+3219	/stat/respawn/proc/DelMonsters
+3220	What kind of monster will \xff\x01 spawn?
+3221	/stat/respawn/Customize
+3222	What will be the lowest level allowed to pass through \xff\x01?
+3223	What will be the highest level allowed to pass through \xff\x01?
+3224	/stat/levelbarrier/Customize
+3225	/stat/boulderspawn/New
+3226	/stat/boulderspawn/Move
+3227	\xff\x02's delay must be between 6 and 600.
+3228	/stat/boulderspawn/Customize
+3229	/stat/boulderspawn/base_EventCycle
+3230	/skill/Click
+3231	/skill/DblClick
+3232	/skill/MouseDrop
+3233	old_eqp
+3234	/skill/MouseDropped
+3235	/skill/proc/assign_skill
+3236	assign skill
+3237	/skill/proc/free_skill
+3238	free skill
+3239	/skill/fireclaw/use
+3240	/skill/icesaber/use
+3241	/skill/flamesword/use
+3242	/skill/thundersword/use
+3243	/skill/lightsword/use
+3244	/skill/swordoflethargy/use
+3245	/skill/demonhammer/use
+3246	target2
+3247	/skill/jump/use
+3248	/skill/dash/use
+3249	/skill/quakejump/use
+3250	/skill/firevolt/use
+3251	/skill/icespears/use
+3252	/skill/snowstorm/use
+3253	/skill/thordain/use
+3254	/skill/classchange/use
+3255	/skill/flamespears/use
+3256	/turf/New
+3257	/turf/Click
+3258	/turf/DblClick
+3259	/turf/Exited
+3260	/turf/Entered
+3261	/turf/Enter
+3262	/turf/proc/EnterCheck
+3263	EnterCheck
+3264	/turf/floor/arenastool/verb/watch
+3265	watch
+3266	/turf/floor/arenastool/New
+3267	Click on the turf that you would like \xff\x01 to watch.
+3268	/turf/floor/arenastool/Customize
+3269	Which door will \xff\x01 open?
+3270	new_setting
+3271	How long will \xff\x01 make \xff\x01 stay open?
+3272	/turf/floor/switchtile/Customize
+3273	/turf/floor/snowswitchtile/Customize
+3274	/turf/table/counter/use
+3275	/turf/table/snowcounter/use
+3276	/turf/table/bedleft/use
+3277	/turf/table/woodbedleft/use
+3278	/turf/table/snowbedleft/use
+3279	cooking
+3280	You put \xff\x01 into the oven...
+3281	You remove \xff\x01 from the oven.
+3282	\xff\x02 does not need to be cooked!
+3283	/turf/table/stove/use
+3284	You fill a cup of water from \xff\x01.
+3285	\xff\x02 is empty, it will be refilled next morning.
+3286	/turf/table/tub/use
+3287	/turf/table/slots/use
+3288	Would you like to play \xff\x01?
+3289	/turf/table/slots/proc/SlotMachine
+3290	SlotMachine
+3291	/turf/water/ice/Entered
+3292	fall_loc
+3293	/turf/sky/upsky/Entered
+3294	stairs_loc
+3295	/turf/stairs/Entered
+3296	\xff\x02 will now lead \xff\x01 levels \xff\x01.
+3297	/turf/stairs/Customize
+3298	/turf/iceslider/Entered
+3299	warp_target
+3300	/turf/warp/Entered
+3301	/turf/warp/Customize
+3302	/sound/New
+3303	/icon/New
+3304	/icon/proc/Blend
+3305	Blend
+3306	/proc/base_GlobalMessage
+3307	base GlobalMessage
+3308	/proc/base_PlayerMobs
+3309	base PlayerMobs
+3310	/proc/base_NumOfPlayers
+3311	base NumOfPlayers
+3312	numbericon
+3313	/proc/hit
+3314	/proc/cast
+3315	cast
+3316	/proc/castburn
+3317	castburn
+3318	/world/New
+3319	#3fbfff
+3320	#5bdb57
+3321	#8484ff
+3322	/BaseCamp/GameController/proc/AddEventCycleReceiver
+3323	AddEventCycleReceiver
+3324	/BaseCamp/GameController/proc/RemoveEventCycleReceiver
+3325	RemoveEventCycleReceiver
+3326	/BaseCamp/GameController/proc/EventCycle
+3327	EventCycle
+3328	/BaseCamp/GameController/proc/ClientLoggedIn
+3329	ClientLoggedIn
+3330	/BaseCamp/GameController/proc/ClientLoggedOut
+3331	ClientLoggedOut
+3332	/BaseCamp/GameController/proc/GlobalMessage
+3333	GlobalMessage
+3334	/BaseCamp/GameController/proc/PlayerMobs
+3335	PlayerMobs
+3336	/BaseCamp/GameController/proc/NumOfPlayers
+3337	NumOfPlayers
+3338	/BaseCamp/GameController/AddEventCycleReceiver
+3339	/BaseCamp/GameController/RemoveEventCycleReceiver
+3340	/BaseCamp/GameController/EventCycle
+3341	/client/Northeast
+3342	/mob/player/GM/proc
+3343	/mob/player/proc/GMverbs
+3344	GMverbs
+3345	/mob/player/proc/HudColor
+3346	HudColor
+3347	/mob/player/proc/start_skills
+3348	start skills
+3349	/mob/player/IncreaseHP
+3350	/mob/player/IncreaseMP
+3351	/mob/monster/IncreaseHP
+3352	/mob/monster/IncreaseMP
+3353	/obj/hud/text/New
+3354	/obj/hud/char/New
+3355	/obj/boulder/proc/Hit
+3356	Hit
+3357	/proj/stopspell/Collide
+3358	/proj/defeat/Collide
+3359	/obj/boulder
+3360	/mob/player
+3361	player
+3362	/mob/player/GM/blazer
+3363	blazer
+3364	/mob/player/GM/masterg
+3365	masterg
+3366	/mob/player/GM/tarq
+3367	/BaseCamp/GameController
+3368	/turf/water/fountain
+3369	/turf/water/water
+3370	/turf/table/slots
+3371	/turf/grass/farmland
+3372	/turf/grass/flowers
+3373	/turf/grass/brush
+3374	/turf/grass/grass
+3375	/turf/floor/carpet
+3376	/turf/floor/chair
+3377	/turf/floor/arenastool
+3378	/turf/floor/woodfloor
+3379	/turf/floor/redcobble
+3380	/turf/floor/path
+3381	/turf/bridge/bridgeh
+3382	/turf/bridge/bridgev
+3383	/skill
+3384	/stat
+3385	/stat/respawn
+3386	/stat/warppoint
+3387	warppoint
+3388	/stat/chest
+3389	/stat/door
+3390	/stat/switchdoor
+3391	switchdoor
+3392	/item
+3393	/item/bomb
+3394	bomb
+3395	/playerskill/Return
+3396	/playerskill/thordain
+3397	thordain
+3398	/playerskill/lightning
+3399	/playerskill/snowstorm
+3400	/playerskill/blizzard
+3401	/playerskill/icespears
+3402	icespears
+3403	/playerskill/icebolt
+3404	icebolt
+3405	/playerskill/explodet
+3406	/playerskill/boom
+3407	boom
+3408	/playerskill/bang
+3409	/playerskill/firevolt
+3410	firevolt
+3411	/playerskill/firebane
+3412	/playerskill/firebal
+3413	firebal
+3414	/playerskill/blazemost
+3415	blazemost
+3416	/playerskill/blazemore
+3417	/playerskill/blaze
+3418	/playerskill/barrier
+3419	/playerskill/infermore
+3420	/playerskill/infernos
+3421	/playerskill/stopspell
+3422	/playerskill/sleepmore
+3423	sleepmore
+3424	/playerskill/sleep
+3425	/playerskill/increase
+3426	/playerskill/upper
+3427	/playerskill/revive
+3428	revive
+3429	/playerskill/vivify
+3430	vivify
+3431	/playerskill/healusmore
+3432	healusmore
+3433	/playerskill/healus
+3434	healus
+3435	/playerskill/healmost
+3436	/playerskill/healmore
+3437	/playerskill/heal
+3438	/playerskill/meditate
+3439	/playerskill/rest
+3440	/playerskill/classchange
+3441	classchange
+3442	/playerskill/magicknife
+3443	/playerskill/boomerang
+3444	/playerskill/quakejump
+3445	quakejump
+3446	/playerskill/hide
+3447	hide
+3448	/playerskill/jump
+3449	/playerskill/dash
+3450	dash
+3451	/playerskill/goldclaw
+3452	goldclaw
+3453	/playerskill/fireclaw
+3454	fireclaw
+3455	/playerskill/ironclaw
+3456	ironclaw
+3457	/playerskill/morningstar
+3458	/playerskill/club
+3459	/playerskill/chainsickle
+3460	chainsickle
+3461	/playerskill/thornwhip
+3462	/playerskill/demonhammer
+3463	/playerskill/lightsword
+3464	/playerskill/falconsword
+3465	/playerskill/thundersword
+3466	/playerskill/flamesword
+3467	/playerskill/dragonkiller
+3468	/playerskill/icesaber
+3469	/playerskill/battleaxe
+3470	/playerskill/swordoflethargy
+3471	/playerlearn/sage/explodet
+3472	/playerlearn/sage/healusmore
+3473	/playerlearn/sage/barrier
+3474	/playerlearn/sage/revive
+3475	/playerlearn/sage/snowstorm
+3476	/playerlearn/sage/firevolt
+3477	/playerlearn/sage/infermore
+3478	/playerlearn/sage/blazemost
+3479	/playerlearn/sage/boom
+3480	/playerlearn/sage/healmost
+3481	/playerlearn/sage/blizzard
+3482	/playerlearn/sage/thordain
+3483	/playerlearn/sage/increase
+3484	/playerlearn/sage/vivify
+3485	/playerlearn/sage/firebane
+3486	/playerlearn/sage/sleepmore
+3487	/playerlearn/sage/meditate
+3488	/playerlearn/sage/stopspell
+3489	/playerlearn/sage/blazemore
+3490	/playerlearn/sage/healus
+3491	/playerlearn/sage/Return
+3492	/playerlearn/sage/bang
+3493	/playerlearn/sage/infernos
+3494	/playerlearn/sage/healmore
+3495	/playerlearn/sage/icespears
+3496	/playerlearn/sage/upper
+3497	/playerlearn/sage/lightning
+3498	/playerlearn/sage/sleep
+3499	/playerlearn/sage/blaze
+3500	/playerlearn/wizard/explodet
+3501	/playerlearn/wizard/barrier
+3502	/playerlearn/wizard/snowstorm
+3503	/playerlearn/wizard/firevolt
+3504	/playerlearn/wizard/blazemost
+3505	/playerlearn/wizard/boom
+3506	/playerlearn/wizard/blizzard
+3507	/playerlearn/wizard/thordain
+3508	/playerlearn/wizard/firebane
+3509	/playerlearn/wizard/meditate
+3510	/playerlearn/wizard/blazemore
+3511	/playerlearn/wizard/bang
+3512	/playerlearn/wizard/icespears
+3513	/playerlearn/wizard/lightning
+3514	/playerlearn/wizard/blaze
+3515	/playerlearn/pilgrim/healusmore
+3516	/playerlearn/pilgrim/revive
+3517	/playerlearn/pilgrim/battleaxe
+3518	/playerlearn/pilgrim/infermore
+3519	/playerlearn/pilgrim/lightsword
+3520	/playerlearn/pilgrim/healmost
+3521	/playerlearn/pilgrim/increase
+3522	/playerlearn/pilgrim/swordoflethargy
+3523	/playerlearn/pilgrim/vivify
+3524	/playerlearn/pilgrim/meditate
+3525	/playerlearn/pilgrim/sleepmore
+3526	/playerlearn/pilgrim/morningstar
+3527	/playerlearn/pilgrim/stopspell
+3528	/playerlearn/pilgrim/healus
+3529	/playerlearn/pilgrim/Return
+3530	/playerlearn/pilgrim/infernos
+3531	/playerlearn/pilgrim/healmore
+3532	/playerlearn/pilgrim/upper
+3533	/playerlearn/pilgrim/club
+3534	/playerlearn/pilgrim/sleep
+3535	/playerlearn/goofoff/classchange
+3536	/playerlearn/goofoff/jump
+3537	/playerlearn/goofoff/magicknife
+3538	/playerlearn/goofoff/boomerang
+3539	/playerlearn/goofoff/rest
+3540	/playerlearn/goofoff/club
+3541	/playerlearn/goofoff/thornwhip
+3542	/playerlearn/fighter/goldclaw
+3543	/playerlearn/fighter/fireclaw
+3544	/playerlearn/fighter/quakejump
+3545	/playerlearn/fighter/hide
+3546	/playerlearn/fighter/ironclaw
+3547	/playerlearn/fighter/jump
+3548	/playerlearn/fighter/dash
+3549	/playerlearn/fighter/rest
+3550	/playerlearn/soldier/falconsword
+3551	/playerlearn/soldier/demonhammer
+3552	/playerlearn/soldier/flamesword
+3553	/playerlearn/soldier/dragonkiller
+3554	/playerlearn/soldier/icesaber
+3555	/playerlearn/soldier/battleaxe
+3556	/playerlearn/soldier/swordoflethargy
+3557	/playerlearn/soldier/chainsickle
+3558	/playerlearn/soldier/morningstar
+3559	/playerlearn/soldier/rest
+3560	/playerlearn/soldier/thornwhip
+3561	/playerlearn/hero/thundersword
+3562	/playerlearn/hero/vivify
+3563	/playerlearn/hero/dragonkiller
+3564	/playerlearn/hero/icesaber
+3565	/playerlearn/hero/firebane
+3566	/playerlearn/hero/stopspell
+3567	/playerlearn/hero/swordoflethargy
+3568	/playerlearn/hero/healus
+3569	/playerlearn/hero/meditate
+3570	/playerlearn/hero/bang
+3571	/playerlearn/hero/thordain
+3572	/playerlearn/hero/chainsickle
+3573	/playerlearn/hero/icespears
+3574	/playerlearn/hero/Return
+3575	/playerlearn/hero/healmore
+3576	/playerlearn/hero/upper
+3577	/playerlearn/hero/sleep
+3578	/playerlearn/hero/blaze
+3579	/playerlearn/hero/firebal
+3580	/playerlearn/hero/lightning
+3581	/playerlearn/hero/thornwhip
+3582	/playerlearn/hero/icebolt
+3583	/playerlearn/hero/heal
+3584	atom
+3585	movable
+3586	/burn
+3587	/proj
+3588	proj
+3589	/proj/whip
+3590	/proj/chain
+3591	obj
+3592	/obj/map
+3593	map
+3594	/obj/menu
+3595	menu
+3596	/obj/menu/inskill
+3597	/obj/menu/swskill
+3598	/obj/menu/seskill
+3599	/obj/menu/nwskill
+3600	/obj/menu/neskill
+3601	/obj/menu/selectquickitem
+3602	/obj/GlobalRespawn
+3603	/obj/battle
+3604	/datum
+3605	datum
+3606	/mob/ChoosingCharacter
+3607	ChoosingCharacter
+3608	/mob/monster
+3609	monster
+3610	/mob/monster/boss/dragonlord
+3611	/mob/monster/boss/cloudknight
+3612	/mob/monster/boss/fenrir
+3613	/mob/monster/boss/leviathan
+3614	/mob/monster/boss/colddevil
+3615	/mob/monster/boss/kingmetal
+3616	/mob/monster/boss/kinghealer
+3617	/mob/monster/boss/saroshadow
+3618	/mob/monster/boss/crystalslime
+3619	/mob/monster/boss/chameleon
+3620	/mob/monster/boss/flarecat
+3621	/mob/monster/boss/floormaster
+3622	/mob/monster/boss/kingslime
+3623	/mob/monster/reddragon
+3624	/mob/monster/necromancer
+3625	/mob/monster/blacklion
+3626	/mob/monster/lethalarmor
+3627	/mob/monster/archbishop
+3628	/mob/monster/iceknight
+3629	/mob/monster/necrodain
+3630	/mob/monster/metalhealer
+3631	/mob/monster/devil
+3632	/mob/monster/ferocial
+3633	/mob/monster/specter
+3634	/mob/monster/bluedragon
+3635	/mob/monster/roguewhisper
+3636	/mob/monster/manticore
+3637	/mob/monster/bluelion
+3638	/mob/monster/infurnusknight
+3639	/mob/monster/cyclops
+3640	/mob/monster/magmaknight
+3641	/mob/monster/madclown
+3642	/mob/monster/cloudpuff
+3643	/mob/monster/greendragon
+3644	/mob/monster/frozenbones
+3645	/mob/monster/squid
+3646	/mob/monster/metalbabble
+3647	/mob/monster/wizard
+3648	/mob/monster/bengal
+3649	/mob/monster/fairydragon
+3650	/mob/monster/darkpriest
+3651	/mob/monster/steelbones
+3652	/mob/monster/iroid
+3653	/mob/monster/icesloth
+3654	/mob/monster/minidemon
+3655	/mob/monster/rogueknight
+3656	/mob/monster/vulpes
+3657	/mob/monster/waterimp
+3658	/mob/monster/ozwarg
+3659	/mob/monster/metalslime
+3660	/mob/monster/weretiger
+3661	/mob/monster/werewolf
+3662	/mob/monster/leaonar
+3663	/mob/monster/curer
+3664	/mob/monster/wraith
+3665	/mob/monster/whitewolf
+3666	/mob/monster/gianteyeball
+3667	/mob/monster/familiar
+3668	/mob/monster/silverfox
+3669	/mob/monster/warlock
+3670	/mob/monster/bloodhound
+3671	/mob/monster/drakeema
+3672	/mob/monster/wolflord
+3673	/mob/monster/manowar
+3674	/mob/monster/yeti
+3675	/mob/monster/tiger
+3676	/mob/monster/blazeghost
+3677	/mob/monster/acolyte
+3678	/mob/monster/gremlin
+3679	/mob/monster/panther
+3680	/mob/monster/arcticfox
+3681	/mob/monster/reptile
+3682	/mob/monster/magidrakee
+3683	/mob/monster/wolf
+3684	/mob/monster/ghost
+3685	/mob/monster/frostcat
+3686	/mob/monster/sizarmage
+3687	/mob/monster/yellowslime
+3688	/mob/monster/magician
+3689	/mob/monster/snailslime
+3690	/mob/monster/healer
+3691	/mob/monster/drakee
+3692	/mob/monster/skeleton
+3693	/mob/monster/babble
+3694	/mob/monster/fox
+3695	/mob/monster/bat
+3696	/mob/monster/redslime
+3697	/mob/monster/dog
+3698	/mob/monster/slime
+3699	/mob/monster/cat
+3700	/mob/player/child
+3701	child
+3702	/mob/player/sage
+3703	sage
+3704	/mob/player/wizard
+3705	/mob/player/pilgrim
+3706	pilgrim
+3707	/mob/player/goofoff
+3708	goofoff
+3709	/mob/player/fighter
+3710	fighter
+3711	/mob/player/soldier
+3712	soldier
+3713	/mob/player/hero
+3714	hero
+3715	/mob/player/GM
+3716	GM
+3717	/BaseCamp
+3718	BaseCamp
+3719	/turf/warp
+3720	/turf/iceslider
+3721	/turf/iceslider/west
+3722	west
+3723	/turf/iceslider/east
+3724	east
+3725	/turf/iceslider/south
+3726	south
+3727	/turf/iceslider/north
+3728	north
+3729	/turf/stairs
+3730	/turf/stairs/streamdown
+3731	/turf/stairs/streamup
+3732	/turf/stairs/icecobbledown
+3733	/turf/stairs/icecobbleup
+3734	/turf/stairs/woodfloordown
+3735	/turf/stairs/woodfloorup
+3736	/turf/stairs/redcobbledown
+3737	/turf/stairs/redcobbleup
+3738	/turf/stairs/blackdown
+3739	/turf/stairs/blackup
+3740	/turf/stairs/icecastledown
+3741	/turf/stairs/icecastleup
+3742	/turf/stairs/castledown
+3743	/turf/stairs/castleup
+3744	/turf/stairs/wooddown
+3745	/turf/stairs/woodup
+3746	/turf/stairs/icecavedown
+3747	/turf/stairs/icecaveup
+3748	/turf/stairs/icedown
+3749	/turf/stairs/iceup
+3750	/turf/stairs/cavedown
+3751	/turf/stairs/caveup
+3752	/turf/stairs/stonedown
+3753	/turf/stairs/stoneup
+3754	/turf/sky
+3755	/turf/sky/stars
+3756	/turf/sky/opaquewalk
+3757	/turf/sky/opaque
+3758	/turf/sky/blackwalk
+3759	/turf/sky/black
+3760	/turf/sky/cloudsky
+3761	/turf/sky/clouddownright
+3762	/turf/sky/clouddownleft
+3763	/turf/sky/cloudupright
+3764	/turf/sky/cloudupleft
+3765	/turf/sky/cloudright
+3766	/turf/sky/cloudleft
+3767	/turf/sky/clouddown
+3768	/turf/sky/cloudup
+3769	/turf/sky/cloud
+3770	/turf/sky/streamsky
+3771	/turf/sky/upsky
+3772	/turf/water
+3773	/turf/water/dw1water
+3774	/turf/water/swimlava
+3775	/turf/water/swimwater
+3776	/turf/water/puddle
+3777	/turf/water/downrightcorner
+3778	/turf/water/uprightcorner
+3779	/turf/water/downleftcorner
+3780	/turf/water/upleftcorner
+3781	/turf/water/uprightedge
+3782	/turf/water/downrightedge
+3783	/turf/water/downleftedge
+3784	/turf/water/upleftedge
+3785	/turf/water/rightedge
+3786	/turf/water/leftedge
+3787	/turf/water/downedge
+3788	/turf/water/upedge
+3789	/turf/water/icefountain
+3790	/turf/water/ice
+3791	/turf/water/lava
+3792	/turf/wall
+3793	/turf/wall/dw1stone
+3794	/turf/wall/streamup
+3795	/turf/wall/streamwall
+3796	/turf/wall/curtains
+3797	/turf/wall/waterfall
+3798	/turf/wall/waterwall
+3799	/turf/wall/icecavewalledge
+3800	/turf/wall/icecavewall
+3801	/turf/wall/cavewalledge
+3802	/turf/wall/cavewall
+3803	/turf/wall/snowfence
+3804	/turf/wall/sandfence
+3805	/turf/wall/fence
+3806	/turf/wall/snowlog
+3807	/turf/wall/log
+3808	/turf/wall/cobbleedge
+3809	/turf/wall/cobble
+3810	/turf/wall/woodupright
+3811	/turf/wall/woodupleft
+3812	/turf/wall/wooddownright
+3813	/turf/wall/wooddownleft
+3814	/turf/wall/wooddown
+3815	/turf/wall/woodedge
+3816	/turf/wall/wood
+3817	/turf/wall/sandtallstoneedge
+3818	/turf/wall/sandstoneedge
+3819	/turf/wall/sandstone
+3820	/turf/wall/icestairsright
+3821	/turf/wall/icestairscenter
+3822	/turf/wall/icestairsleft
+3823	/turf/wall/icerightcastle
+3824	/turf/wall/iceleftcastle
+3825	/turf/wall/icerightcastleedge
+3826	/turf/wall/iceleftcastleedge
+3827	/turf/wall/iceceiling
+3828	/turf/wall/icestonelion
+3829	/turf/wall/icepillardown
+3830	/turf/wall/icepillarup
+3831	/turf/wall/icetallstoneedge
+3832	/turf/wall/icestoneedge
+3833	/turf/wall/icestone
+3834	/turf/wall/stairsright
+3835	/turf/wall/stairscenter
+3836	/turf/wall/stairsleft
+3837	/turf/wall/rightcastle
+3838	/turf/wall/leftcastle
+3839	/turf/wall/rightcastledirt
+3840	/turf/wall/leftcastledirt
+3841	/turf/wall/rightcastleedge
+3842	/turf/wall/leftcastleedge
+3843	/turf/wall/ceiling
+3844	/turf/wall/window
+3845	/turf/wall/stonelion
+3846	/turf/wall/pillardown
+3847	/turf/wall/pillarup
+3848	/turf/wall/tallstoneedge
+3849	/turf/wall/stoneedge
+3850	/turf/wall/stone
+3851	/turf/tree
+3852	/turf/tree/dw1tree
+3853	/turf/tree/snowtree
+3854	/turf/tree/tree
+3855	/turf/table
+3856	/turf/table/dw1counter
+3857	/turf/table/snowplant
+3858	/turf/table/plant
+3859	/turf/table/woodtableright
+3860	/turf/table/woodtableleft
+3861	/turf/table/tub
+3862	/turf/table/stove
+3863	/turf/table/icetable
+3864	/turf/table/stonetable
+3865	/turf/table/sandstatue
+3866	/turf/table/icestatue
+3867	/turf/table/statue
+3868	/turf/table/icethronedown
+3869	/turf/table/icethroneright
+3870	/turf/table/icethroneleft
+3871	/turf/table/icethronecenter
+3872	/turf/table/thronedown
+3873	/turf/table/throneright
+3874	/turf/table/throneleft
+3875	/turf/table/thronecenter
+3876	/turf/table/sandthrone
+3877	/turf/table/evilthrone
+3878	/turf/table/snowbedleft
+3879	/turf/table/woodbedleft
+3880	/turf/table/bedleft
+3881	/turf/table/snowbedright
+3882	/turf/table/woodbedright
+3883	/turf/table/bedright
+3884	/turf/table/woodtable
+3885	/turf/table/table
+3886	/turf/table/snowcounter
+3887	/turf/table/counter
+3888	/turf/grass
+3889	/turf/grass/dw1grass
+3890	/turf/grass/ash
+3891	/turf/grass/caveice
+3892	/turf/grass/cavedirt
+3893	/turf/grass/swamp
+3894	/turf/grass/sand
+3895	/turf/grass/snow
+3896	/turf/floor
+3897	/turf/floor/dw1brick
+3898	/turf/floor/snowswitchtile
+3899	/turf/floor/switchtile
+3900	/turf/floor/tile
+3901	/turf/floor/barrier
+3902	/turf/floor/stream
+3903	/turf/floor/dancefloor
+3904	/turf/floor/snowstool
+3905	/turf/floor/stool
+3906	/turf/floor/burntcobble
+3907	/turf/floor/sandcobble
+3908	/turf/floor/icecobble
+3909	/turf/floor/fancycobble
+3910	/turf/floor/stonecobble
+3911	/turf/floor/snowpath
+3912	/turf/bridge
+3913	/turf/bridge/snowbridgeh
+3914	/turf/bridge/snowbridgev
+3915	/turf/bridge/stonebridge
+3916	/skill/defeat
+3917	/skill/zenithiansword
+3918	zenithiansword
+3919	/skill/flamespears
+3920	flamespears
+3921	/skill/classchange
+3922	/skill/Return
+3923	/skill/thordain
+3924	/skill/lightning
+3925	/skill/zap
+3926	zap
+3927	/skill/snowstorm
+3928	/skill/blizzard
+3929	/skill/icespears
+3930	/skill/icebolt
+3931	/skill/explodet
+3932	/skill/boom
+3933	/skill/bang
+3934	/skill/firevolt
+3935	/skill/firebane
+3936	/skill/firebal
+3937	/skill/blazemost
+3938	/skill/blazemore
+3939	/skill/blaze
+3940	/skill/infermore
+3941	/skill/infernos
+3942	/skill/stopspell
+3943	/skill/sleepmore
+3944	/skill/sleep
+3945	/skill/barrier
+3946	/skill/increase
+3947	/skill/upper
+3948	/skill/revive
+3949	/skill/vivify
+3950	/skill/healusmore
+3951	/skill/healus
+3952	/skill/healmost
+3953	/skill/healmore
+3954	/skill/heal
+3955	/skill/hide
+3956	/skill/quakejump
+3957	/skill/dash
+3958	/skill/jump
+3959	/skill/meditate
+3960	/skill/rest
+3961	/skill/demonhammer
+3962	/skill/falconsword
+3963	/skill/dragonkiller
+3964	/skill/swordoflethargy
+3965	/skill/battleaxe
+3966	/skill/lightsword
+3967	/skill/thundersword
+3968	/skill/flamesword
+3969	/skill/icesaber
+3970	/skill/magicknife
+3971	/skill/boomerang
+3972	/skill/morningstar
+3973	/skill/club
+3974	/skill/chainsickle
+3975	/skill/thornwhip
+3976	/skill/goldclaw
+3977	/skill/fireclaw
+3978	/skill/ironclaw
+3979	/skill/punch
+3980	punch
+3981	/skill/defend
+3982	/skill/attack
+3983	/stat/boulderspawn
+3984	boulderspawn
+3985	/stat/playerspawn
+3986	playerspawn
+3987	/stat/playerstart
+3988	playerstart
+3989	/stat/levelbarrier
+3990	levelbarrier
+3991	/stat/musicalbookcase
+3992	musicalbookcase
+3993	/stat/bookcase
+3994	/stat/merchant
+3995	/stat/merchant/drinkmerchant
+3996	drinkmerchant
+3997	/stat/merchant/foodmerchant
+3998	foodmerchant
+3999	/stat/merchant/greatestamuletmerchant
+4000	greatestamuletmerchant
+4001	/stat/merchant/greateramuletmerchant
+4002	greateramuletmerchant
+4003	/stat/merchant/amuletmerchant
+4004	amuletmerchant
+4005	/stat/merchant/itemmerchant
+4006	itemmerchant
+4007	/stat/npc
+4008	npc
+4009	/stat/npc/iceknight
+4010	iceknight
+4011	/stat/npc/evilwizard
+4012	evilwizard
+4013	/stat/npc/waterimp
+4014	waterimp
+4015	/stat/npc/hoimislime
+4016	hoimislime
+4017	/stat/npc/drakee
+4018	drakee
+4019	/stat/npc/slime
+4020	slime
+4021	/stat/npc/icedancer
+4022	icedancer
+4023	/stat/npc/coldoldwoman
+4024	coldoldwoman
+4025	/stat/npc/coldwoman
+4026	coldwoman
+4027	/stat/npc/coldpriest
+4028	coldpriest
+4029	/stat/npc/coldscholar
+4030	coldscholar
+4031	/stat/npc/frozenoldman
+4032	frozenoldman
+4033	/stat/npc/iceguard
+4034	iceguard
+4035	/stat/npc/coldstrongman
+4036	coldstrongman
+4037	/stat/npc/coldrichman
+4038	coldrichman
+4039	/stat/npc/coldman
+4040	coldman
+4041	/stat/npc/dancer
+4042	dancer
+4043	/stat/npc/oldwoman
+4044	oldwoman
+4045	/stat/npc/woman
+4046	woman
+4047	/stat/npc/priest
+4048	priest
+4049	/stat/npc/scholar
+4050	scholar
+4051	/stat/npc/oldman
+4052	oldman
+4053	/stat/npc/guard
+4054	guard
+4055	/stat/npc/strongman
+4056	strongman
+4057	/stat/npc/richman
+4058	richman
+4059	/stat/npc/man
+4060	man
+4061	/stat/fooddrawers
+4062	fooddrawers
+4063	/stat/chest/ice
+4064	/stat/chest/wooden
+4065	/stat/pot
+4066	/stat/pot/ice
+4067	/stat/pot/wooden
+4068	/stat/pot/stone
+4069	/stat/drawers
+4070	/stat/drawers/snow
+4071	/stat/drawers/wooden
+4072	/stat/door/dw1
+4073	/stat/door/bookcase
+4074	/stat/door/jail
+4075	/stat/door/gold
+4076	/stat/door/ice
+4077	/stat/door/snow
+4078	/stat/door/silver
+4079	/stat/door/wooden
+4080	/stat/sign
+4081	/stat/sign/item
+4082	/stat/sign/grave
+4083	/stat/sign/armor
+4084	/stat/sign/weapon
+4085	/stat/sign/church
+4086	/stat/sign/snowinn
+4087	/stat/sign/snowwooden
+4088	/stat/sign/inn
+4089	/stat/sign/wooden
+4090	/item/drink
+4091	drink
+4092	/item/drink/redslimejelly
+4093	/item/drink/babblesoda
+4094	/item/drink/water
+4095	/item/food
+4096	food
+4097	/item/food/herb
+4098	/item/food/yellowslimejello
+4099	/item/food/mothsalad
+4100	/item/food/bbqdogribs
+4101	/item/food/snail
+4102	/item/food/rattailpasta
+4103	/item/food/drakeewings
+4104	/item/food/ravenwings
+4105	/item/food/roastedbeetle
+4106	/item/food/slimejello
+4107	/item/herb
+4108	/item/herb/leaf
+4109	/item/herb/tea
+4110	/item/herb/medical
+4111	/item/wyvernwing
+4112	/item/amulet
+4113	amulet
+4114	/item/amulet/moon
+4115	/item/amulet/sun
+4116	/item/amulet/exp
+4117	/item/amulet/gold
+4118	/item/amulet/erdrick
+4119	/item/amulet/awake
+4120	/item/amulet/barrier
+4121	/item/amulet/increase
+4122	/item/amulet/stepguard
+4123	/item/amulet/wizard
+4124	/item/amulet/warrior
+4125	/item/amulet/stars
+4126	/item/amulet/sky
+4127	/item/amulet/light
+4128	/item/amulet/spirit
+4129	/item/amulet/magic
+4130	/item/amulet/intelligence
+4131	/item/amulet/health
+4132	/item/amulet/vitality
+4133	/item/amulet/speed
+4134	/item/amulet/agility
+4135	/item/amulet/power
+4136	/item/amulet/strength
+4137	/item/gem
+4138	gem
+4139	/item/gem/crown
+4140	/item/gem/drop
+4141	/item/gem/ring
+4142	/item/gem/bluegem
+4143	/item/gem/greengem
+4144	/item/gem/redgem
+4145	/item/paper
+4146	/item/key
+4147	/playerskill
+4148	playerskill
+4149	/playerlearn
+4150	playerlearn
+4151	/playerlearn/sage
+4152	/playerlearn/wizard
+4153	/playerlearn/pilgrim
+4154	/playerlearn/goofoff
+4155	/playerlearn/fighter
+4156	/playerlearn/soldier
+4157	/playerlearn/hero
+4158	/playerclass
+4159	playerclass
+4160	/playerclass/blazer
+4161	/playerclass/masterg
+4162	/playerclass/tarq
+4163	/playerclass/child
+4164	/playerclass/sage
+4165	/playerclass/wizard
+4166	/playerclass/pilgrim
+4167	/playerclass/goofoff
+4168	/playerclass/fighter
+4169	/playerclass/soldier
+4170	/playerclass/hero
+4171	/playericon
+4172	playericon
+4173	/playericon/special
+4174	special
+4175	/playericon/special/robin
+4176	robin
+4177	/playericon/special/knucks
+4178	knucks
+4179	/playericon/special/saro
+4180	saro
+4181	/playericon/special/deathwyvern
+4182	deathwyvern
+4183	/playericon/blazer
+4184	/playericon/blazer/angelblazer
+4185	angelblazer
+4186	/playericon/blazer/darkblazer
+4187	darkblazer
+4188	/playericon/blazer/snowblazer
+4189	snowblazer
+4190	/playericon/blazer/blazer
+4191	/playericon/masterg
+4192	/playericon/masterg/ghost
+4193	ghost
+4194	/playericon/masterg/evil
+4195	evil
+4196	/playericon/masterg/shiny
+4197	shiny
+4198	/playericon/masterg/masterg
+4199	/playericon/tarq
+4200	/playericon/tarq/forest
+4201	/playericon/tarq/water
+4202	/playericon/tarq/king
+4203	king
+4204	/playericon/tarq/lego
+4205	lego
+4206	/playericon/tarq/pilgrim
+4207	/playericon/tarq/wizard
+4208	/playericon/tarq/shiny
+4209	/playericon/other
+4210	other
+4211	/playericon/other/dw4wagon
+4212	dw4wagon
+4213	/playericon/other/dw4horse
+4214	dw4horse
+4215	/playericon/child
+4216	/playericon/child/dw4femalechild
+4217	dw4femalechild
+4218	/playericon/child/dw4malechild
+4219	dw4malechild
+4220	/playericon/sage
+4221	/playericon/sage/dw3fsage
+4222	dw3fsage
+4223	/playericon/sage/dw3msage
+4224	dw3msage
+4225	/playericon/wizard
+4226	/playericon/wizard/dw4mara
+4227	dw4mara
+4228	/playericon/wizard/dw4brey
+4229	dw4brey
+4230	/playericon/wizard/dw3fwizard
+4231	dw3fwizard
+4232	/playericon/wizard/dw3mwizard
+4233	dw3mwizard
+4234	/playericon/wizard/dw2wizard
+4235	dw2wizard
+4236	/playericon/wizard/dw2princess
+4237	dw2princess
+4238	/playericon/wizard/dw1wizard
+4239	dw1wizard
+4240	/playericon/pilgrim
+4241	/playericon/pilgrim/dw4nara
+4242	dw4nara
+4243	/playericon/pilgrim/dw4cristo
+4244	dw4cristo
+4245	/playericon/pilgrim/dw3fpilgrim
+4246	dw3fpilgrim
+4247	/playericon/pilgrim/dw3mpilgrim
+4248	dw3mpilgrim
+4249	/playericon/pilgrim/dw2pilgrim
+4250	dw2pilgrim
+4251	/playericon/goofoff
+4252	/playericon/goofoff/dw4bard
+4253	dw4bard
+4254	/playericon/goofoff/dw3bard
+4255	dw3bard
+4256	/playericon/goofoff/dw3fgoofoff
+4257	dw3fgoofoff
+4258	/playericon/goofoff/dw3mgoofoff
+4259	dw3mgoofoff
+4260	/playericon/fighter
+4261	/playericon/fighter/dw4alena
+4262	dw4alena
+4263	/playericon/fighter/dw3ffighter
+4264	dw3ffighter
+4265	/playericon/fighter/dw3mfighter
+4266	dw3mfighter
+4267	/playericon/fighter/dw2fighter
+4268	dw2fighter
+4269	/playericon/fighter/dw1fighter
+4270	dw1fighter
+4271	/playericon/soldier
+4272	/playericon/soldier/dw4adventurer
+4273	dw4adventurer
+4274	/playericon/soldier/dw4fguard
+4275	dw4fguard
+4276	/playericon/soldier/dw4ragnar
+4277	dw4ragnar
+4278	/playericon/soldier/dw3guard
+4279	dw3guard
+4280	/playericon/soldier/dw3fsoldier
+4281	dw3fsoldier
+4282	/playericon/soldier/dw3msoldier
+4283	dw3msoldier
+4284	/playericon/soldier/dw2soldier
+4285	dw2soldier
+4286	/playericon/soldier/dw1soldier
+4287	dw1soldier
+4288	/playericon/hero
+4289	/playericon/hero/dw4elf
+4290	dw4elf
+4291	/playericon/hero/dw4fhero
+4292	dw4fhero
+4293	/playericon/hero/dw4mhero
+4294	dw4mhero
+4295	/playericon/hero/dw3hero
+4296	dw3hero
+4297	/playericon/hero/dw2hero
+4298	dw2hero
+4299	/playericon/hero/dw1hero
+4300	dw1hero
+4301	/PagerBanManager
+4302	PagerBanManager
+4303	/RolePlayManager
+4304	/area/ceiling
+4305	/area/ceiling/visible
+4306	/area/underwater
+4307	/area/underwater/deepwater
+4308	/area/boss
+4309	/area/forest
+4310	/area/casino
+4311	/area/dungeon
+4312	/area/jail
+4313	/area/old
+4314	/area/cave
+4315	/area/rave
+4316	/area/wilderness
+4317	/area/castle
+4318	/area/castle/battle
+4319	/area/temple
+4320	/area/bar
+4321	/area/town
+4322	/area/town/rain
+4323	/image/overlay
+4324	/image/overlay/flamespearhit
+4325	/image/overlay/thordainew
+4326	/image/overlay/thordainns
+4327	/image/overlay/lightninghit
+4328	/image/overlay/bang
+4329	/image/overlay/barrieron
+4330	/image/overlay/barrier
+4331	/image/overlay/upperon
+4332	/image/overlay/upper
+4333	/image/overlay/healmost
+4334	/image/overlay/healmore
+4335	/image/overlay/heal
+4336	/image/overlay/icespearhit
+4337	/image/overlay/blazehit
+4338	/image/overlay/asleep
+4339	/burn/snowstorm
+4340	/burn/explodet
+4341	/burn/firebane
+4342	/proj/defeat
+4343	/proj/flamespear
+4344	/proj/lightning
+4345	/proj/zap
+4346	/proj/blizzard
+4347	/proj/icespear
+4348	/proj/explodet
+4349	/proj/boom
+4350	/proj/bang
+4351	/proj/firebane
+4352	/proj/firebal
+4353	/proj/blazemore
+4354	/proj/blaze
+4355	/proj/infermore
+4356	/proj/infernos
+4357	/proj/stopspell
+4358	/proj/sleep
+4359	/proj/lightswordblast
+4360	/proj/thunderswordblast
+4361	thunderswordblast
+4362	/proj/icesaberblast
+4363	icesaberblast
+4364	/proj/flameswordblast
+4365	flameswordblast
+4366	/proj/boomerang
+4367	/proj/thorn
+4368	thorn
+4369	/proj/sickle
+4370	/proj/fireclawblast
+4371	fireclawblast
+4372	/obj/boulder/ur
+4373	/obj/boulder/ul
+4374	/obj/boulder/lr
+4375	/obj/boulder/ll
+4376	/obj/hud
+4377	/obj/hud/char
+4378	/obj/hud/text
+4379	/obj/hud/black
+4380	/obj/fade
+4381	/obj/menu/spirit
+4382	spirit
+4383	/obj/menu/intelligence
+4384	/obj/menu/vitality
+4385	/obj/menu/agility
+4386	/obj/menu/strength
+4387	/obj/slots
+4388	/mob/monster/boss
+4389	Eatery
+4390	Eatery key
+4391	Wood House 2
+4392	Wood House 2 key
+4393	Wood House 1
+4394	Wood House 1 key
+4395	old warp
+4396	cave warp
+4397	Wood N. Inn
+4398	Room 2
+4399	Room 2 key
+4400	Room 1
+4401	Room 1 key
+4402	Room 3
+4403	Room 3 key
+4404	old door
+4405	old door key
+4406	Apartment 1
+4407	Apartment 1 key
+4408	Balzackian Musical key
+4409	Battle arena
+4410	Battle arena key
+4411	Apartment 2
+4412	Apartment 2 key
+4413	Jail
+4414	Jail key
+4415	Apartment 3
+4416	Apartment 3 key
+4417	Bar
+4418	Bar key
+4419	Silk's Mansion
+4420	Silk's Mansion key
+4421	Grunge Cafe
+4422	Stop by and mess around with us!
+4423	House 1
+4424	House 1 key
+4425	House 3
+4426	House 3 key
+4427	Inn key
+4428	Church
+4429	Welcome to the Church
+4430	Room 12
+4431	Room 12 key
+4432	Room 11
+4433	Room 11 key
+4434	House 2
+4435	House 2 key
+4436	Room 14
+4437	Room 14 key
+4438	Church door
+4439	Church key
+4440	Room 13
+4441	Room 13 key
+4442	Room 24
+4443	Room 24 key
+4444	Room 21
+4445	Room 21 key
+4446	Room 23
+4447	Room 23 key
+4448	Room 22
+4449	Room 22 key

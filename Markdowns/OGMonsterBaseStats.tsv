@@ -1,0 +1,93 @@
+# Dragon Warrior Legacy - monster base stats
+# Source: Dragon Warrior Legacy.dmb, class-table entry field +28 (per-type var init list).
+# Regenerable cache. See notes/type-table-and-monsters.md for derivation and confidence.
+#
+# Column names are INFERRED - the var-name table has not been found, so these are read off
+# values, not names. Confidence:
+#   element          certain   - the stored values are literally element names
+#   maxhp maxmp      high      - Metal Slime = 6 hp; maxmp present only on casters
+#   level            high      - monotonic 1..40 across the roster
+#   str agi vit int spr  high  - 5 consecutive var ids onto 5 consecutive stat strings
+#   delay            high      - inversely monotonic with agi (4->24.8 .. 8->1.0 mean agi)
+#   exp gold         medium    - equal on nearly every monster; ordered by Metal Slime only
+#   flee             medium    - metal monsters highest, 0 on every boss; name is a guess
+#
+# 'delay' is lower = faster. Blank maxmp means the monster has no MP var at all.
+path	name	level	maxhp	maxmp	str	agi	vit	int	spr	element	exp	gold	delay	flee
+/mob/monster/cat	Cat	1	30		3	8	2	1	1		3	3	6	20
+/mob/monster/slime	Slime	1	40		4	2	4	1	1	Water	3	3	7	15
+/mob/monster/dog	Dog	2	45		4	4	5	1	1		4	4	6	10
+/mob/monster/redslime	Red Slime	2	45		5	2	5	4	1	Fire	4	4	6	15
+/mob/monster/bat	Bat	3	45		5	10	3	2	1	Air	5	5	5	25
+/mob/monster/fox	Fox	3	55		6	9	4	4	1		6	6	6	25
+/mob/monster/babble	Babble	4	60		6	1	6	8	1	Plant	7	7	8	10
+/mob/monster/skeleton	Skeleton	4	60		6	3	1	4	1	Darkness	8	8	6	0
+/mob/monster/drakee	Drakee	5	65		7	8	4	4	1		9	9	6	20
+/mob/monster/healer	Healer	5	70	20	7	2	3	6	6	Water	10	10	7	20
+/mob/monster/magician	Magician	6	70	35	3	2	3	7	6		12	12	6	15
+/mob/monster/snailslime	Snail Slime	6	100		6	1	9	3	1	Plant	11	11	8	10
+/mob/monster/sizarmage	Sizarmage	7	75	45	4	5	2	9	5	Fire	16	16	6	20
+/mob/monster/yellowslime	Yellow Slime	7	80		8	2	7	1	1	Air	14	14	7	5
+/mob/monster/frostcat	Frost Cat	8	85		7	8	2	5	1	Ice	18	18	5	10
+/mob/monster/ghost	Ghost	8	90		8	2	1	12	1	Darkness	20	20	6	0
+/mob/monster/wolf	Wolf	9	95		9	8	8	2	1		24	24	6	10
+/mob/monster/magidrakee	Magidrakee	10	90	20	5	7	6	10	6	Fire	27	27	6	15
+/mob/monster/reptile	Reptile	10	105		10	1	10	1	1	Water	30	30	7	10
+/mob/monster/arcticfox	Arctic Fox	11	100		10	11	4	7	6	Ice	33	33	5	20
+/mob/monster/panther	Panther	11	120		11	8	8	4	1	Plant	36	36	6	5
+/mob/monster/acolyte	Acolyte	12	110	45	10	1	1	9	12	Darkness	43	43	7	20
+/mob/monster/gremlin	Gremlin	12	100	60	8	12	1	12	10	Air	39	39	6	25
+/mob/monster/blazeghost	Blazeghost	13	90	40	1	1	1	12	18	Fire	47	47	8	0
+/mob/monster/tiger	Tiger	13	135		11	11	8	1	1		51	51	5	10
+/mob/monster/manowar	Man O' War	14	135		12	15	8	10	1	Water	59	59	6	0
+/mob/monster/yeti	Yeti	14	140		14	3	12	4	1	Ice	55	55	6	5
+/mob/monster/drakeema	Drakeema	15	145	35	14	12	6	10	12	Air	70	70	6	20
+/mob/monster/wolflord	Wolf Lord	15	150	15	14	10	11	5	2	Plant	65	65	6	0
+/mob/monster/bloodhound	Bloodhound	16	170		15	4	15	1	1	Fire	75	75	7	0
+/mob/monster/warlock	Warlock	16	150	90	4	4	4	16	10		80	80	7	5
+/mob/monster/familiar	Familiar	17	175	15	16	11	10	8	2	Darkness	92	92	6	0
+/mob/monster/silverfox	Silver Fox	17	170		16	15	8	10	4	Iron	86	86	5	10
+/mob/monster/gianteyeball	Giant Eyeball	18	190		17	1	17	1	1	Water	99	99	7	0
+/mob/monster/whitewolf	White Wolf	19	200		18	12	14	2	5	Ice	108	108	6	10
+/mob/monster/wraith	Wraith	19	205		18	8	14	1	1	Fire	114	114	6	0
+/mob/monster/curer	Curer	20	210	50	18	6	14	14	16	Air	119	119	6	15
+/mob/monster/leaonar	Leaonar	20	220		19	3	18	8	1	Plant	126	126	6	0
+/mob/monster/weretiger	Weretiger	21	230		20	18	14	6	1		141	141	6	0
+/mob/monster/werewolf	Werewolf	21	225		20	14	16	1	3	Darkness	134	134	5	0
+/mob/monster/metalslime	Metal Slime	22	6		15	25	600	600	20	Iron	356	62	4	35
+/mob/monster/ozwarg	Ozwarg	22	205	105	12	15	1	21	20	Ice	154	154	5	20
+/mob/monster/vulpes	Vulpes	23	235		21	18	13	15	14	Fire	175	175	5	5
+/mob/monster/waterimp	Water Imp	23	210	100	10	16	7	19	22	Water	163	163	5	20
+/mob/monster/minidemon	Mini Demon	24	220	120	16	15	4	22	24	Fire	202	202	5	10
+/mob/monster/rogueknight	Rogue Knight	24	260		22	2	21	1	1	Iron	190	190	7	0
+/mob/monster/icesloth	Ice Sloth	25	270		23	1	30	22	1	Ice	216	216	8	0
+/mob/monster/iroid	Iroid	25	280		24	1	24	1	1	Plant	231	231	7	0
+/mob/monster/darkpriest	Dark Priest	26	270	130	13	2	17	25	21	Darkness	253	253	7	20
+/mob/monster/steelbones	Steel Bones	26	290		24	3	22	15	1	Iron	242	242	6	0
+/mob/monster/fairydragon	Fairy Dragon	27	275	90	25	22	4	22	20	Air	264	264	5	20
+/mob/monster/bengal	Bengal	28	315		26	14	23	10	1	Fire	275	275	6	0
+/mob/monster/wizard	Wizard	28	275	150	1	4	2	25	24		286	286	7	0
+/mob/monster/metalbabble	Metal Babble	29	8		20	18	750	750	30	Iron	885	94	4	20
+/mob/monster/squid	Squid	29	320		26	8	25	1	1	Water	308	308	6	10
+/mob/monster/frozenbones	Frozen Bones	30	325		27	14	25	10	1	Ice	312	312	6	0
+/mob/monster/greendragon	Green Dragon	30	340	120	28	21	26	20	21	Plant	325	325	5	0
+/mob/monster/cloudpuff	Cloud Puff	31	320		29	31	3	7	1	Air	339	339	4	10
+/mob/monster/madclown	Mad Clown	31	310	180	16	18	1	29	32	Darkness	353	353	5	15
+/mob/monster/cyclops	Cyclops	32	400		31	1	34	1	1		383	383	7	0
+/mob/monster/magmaknight	Magma Knight	32	385		30	1	32	6	1	Fire	368	368	6	0
+/mob/monster/bluelion	Blue Lion	33	400		32	23	21	20	1	Water	417	417	5	5
+/mob/monster/infurnusknight	Infurnus Knight	33	415		32	2	30	8	1	Iron	399	399	6	0
+/mob/monster/manticore	Manticore	34	450		33	17	31	21	12	Plant	437	437	5	0
+/mob/monster/roguewhisper	Rogue Whisper	34	300	200	1	1	1	36	40	Ice	460	460	8	0
+/mob/monster/bluedragon	Blue Dragon	35	450	135	35	30	15	30	25	Air	480	480	5	0
+/mob/monster/specter	Specter	35	450	50	35	35	7	1	1	Darkness	499	499	6	0
+/mob/monster/devil	Devil	36	460	260	10	20	5	38	42	Fire	545	545	5	0
+/mob/monster/ferocial	Ferocial	36	520		36	16	35	5	1		525	525	6	0
+/mob/monster/metalhealer	Metal Healer	37	10	70	30	25	900	900	40	Iron	1488	167	4	40
+/mob/monster/necrodain	Necrodain	37	550		37	10	25	10	1	Darkness	567	567	6	0
+/mob/monster/archbishop	Archbishop	38	520	280	20	1	10	40	40	Darkness	605	605	7	0
+/mob/monster/iceknight	Ice Knight	38	580		37	1	37	12	1	Ice	586	586	7	0
+/mob/monster/blacklion	Black Lion	39	530		39	36	14	18	1	Darkness	636	636	5	0
+/mob/monster/lethalarmor	Lethal Armor	39	570		38	1	42	1	1	Iron	619	619	5	0
+/mob/monster/necromancer	Necromancer	40	525	300	1	5	1	45	41	Darkness	650	650	7	0
+/mob/monster/reddragon	Red Dragon	40	580	120	40	25	35	40	30	Fire	660	660	5	0
