@@ -135,14 +135,9 @@ mob/enemy
 	// Runs forever once this enemy exists in the world — same polling-loop shape as
 	// client/MoveLoop() in Code/Core/SmoothMovement.dm. Each tick: stop entirely once
 	// dead (so a corpse just sits still until CombatSystem.dm's CleanUpDead() deletes
-	// it), then hands off to HandlePetTick() if owned, otherwise runs the wild-monster
-	// logic below — verify the current target is still alive and still in range (the
-	// "deathcheck"/leash checks that clear a stale target), then decide whether to
-	// flee/attack/chase a target or wander — but only while the area is actually in
-	// battle mode (Code/World/Area.dm's battleModeOn); otherwise enemies stay peaceful
-	// and just wander regardless of nearby players. This only sets moveIntent/
-	// moveTowardAtom — the actual stepping happens continuously in MovementLoop()
-	// below, decoupled from this slower decision cadence.
+	// it), then hand off to HandlePetTick() if owned, or RunWildAI() if not. Both of
+	// those only ever set moveIntent/moveTowardAtom — the actual stepping happens
+	// continuously in MovementLoop() below, decoupled from this slower decision cadence.
 	proc/AILoop()
 		set waitfor = 0
 		while(src)
@@ -152,67 +147,87 @@ mob/enemy
 
 			if(owner)
 				HandlePetTick()
-				sleep(aiTickDelay)
-				continue
-
-			if(target && target.HP <= 0)
-				target = null
-
-			// Drop target if they turn ghost mid-fight (GM_GhostForm, GMCommands.dm)
-			// — a GM shouldn't be able to get stuck fighting an enemy just because it
-			// locked on before they ghosted.
-			if(target && target.isGhostform)
-				target = null
-
-			// Give up the chase once the target flees past sightRange — without this,
-			// a locked-on target was kept forever regardless of distance, so a slime
-			// would chase clear across the map, making detection feel unbounded even
-			// though initial acquisition below is capped at sightRange. Also doubles
-			// as how a fleeing enemy "escapes" below.
-			if(target && get_dist(src, target) > sightRange)
-				target = null
-
-			if(InBattleArea())
-				if(!target)
-					for(var/mob/player/P in range(sightRange, src))
-						if(P.HP <= 0 || P.isDead || P.isGhostform) continue
-						target = P
-						break
-
-				if(target)
-					moveTowardAtom = target
-					if(HP <= MaxHP * fleeHealthPercent / 100)
-						// Low HP — run instead of fighting. No healing exists yet, so
-						// the only way this ends is death or breaking sightRange (the
-						// leash check above then drops target and this falls back to
-						// wandering, i.e. successfully escaped).
-						moveIntent = ENEMY_MOVE_FLEE
-					else if(IsCardinallyAdjacent(src, target, attackRange))
-						moveIntent = ENEMY_MOVE_NONE
-						dir = get_dir(src, target)
-						if(canAct)
-							canAct = FALSE
-							PlayAttackAnimation(src, attackSkill, target)
-							PerformMeleeHit(attackSkill)
-							spawn(attackCooldown)
-								canAct = TRUE
-					else
-						moveIntent = ENEMY_MOVE_CHASE
-				else
-					moveIntent = ENEMY_MOVE_NONE
-					Wander()
 			else
-				target = null  // area isn't in battle mode — drop aggro entirely
-				moveIntent = ENEMY_MOVE_NONE
-				Wander()
+				RunWildAI()
 
 			sleep(aiTickDelay)
 
-	// Pet AI — runs instead of the wild-monster block above once this mob has an
-	// owner, branching on petMode (PET_MODE_* above, set via ShowPetOwnerMenu()'s "Set
-	// Mode"). Reuses the same target/moveIntent/moveTowardAtom/canAct/attackSkill/
-	// attackCooldown vars and the same MovementLoop()/StepRelativeTo() below — only
-	// the decision logic differs.
+	// One decision tick of wild-monster behavior: drop a stale target, acquire a new one
+	// if the area is actually in battle mode (Code/World/Area.dm's battleModeOn), then
+	// flee/attack/chase it — or wander when there's nobody to fight. Outside a battle
+	// area enemies stay peaceful and just wander regardless of nearby players.
+	//
+	// Shared by genuinely wild enemies (AILoop() above) and by PET_MODE_WANDER pets,
+	// which are DEFINED as behaving exactly like a wild monster (see PET_MODE_WANDER up
+	// top). Those two used to be separate verbatim copies of this logic, and had already
+	// drifted apart: the pet copy nulled and re-acquired its target from scratch on every
+	// single tick instead of running the stale-target checks below, so a Wander-mode pet
+	// could never hold aggro on one player the way a wild monster does. Now there is one
+	// copy and "acts exactly like a wild monster" is literally true.
+	proc/RunWildAI()
+		// Drop a dead target, or one that turned ghost mid-fight (GM_GhostForm,
+		// GMCommands.dm) — a GM shouldn't be able to get stuck fighting an enemy just
+		// because it locked on before they ghosted.
+		if(target && (target.HP <= 0 || target.isGhostform))
+			target = null
+
+		// Give up the chase once the target flees past sightRange — without this, a
+		// locked-on target was kept forever regardless of distance, so a slime would
+		// chase clear across the map, making detection feel unbounded even though
+		// initial acquisition below is capped at sightRange. Also doubles as how a
+		// fleeing enemy "escapes" below.
+		if(target && get_dist(src, target) > sightRange)
+			target = null
+
+		if(!InBattleArea())
+			target = null  // area isn't in battle mode — drop aggro entirely
+			moveIntent = ENEMY_MOVE_NONE
+			Wander()
+			return
+
+		if(!target)
+			for(var/mob/player/P in range(sightRange, src))
+				if(P.HP <= 0 || P.isDead || P.isGhostform) continue
+				target = P
+				break
+
+		if(!target)
+			moveIntent = ENEMY_MOVE_NONE
+			Wander()
+			return
+
+		moveTowardAtom = target
+		if(HP <= MaxHP * fleeHealthPercent / 100)
+			// Low HP — run instead of fighting. No healing exists yet, so the only way
+			// this ends is death or breaking sightRange (the leash check above then
+			// drops target and this falls back to wandering, i.e. successfully escaped).
+			moveIntent = ENEMY_MOVE_FLEE
+		else if(IsCardinallyAdjacent(src, target, attackRange))
+			moveIntent = ENEMY_MOVE_NONE
+			TryMeleeAttack(target)
+		else
+			moveIntent = ENEMY_MOVE_CHASE
+
+	// Face M and take one swing at it, if this enemy is off cooldown. The "we're adjacent,
+	// so hit it" half of every AI branch in this file — wild, Wander-mode pet and
+	// Aggressive pet all had this same block written out longhand, differing only in
+	// which var held the victim. Enemies gate on their own flat attackCooldown here
+	// rather than GetAttackDelay()'s stat-derived timing, deliberately — see
+	// attackCooldown's own note up top.
+	proc/TryMeleeAttack(mob/M)
+		dir = get_dir(src, M)
+		if(!canAct) return
+		canAct = FALSE
+		PlayAttackAnimation(src, attackSkill, M)
+		PerformMeleeHit(attackSkill)
+		spawn(attackCooldown)
+			canAct = TRUE
+
+	// Pet AI — runs instead of RunWildAI() above once this mob has an owner, branching
+	// on petMode (PET_MODE_* above, set via ShowPetOwnerMenu()'s "Set Mode"). Reuses the
+	// same target/moveIntent/moveTowardAtom/canAct/attackSkill/attackCooldown vars, the
+	// same TryMeleeAttack() above, and the same MovementLoop()/StepRelativeTo() below —
+	// only the decision logic differs.
 	proc/HandlePetTick()
 		if(!owner || !owner.client || owner.HP <= 0)
 			// Ownerless-mid-tick edge case (owner disconnected/died) — no despawn/
@@ -227,36 +242,10 @@ mob/enemy
 				moveIntent = ENEMY_MOVE_NONE
 
 			if(PET_MODE_WANDER)
-				// Deliberately falls back to the exact wild-monster block above,
-				// owner and all — see PET_MODE_WANDER's definition up top for why.
-				target = null
-				if(InBattleArea())
-					for(var/mob/player/P in range(sightRange, src))
-						if(P.HP <= 0 || P.isDead || P.isGhostform) continue
-						target = P
-						break
-
-					if(target)
-						moveTowardAtom = target
-						if(HP <= MaxHP * fleeHealthPercent / 100)
-							moveIntent = ENEMY_MOVE_FLEE
-						else if(IsCardinallyAdjacent(src, target, attackRange))
-							moveIntent = ENEMY_MOVE_NONE
-							dir = get_dir(src, target)
-							if(canAct)
-								canAct = FALSE
-								PlayAttackAnimation(src, attackSkill, target)
-								PerformMeleeHit(attackSkill)
-								spawn(attackCooldown)
-									canAct = TRUE
-						else
-							moveIntent = ENEMY_MOVE_CHASE
-					else
-						moveIntent = ENEMY_MOVE_NONE
-						Wander()
-				else
-					moveIntent = ENEMY_MOVE_NONE
-					Wander()
+				// Runs the exact same proc a wild monster runs, owner and all — see
+				// PET_MODE_WANDER's definition up top for why, and RunWildAI()'s own
+				// comment for what this branch used to be.
+				RunWildAI()
 
 			if(PET_MODE_FOLLOW)
 				target = null
@@ -288,13 +277,7 @@ mob/enemy
 					moveTowardAtom = huntTarget
 					if(IsCardinallyAdjacent(src, huntTarget, attackRange))
 						moveIntent = ENEMY_MOVE_NONE
-						dir = get_dir(src, huntTarget)
-						if(canAct)
-							canAct = FALSE
-							PlayAttackAnimation(src, attackSkill, huntTarget)
-							PerformMeleeHit(attackSkill)
-							spawn(attackCooldown)
-								canAct = TRUE
+						TryMeleeAttack(huntTarget)
 					else
 						moveIntent = ENEMY_MOVE_CHASE
 				else if(get_dist(src, owner) > PET_FOLLOW_DISTANCE)
@@ -483,22 +466,8 @@ mob/enemy
 		huntTarget = null
 		moveTowardAtom = null
 
-	slime
-		name = "Slime"
-		icon = 'slime.dmi'
-		icon_state = "world"
-		Level = 1
-		HP = 20
-		MaxHP = 20
-		// Strength/Agility/Vitality/Intelligence/Luck were never set here (defaulted to
-		// the base mob's Strength=1 etc.) until the rest of the roster
-		// (Code/Combat/NPCs/MonsterRoster.dm) got real stat blocks — filled in to match
-		// that file's Tier 1 (common-animal/weak) block, since slime is the same power
-		// tier as bat/cat/wolf/etc.
-		Strength = 4
-		Agility = 3
-		Vitality = 3
-		Intelligence = 1
-		Luck = 2
-		expReward = 10  // matches MonsterRoster.dm's TIER1_EXP
-		goldReward = 6  // matches MonsterRoster.dm's TIER1_GOLD
+// Every concrete monster (slime included) lives in Code/Combat/NPCs/MonsterRoster.dm —
+// this file is the shared AI/pet behavior they all inherit, nothing more. Slime used to
+// be declared here instead, hand-copying MonsterRoster.dm's Tier 1 numbers with a
+// comment promising they matched; it's a plain mob/enemy/tier1 subtype over there now,
+// so there's nothing left to keep in sync by hand.

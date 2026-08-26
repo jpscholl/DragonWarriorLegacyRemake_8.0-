@@ -469,7 +469,10 @@ mob/verb/GM_MakeMob()
     set category = "GM"
     set desc = "Pick a monster type for the build tool to place"
 
-    PickBuildSelection(GetTypeChoices(/mob/enemy), "Choose a monster to place (or None to cancel):", "GM_MakeMob", "mob")
+    // tier1/tier2 excluded — they're the roster's shared stat-block base types
+    // (MonsterRoster.dm), not monsters in their own right. Same reason GM_MakeTurf
+    // excludes /turf/furniture/bedhead below.
+    PickBuildSelection(GetTypeChoices(/mob/enemy, list(/mob/enemy/tier1, /mob/enemy/tier2)), "Choose a monster to place (or None to cancel):", "GM_MakeMob", "mob")
 
 // -----------------------------
 // GM_MakeArea — placing "an area" means reassigning a turf to an EXISTING instance of
