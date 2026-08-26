@@ -8,6 +8,61 @@ compiled string table.
 
 ---
 
+## ⚠️ STATUS UPDATE — 2026-08-25
+
+**The tables and rankings below are as of the original 2026-08-24 audit and are now partly stale.**
+A build pass on 2026-08-25 closed a large share of it. Read this section first; treat any row below
+that contradicts it as out of date rather than current.
+
+**Closed since the audit** (all compile-verified, none playtested):
+
+| Was ranked | Item | Now |
+|---|---|---|
+| Tier 1.1 | No defense in the remake | Built — `GetDefense()` / `GetMagicDefense()` |
+| Tier 1.2 | No critical hits | Built — `RollCrit()`, Spirit-driven |
+| Tier 1.3 | `TESTING_CHEAP_SPELLS` on | Off — real MP costs active |
+| Tier 1.4 | No `HPfactor`/`MPfactor` | Built, per class |
+| Tier 2.5 | No economy | Merchants with Buy/Sell |
+| Tier 2.6 | No amulets | 15 of 23, max 2 worn |
+| Tier 2.7 | No item drops | Built (`dropType`/`dropChance`) |
+| Tier 2.8 | No monster spellcasting / healer AI | Built, incl. `TryHeal()` |
+| Tier 2.9 | Real monster stats not applied | Applied |
+| Tier 3.10 | No day/night cycle | Real clock, drives the turf swap |
+| Tier 4.16 | No quick-cast / quick item | Both built |
+| Tier 4.17 | No whisper/shout, no worldsay limit or toggle | All three built |
+| Tier 4.18 | Hard mute instead of shadow mute | Shadow mute |
+| Tier 4.19 | No player click menu | Built |
+| Part 5.1 | Death EXP penalty 25% | 5%, per string 605 |
+| Part 5.3 | Respawn 10s manual | 60s auto + numpad 5, per string 887 |
+| Part 5.6 | Classchange had no gate | Level 25 gate + level-1 reset |
+| Part 5.7 | Mute announced itself | Silent |
+| Part 5.8 | No worldsay rate limit | 1s, per the OG's own message |
+
+Also closed, though not separately ranked above: HP/MP regeneration, first-hit kill credit
+(`first_hit`), sleep breaking on hit, real buff effects for Upper/Increase/Barrier (they were
+stand-ins that quietly healed HP), and hazard terrain (lava/swamp).
+
+**Still open, and the highest-value remaining work:**
+
+1. **No item art.** Every consumable and amulet borrows `key.dmi`. They are functionally complete
+   and visually indistinguishable — the single most visible unfinished thing in the game right now.
+2. **No HUD.** Still zero `screen_loc` usage anywhere. This also blocks the drag-to-slot half of
+   quick items that the OG's help file describes.
+3. **No survival layer** — hunger, thirst, sleepiness, temperature, weather, drowning.
+4. **No `/stat` scenery kit or NPC dialogue.** Still the largest single volume gap.
+5. **No storage containers, no world serializer.**
+6. **The `delay` column** in `OGMonsterBaseStats.tsv` is extracted but unapplied — its units are
+   unknown, and mapping it onto `attackCooldown`'s deciseconds would roughly double every monster's
+   attack rate on an unverified conversion.
+7. **The data ask in Part 6.7 below is still the highest value-per-effort item on the board** — a
+   var-defaults dump for `/playerclass/*`, `/playerlearn/*/*`, `/skill/*`, and `/item/amulet/*` would
+   replace placeholder numbers across all of it, including everything this pass just built.
+
+**Everything built in this pass used placeholder numbers wherever the OG's own values aren't
+recovered.** The mechanisms are the OG's; the tuning is invented and wants playtesting.
+
+---
+
 ## Part 1 — The remake as it stands today
 
 ### Type tree
