@@ -41,16 +41,37 @@ All of it is compile-verified (DM 516.1687) and **none of it is playtested**.
   contributes without ever mutating the underlying stats.
 
 **World and interface**
-- A real day/night clock driving the existing turf-swap machinery, plus the
-  Status panel's Time line.
+- A day/night clock driving the existing turf-swap machinery, plus the Status
+  panel's Time line. **Flagged after this pass**: its only real payoff is RP
+  mode, which is explicitly out of scope right now (see the priorities note
+  below), and its cadence (one game hour per real minute — a full cycle every
+  24 real minutes) is too fast even setting that aside. Shipped and compiling,
+  but should not be treated as tuned, and a future RP-mode pass is the more
+  natural place for this system than a standalone build item.
 - Hazard terrain (lava, swamp).
+- Storage containers (drawers, chest, pot) — Store/Take/Leave, using the OG's
+  own prompts. Contents are not saved; there's no world serializer yet.
+- NPC dialogue: Day/Night Speech, Stand/Walk, and facing, set at creation.
+- Thornwhip's real 3-tile line attack (was a plain single-tile hit at the wrong
+  damage multiplier — see its own file comment for the two live-OG-test
+  confirmations this corrects).
 - Whisper/Shout chat tiers, the player click menu (give gold/item/cast magic),
   quick item (numpad `*`/`-`), and quick-cast hotkeys (F5/F6/F7).
 
-**Known gaps this pass did not close:** no item art (every consumable and amulet
-borrows `key.dmi`), no HUD (still zero `screen_loc` usage), no hunger/thirst/
-temperature/weather, no storage containers, and the monster `delay` column is
-extracted but unapplied because its units are unknown.
+**Known gaps this pass did not close:**
+- **Item art** for consumables and amulets — they still borrow `key.dmi` and
+  are visually indistinguishable from each other and from a key. **Correction**:
+  an earlier draft of this note claimed the HUD/meter/damage-number/paper art
+  was ALSO missing — it exists (`meter.dmi`/`expmeter.dmi`/`magicmeter.dmi`/
+  `swimmeter.dmi`, `numbers.dmi`, `paper.dmi`, all under `UI & Effects/`), just
+  not yet wired to code. Item/amulet/lava art is the real, still-open gap.
+- No HUD wired up (still zero `screen_loc` usage) — art for it exists (above),
+  the screen-object code doesn't.
+- No hunger/thirst/temperature/weather — and per the priorities note above,
+  these are RP-mode-specific too, so likely belong with the day/night clock in
+  a future RP-mode pass rather than as standalone items.
+- The monster `delay` column is extracted but unapplied because its units are
+  unknown.
 
 ## 0.7.0 — 2026-08-08
 GM moderation tools and area-based spawn markers.
