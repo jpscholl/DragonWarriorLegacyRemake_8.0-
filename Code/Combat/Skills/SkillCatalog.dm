@@ -22,20 +22,18 @@
 // -----------------------------
 datum/skill/GenericPhysical
     parent_type = /datum/skill
+    isMelee = TRUE
+    icon_state = "weapon"  // PLACEHOLDER: reuses Attack's sprite state — real
+                             // per-skill animation states aren't designed yet, and
+                             // Fighter's own icons don't even have a "weapon" state
+                             // (see PlayerTemplate.dm's Fighter comment), so this is
+                             // already a known-imperfect visual, not a new gap
+    cast_time = 2  // PLACEHOLDER: matches Attack's windup
+
     var
         isRanged = FALSE  // PLACEHOLDER flag only — no actual ranged/thrown behavior
                             // built yet (e.g. Boomerang), still resolves as a normal
                             // melee hit via PerformMeleeHit() like everything else here
-
-    New()
-        ..()
-        isMelee = TRUE
-        icon_state = "weapon"  // PLACEHOLDER: reuses Attack's sprite state — real
-                                 // per-skill animation states aren't designed yet, and
-                                 // Fighter's own icons don't even have a "weapon" state
-                                 // (see PlayerTemplate.dm's Fighter comment), so this is
-                                 // already a known-imperfect visual, not a new gap
-        cast_time = 2  // PLACEHOLDER: matches Attack's windup
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
@@ -58,24 +56,26 @@ datum/skill/GenericPhysical
 
 // -----------------------------
 // Generic Spell — offensive or healing magic (Int gated). isHealing picks the branch;
-// damage spells scale off Intelligence via damage_multiplier, heals use a flat
-// heal_amount (matches "single-target-damage or heal-amount vars" — a heal shouldn't
-// get bigger just because the caster stacked offense-flavored Intelligence).
+// damage spells scale off Intelligence via damage_multiplier, heals currently use a
+// flat heal_amount with NO scaling term.
+// OVERTURNED 2026-08-10: live OG testing showed Heal's amount going 60->63 as Int and
+// Spirit both climbed +1 — heals DO scale with a stat (Int, Spirit, or both; not yet
+// isolated since they moved together). heal_amount needs a scaling term added once
+// the governing stat is confirmed — don't treat it as flat anymore. See
+// CombatDataSheet.md's Heal amounts table.
 // -----------------------------
 datum/skill/GenericSpell
     parent_type = /datum/skill
+    isSpell = TRUE
+    icon_state = "weapon"  // PLACEHOLDER: see GenericPhysical's identical note —
+                             // no per-spell sprite states exist on the player icons
+                             // (confirmed via direct .dmi inspection), so this is a
+                             // pre-existing gap already true of Blaze/Fireball too
+    cast_time = 6  // PLACEHOLDER: matches Fireball's windup
+
     var
         isHealing = FALSE
         heal_amount = 0
-
-    New()
-        ..()
-        isSpell = TRUE
-        icon_state = "weapon"  // PLACEHOLDER: see GenericPhysical's identical note —
-                                 // no per-spell sprite states exist on the player icons
-                                 // (confirmed via direct .dmi inspection), so this is a
-                                 // pre-existing gap already true of Blaze/Fireball too
-        cast_time = 6  // PLACEHOLDER: matches Fireball's windup
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
@@ -115,411 +115,325 @@ datum/skill/GenericSpell
 // =============================================================================
 datum/skill/Punch
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Punch"
-        damage_multiplier = 1.0  // PLACEHOLDER — Fighter's starting-kit basic attack
+    skillName = "Punch"
+    damage_multiplier = 1.0  // PLACEHOLDER — Fighter's starting-kit basic attack
 
 datum/skill/Club
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Club"
-        damage_multiplier = 1.1  // PLACEHOLDER
+    skillName = "Club"
+    damage_multiplier = 1.1  // PLACEHOLDER
 
 datum/skill/IronClaw
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Iron Claw"
-        damage_multiplier = 1.2  // PLACEHOLDER
+    skillName = "Iron Claw"
+    damage_multiplier = 1.2  // PLACEHOLDER
 
 datum/skill/Jump
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Jump"
-        damage_multiplier = 1.1  // PLACEHOLDER — mechanically just a strike for now,
-                                   // real leap/gap-close movement not modeled this pass
-
+    skillName = "Jump"
+    damage_multiplier = 1.1  // PLACEHOLDER — mechanically just a strike for now,
+                               // real leap/gap-close movement not modeled this pass
 datum/skill/Hide
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Hide"
-        damage_multiplier = 1.0  // PLACEHOLDER — mechanically just a strike for now,
-                                   // real stealth/evasion not modeled this pass
-
+    skillName = "Hide"
+    damage_multiplier = 1.0  // PLACEHOLDER — mechanically just a strike for now,
+                               // real stealth/evasion not modeled this pass
 datum/skill/Magicknife
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Magicknife"
-        damage_multiplier = 1.2  // PLACEHOLDER — governing stat unconfirmed
-                                   // (ClassReference.md), assumed Strength
-
+    skillName = "Magicknife"
+    damage_multiplier = 1.2  // PLACEHOLDER — governing stat unconfirmed
+                               // (ClassReference.md), assumed Strength
 datum/skill/Boomerang
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Boomerang"
-        damage_multiplier = 1.3  // PLACEHOLDER
-        isRanged = TRUE
+    skillName = "Boomerang"
+    damage_multiplier = 1.3  // PLACEHOLDER
+    isRanged = TRUE
 
 datum/skill/Morningstar
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Morningstar"
-        damage_multiplier = 1.3  // PLACEHOLDER
+    skillName = "Morningstar"
+    damage_multiplier = 1.3  // PLACEHOLDER
 
 datum/skill/Dash
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Dash"
-        damage_multiplier = 1.3  // PLACEHOLDER — mechanically just a strike for now,
-                                   // real dash movement not modeled this pass
-
+    skillName = "Dash"
+    damage_multiplier = 1.3  // PLACEHOLDER — mechanically just a strike for now,
+                               // real dash movement not modeled this pass
 datum/skill/Quakejump
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Quakejump"
-        damage_multiplier = 1.4  // PLACEHOLDER — mechanically just a strike for now,
-                                   // real ground-slam AoE not modeled this pass
-
+    skillName = "Quakejump"
+    damage_multiplier = 1.4  // PLACEHOLDER — mechanically just a strike for now,
+                               // real ground-slam AoE not modeled this pass
 datum/skill/Fireclaw
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Fireclaw"
-        damage_multiplier = 1.4  // PLACEHOLDER — Str-scaled only, no elemental bonus
+    skillName = "Fireclaw"
+    damage_multiplier = 1.4  // PLACEHOLDER — Str-scaled only, no elemental bonus
 
 datum/skill/Iceclaw
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Iceclaw"
-        damage_multiplier = 1.4  // PLACEHOLDER — Str-scaled only, no elemental bonus
+    skillName = "Iceclaw"
+    damage_multiplier = 1.4  // PLACEHOLDER — Str-scaled only, no elemental bonus
 
 datum/skill/Thornwhip
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Thornwhip"
-        damage_multiplier = 1.4  // PLACEHOLDER — confirmed gate is 8 Str (ClassReference.md);
-                                   // piercing-projectile behavior (foreshadowed in
-                                   // Projectiles.dm's pierces flag) deferred, plain melee for now
-
+    skillName = "Thornwhip"
+    damage_multiplier = 1.4  // PLACEHOLDER — WRONG DIRECTION, confirmed gate is 8 Str
+                               // (ClassReference.md). CONFIRMED 2026-08-18 (live OG
+                               // test, CombatDataSheet.md): real damage is ~80% of a
+                               // plain hit (trades power for reach), not 140% —
+                               // retune to roughly 0.8 once compiling is possible again.
+                               // CONFIRMED 2026-08-10 (live OG test): 3-tile line attack
+                               // in the direction the caster is facing, stops on the
+                               // first enemy hit — does NOT pierce through multiple
+                               // targets (user recalled it piercing previously, but
+                               // current live behavior is single-target-stop; treat the
+                               // pierce memory as outdated/superseded). CONFIRMED
+                               // 2026-08-18: hits whichever enemy is closest within
+                               // that line — 1, 2, or 3 tiles out, not always the full
+                               // 3 — stopping on the first one found, same as the
+                               // no-pierce finding above just stated more precisely.
+                               // Still plain melee (single target, no line/reach
+                               // mechanic) in this code — needs a real
+                               // 3-tile-in-facing-direction hit check built (scan tile
+                               // 1, then 2, then 3, stop at the first mob found), the
+                               // Projectiles.dm pierces flag is NOT what OG actually
+                               // does here, don't use it for Thornwhip.
 datum/skill/Lightsword
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Lightsword"
-        damage_multiplier = 1.5  // PLACEHOLDER
+    skillName = "Lightsword"
+    damage_multiplier = 1.5  // PLACEHOLDER
 
 datum/skill/Battleaxe
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Battleaxe"
-        damage_multiplier = 1.5  // PLACEHOLDER
+    skillName = "Battleaxe"
+    damage_multiplier = 1.5  // PLACEHOLDER
 
 datum/skill/Flamesword
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Flamesword"
-        damage_multiplier = 1.6  // PLACEHOLDER — Str-scaled only, no elemental bonus
+    skillName = "Flamesword"
+    damage_multiplier = 1.6  // PLACEHOLDER — Str-scaled only, no elemental bonus
 
 datum/skill/Falconsword
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Falconsword"
-        damage_multiplier = 1.7  // PLACEHOLDER
+    skillName = "Falconsword"
+    damage_multiplier = 1.7  // PLACEHOLDER
 
 datum/skill/Goldclaw
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Goldclaw"
-        damage_multiplier = 1.7  // PLACEHOLDER — Str-scaled only, no elemental bonus
+    skillName = "Goldclaw"
+    damage_multiplier = 1.7  // PLACEHOLDER — Str-scaled only, no elemental bonus
 
 datum/skill/Chainsickle
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Chainsickle"
-        damage_multiplier = 1.8  // PLACEHOLDER — confirmed gate is 19 Str (Hero's table)
+    skillName = "Chainsickle"
+    damage_multiplier = 1.8  // PLACEHOLDER — confirmed gate is 19 Str (Hero's table)
 
 datum/skill/SwordOfLethargy
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Sword Of Lethargy"
-        damage_multiplier = 1.9  // PLACEHOLDER — no slow/debuff effect modeled this pass
+    skillName = "Sword Of Lethargy"
+    damage_multiplier = 1.9  // PLACEHOLDER — no slow/debuff effect modeled this pass
 
 datum/skill/IceSaber
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Ice Saber"
-        damage_multiplier = 1.9  // PLACEHOLDER — Str-scaled only, no elemental bonus
+    skillName = "Ice Saber"
+    damage_multiplier = 1.9  // PLACEHOLDER — Str-scaled only, no elemental bonus
 
 datum/skill/Demonhammer
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "Demonhammer"
-        damage_multiplier = 2.0  // PLACEHOLDER
+    skillName = "Demonhammer"
+    damage_multiplier = 2.0  // PLACEHOLDER
 
 datum/skill/DragonKiller
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "DragonKiller"
-        damage_multiplier = 2.3  // PLACEHOLDER — confirmed gate is 30 Str (Hero's table)
+    skillName = "DragonKiller"
+    damage_multiplier = 2.3  // PLACEHOLDER — confirmed gate is 30 Str (Hero's table)
 
 datum/skill/ThunderSword
     parent_type = /datum/skill/GenericPhysical
-    New()
-        ..()
-        skillName = "ThunderSword"
-        damage_multiplier = 2.6  // PLACEHOLDER — confirmed gate is 35 Str (Hero's top skill)
-
+    skillName = "ThunderSword"
+    damage_multiplier = 2.6  // PLACEHOLDER — confirmed gate is 35 Str (Hero's top skill)
 // =============================================================================
 // OFFENSIVE SPELLS (Int gated) — damage_multiplier scales Intelligence
 // =============================================================================
 datum/skill/Icebolt
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Icebolt"
-        element = "ice"
-        damage_multiplier = 0.7  // PLACEHOLDER — confirmed gate is 7 Int (Hero's table)
-        mana_cost = 4  // PLACEHOLDER
+    skillName = "Icebolt"
+    element = "ice"
+    damage_multiplier = 0.7  // PLACEHOLDER — confirmed gate is 7 Int (Hero's table)
+    mana_cost = 4  // PLACEHOLDER
 
 datum/skill/Lightning
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Lightning"
-        element = "lightning"
-        damage_multiplier = 0.9  // PLACEHOLDER — confirmed gate is 10 Int (Hero's table)
-        mana_cost = 5  // PLACEHOLDER
+    skillName = "Lightning"
+    element = "lightning"
+    damage_multiplier = 0.9  // PLACEHOLDER — confirmed gate is 10 Int (Hero's table)
+    mana_cost = 5  // PLACEHOLDER
 
 datum/skill/Infernos
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Infernos"
-        element = "fire"
-        damage_multiplier = 1.0  // PLACEHOLDER
-        mana_cost = 5  // PLACEHOLDER
+    skillName = "Infernos"
+    element = "fire"
+    damage_multiplier = 1.0  // PLACEHOLDER
+    mana_cost = 5  // PLACEHOLDER
 
 datum/skill/Icespears
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Icespears"
-        element = "ice"
-        damage_multiplier = 1.1  // PLACEHOLDER — confirmed gate is 13 Int (Hero's table)
-        mana_cost = 6  // PLACEHOLDER
+    skillName = "Icespears"
+    element = "ice"
+    damage_multiplier = 1.1  // PLACEHOLDER — confirmed gate is 13 Int (Hero's table)
+    mana_cost = 6  // PLACEHOLDER
 
 datum/skill/Blazemore
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Blazemore"
-        element = "fire"
-        damage_multiplier = 1.2  // PLACEHOLDER — Blaze's real projectile system stays
-                                   // the actual Blaze skill; this is the next tier up,
-                                   // generic-framework damage only for now
-        mana_cost = 7  // PLACEHOLDER
+    skillName = "Blazemore"
+    element = "fire"
+    damage_multiplier = 1.2  // PLACEHOLDER — Blaze's real projectile system stays
+                               // the actual Blaze skill; this is the next tier up,
+                               // generic-framework damage only for now
+    mana_cost = 7  // PLACEHOLDER
 
 datum/skill/Blizzard
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Blizzard"
-        element = "ice"
-        damage_multiplier = 1.3  // PLACEHOLDER
-        mana_cost = 8  // PLACEHOLDER
+    skillName = "Blizzard"
+    element = "ice"
+    damage_multiplier = 1.3  // PLACEHOLDER
+    mana_cost = 8  // PLACEHOLDER
 
 datum/skill/Boom
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Boom"
-        element = "fire"
-        damage_multiplier = 1.5  // PLACEHOLDER
-        mana_cost = 9  // PLACEHOLDER
+    skillName = "Boom"
+    element = "fire"
+    damage_multiplier = 1.5  // PLACEHOLDER
+    mana_cost = 9  // PLACEHOLDER
 
 datum/skill/Bang
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Bang"
-        element = "fire"
-        damage_multiplier = 1.5  // PLACEHOLDER — confirmed gate is 18 Int (Hero's table)
-        mana_cost = 9  // PLACEHOLDER
+    skillName = "Bang"
+    element = "fire"
+    damage_multiplier = 1.5  // PLACEHOLDER — confirmed gate is 18 Int (Hero's table)
+    mana_cost = 9  // PLACEHOLDER
 
 datum/skill/Infermore
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Infermore"
-        element = "fire"
-        damage_multiplier = 1.5  // PLACEHOLDER
-        mana_cost = 9  // PLACEHOLDER
+    skillName = "Infermore"
+    element = "fire"
+    damage_multiplier = 1.5  // PLACEHOLDER
+    mana_cost = 9  // PLACEHOLDER
 
 datum/skill/Thordain
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Thordain"
-        element = "lightning"
-        damage_multiplier = 1.6  // PLACEHOLDER — confirmed gate is 20 Int (Hero's table)
-        mana_cost = 10  // PLACEHOLDER
+    skillName = "Thordain"
+    element = "lightning"
+    damage_multiplier = 1.6  // PLACEHOLDER — confirmed gate is 20 Int (Hero's table)
+    mana_cost = 10  // PLACEHOLDER
 
 datum/skill/Firevolt
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Firevolt"
-        element = "fire"
-        damage_multiplier = 1.6  // PLACEHOLDER
-        mana_cost = 10  // PLACEHOLDER
+    skillName = "Firevolt"
+    element = "fire"
+    damage_multiplier = 1.6  // PLACEHOLDER
+    mana_cost = 10  // PLACEHOLDER
 
 datum/skill/Firebane
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Firebane"
-        element = "fire"
-        damage_multiplier = 1.7  // PLACEHOLDER — confirmed gate ~21 Int (Hero's table,
-                                   // originally listed as an 18-24 range)
-        mana_cost = 11  // PLACEHOLDER
+    skillName = "Firebane"
+    element = "fire"
+    damage_multiplier = 1.7  // PLACEHOLDER — confirmed gate ~21 Int (Hero's table,
+                               // originally listed as an 18-24 range)
+    mana_cost = 11  // PLACEHOLDER
 
 datum/skill/Snowstorm
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Snowstorm"
-        element = "ice"
-        damage_multiplier = 1.8  // PLACEHOLDER
-        mana_cost = 12  // PLACEHOLDER
+    skillName = "Snowstorm"
+    element = "ice"
+    damage_multiplier = 1.8  // PLACEHOLDER
+    mana_cost = 12  // PLACEHOLDER
 
 datum/skill/Blazemost
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Blazemost"
-        element = "fire"
-        damage_multiplier = 1.9  // PLACEHOLDER
-        mana_cost = 13  // PLACEHOLDER
+    skillName = "Blazemost"
+    element = "fire"
+    damage_multiplier = 1.9  // PLACEHOLDER
+    mana_cost = 13  // PLACEHOLDER
 
 datum/skill/Explodet
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Explodet"
-        element = "fire"
-        damage_multiplier = 2.2  // PLACEHOLDER
-        mana_cost = 16  // PLACEHOLDER
-
+    skillName = "Explodet"
+    element = "fire"
+    damage_multiplier = 2.2  // PLACEHOLDER
+    mana_cost = 16  // PLACEHOLDER
 // =============================================================================
 // HEALING SPELLS (Int gated) — heal_amount is flat, not stat-scaled
 // =============================================================================
 datum/skill/Heal
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Heal"
-        isHealing = TRUE
-        heal_amount = 15  // PLACEHOLDER — confirmed gate is 6 Int (Hero's table)
-        mana_cost = 4  // PLACEHOLDER
+    skillName = "Heal"
+    isHealing = TRUE
+    heal_amount = 60  // CONFIRMED 2026-08-10 (Hero1 live test, single sample —
+                      // heals on animation completion, not instantly on cast).
+                      // Gate is 6 Int (Hero's table), also confirmed this session.
+    mana_cost = 4  // PLACEHOLDER
 
 datum/skill/Healmore
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Healmore"
-        isHealing = TRUE
-        heal_amount = 30  // PLACEHOLDER — confirmed gate is 14 Int (Hero's table)
-        mana_cost = 8  // PLACEHOLDER
+    skillName = "Healmore"
+    isHealing = TRUE
+    heal_amount = 30  // PLACEHOLDER — confirmed gate is 14 Int (Hero's table)
+    mana_cost = 8  // PLACEHOLDER
 
 datum/skill/Healus
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Healus"
-        isHealing = TRUE
-        heal_amount = 40  // PLACEHOLDER — confirmed gate is 21 Int (Hero's table)
-        mana_cost = 10  // PLACEHOLDER
+    skillName = "Healus"
+    isHealing = TRUE
+    heal_amount = 40  // PLACEHOLDER — confirmed gate is 21 Int (Hero's table)
+    mana_cost = 10  // PLACEHOLDER
 
 datum/skill/Healmost
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Healmost"
-        isHealing = TRUE
-        heal_amount = 55  // PLACEHOLDER
-        mana_cost = 12  // PLACEHOLDER
+    skillName = "Healmost"
+    isHealing = TRUE
+    heal_amount = 55  // PLACEHOLDER
+    mana_cost = 12  // PLACEHOLDER
 
 datum/skill/Healusmore
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Healusmore"
-        isHealing = TRUE
-        heal_amount = 75  // PLACEHOLDER
-        mana_cost = 15  // PLACEHOLDER
+    skillName = "Healusmore"
+    isHealing = TRUE
+    heal_amount = 75  // PLACEHOLDER
+    mana_cost = 15  // PLACEHOLDER
 
 datum/skill/Vivify
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Vivify"
-        isHealing = TRUE
-        heal_amount = 90  // PLACEHOLDER — confirmed gate ~22 Int (Hero's table,
-                            // originally listed as a 21-24 range)
-        mana_cost = 16  // PLACEHOLDER
-
+    skillName = "Vivify"
+    isHealing = TRUE
+    heal_amount = 90  // PLACEHOLDER — confirmed gate ~22 Int (Hero's table,
+                        // originally listed as a 21-24 range)
+    mana_cost = 16  // PLACEHOLDER
 // Buff-flavored spells (Upper/Increase/Barrier) — no real buff/status-boost system
 // exists yet (TODOList.md), so these stand in as a minor self-heal until one gets
 // designed, rather than shipping as literal no-ops. Clearly flagged so they're easy to
 // find and replace once a real buff system exists.
 datum/skill/Upper
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Upper"
-        isHealing = TRUE
-        heal_amount = 8  // PLACEHOLDER: stand-in for a real attack-buff — confirmed
-                           // gate is 10 Int (Hero's table)
-        mana_cost = 3  // PLACEHOLDER
+    skillName = "Upper"
+    isHealing = TRUE
+    heal_amount = 8  // PLACEHOLDER: stand-in for a real attack-buff — confirmed
+                       // gate is 10 Int (Hero's table)
+    mana_cost = 3  // PLACEHOLDER
 
 datum/skill/Increase
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Increase"
-        isHealing = TRUE
-        heal_amount = 8  // PLACEHOLDER: stand-in for a real defense-buff
-        mana_cost = 3  // PLACEHOLDER
+    skillName = "Increase"
+    isHealing = TRUE
+    heal_amount = 8  // PLACEHOLDER: stand-in for a real defense-buff
+    mana_cost = 3  // PLACEHOLDER
 
 datum/skill/Barrier
     parent_type = /datum/skill/GenericSpell
-    New()
-        ..()
-        skillName = "Barrier"
-        isHealing = TRUE
-        heal_amount = 10  // PLACEHOLDER: stand-in for a real shield/barrier buff
-        mana_cost = 4  // PLACEHOLDER
-
+    skillName = "Barrier"
+    isHealing = TRUE
+    heal_amount = 10  // PLACEHOLDER: stand-in for a real shield/barrier buff
+    mana_cost = 4  // PLACEHOLDER
 // =============================================================================
 // STATUS-EFFECT SKILLS — apply a datum/status_effect (StatusEffects.dm) to the target.
 // Sleep/Sleepmore/Stopspell share this one shape (canAct/battle/target/mana-check,
@@ -529,15 +443,13 @@ datum/skill/Barrier
 // =============================================================================
 datum/skill/StatusSpell
     parent_type = /datum/skill
+    icon_state = "weapon"  // PLACEHOLDER, see GenericSpell's note
+    isSpell = TRUE
+    cast_time = 4  // PLACEHOLDER
+
     var
         statusEffectType = null  // set by each subtype below
         noTargetMessage = "No target."
-
-    New()
-        ..()
-        icon_state = "weapon"  // PLACEHOLDER, see GenericSpell's note
-        isSpell = TRUE
-        cast_time = 4  // PLACEHOLDER
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
@@ -565,30 +477,24 @@ datum/skill/StatusSpell
 
 datum/skill/Sleep
     parent_type = /datum/skill/StatusSpell
-    New()
-        ..()
-        skillName = "Sleep"
-        statusEffectType = /datum/status_effect/sleep
-        noTargetMessage = "No target to put to sleep."
-        mana_cost = 5  // PLACEHOLDER — confirmed gate is 9 Int (Hero's table)
+    skillName = "Sleep"
+    statusEffectType = /datum/status_effect/sleep
+    noTargetMessage = "No target to put to sleep."
+    mana_cost = 5  // PLACEHOLDER — confirmed gate is 9 Int (Hero's table)
 
 datum/skill/Sleepmore
     parent_type = /datum/skill/Sleep
-    New()
-        ..()
-        skillName = "Sleepmore"
-        statusEffectType = /datum/status_effect/sleep/more
-        mana_cost = 9  // PLACEHOLDER — stronger, later-tier version of Sleep
+    skillName = "Sleepmore"
+    statusEffectType = /datum/status_effect/sleep/more
+    mana_cost = 9  // PLACEHOLDER — stronger, later-tier version of Sleep
 
 datum/skill/Stopspell
     parent_type = /datum/skill/StatusSpell
-    New()
-        ..()
-        skillName = "Stopspell"
-        statusEffectType = /datum/status_effect/silence
-        noTargetMessage = "No target to silence."
-        mana_cost = 7  // PLACEHOLDER — confirmed gate ~20 Int (Hero's table, originally
-                         // listed as a 17-23 range)
+    skillName = "Stopspell"
+    statusEffectType = /datum/status_effect/silence
+    noTargetMessage = "No target to silence."
+    mana_cost = 7  // PLACEHOLDER — confirmed gate ~20 Int (Hero's table, originally
+                     // listed as a 17-23 range)
 
 // =============================================================================
 // UTILITY SKILLS — own resource/effect shape, not a plain damage/heal spell
@@ -598,13 +504,11 @@ datum/skill/Stopspell
 // despite having no mana pool — see PlayerTemplate.dm's hasMana overrides).
 datum/skill/Rest
     parent_type = /datum/skill
-    var/heal_percent = 30  // PLACEHOLDER: % of MaxHP restored
+    skillName = "Rest"
+    icon_state = "weapon"  // PLACEHOLDER, see GenericSpell's note
+    cast_time = 4  // PLACEHOLDER
 
-    New()
-        ..()
-        skillName = "Rest"
-        icon_state = "weapon"  // PLACEHOLDER, see GenericSpell's note
-        cast_time = 4  // PLACEHOLDER
+    var/heal_percent = 30  // PLACEHOLDER: % of MaxHP restored
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
@@ -621,16 +525,14 @@ datum/skill/Rest
             if(user.isDead) return
             user.canAct = TRUE
 
-// Luck-gated MP restore — the mana-side equivalent of Rest.
+// Spirit-gated MP restore — the mana-side equivalent of Rest.
 datum/skill/Meditate
     parent_type = /datum/skill
-    var/restore_percent = 30  // PLACEHOLDER: % of MaxMP restored
+    skillName = "Meditate"
+    icon_state = "weapon"  // PLACEHOLDER, see GenericSpell's note
+    cast_time = 4  // PLACEHOLDER
 
-    New()
-        ..()
-        skillName = "Meditate"
-        icon_state = "weapon"  // PLACEHOLDER, see GenericSpell's note
-        cast_time = 4  // PLACEHOLDER
+    var/restore_percent = 30  // PLACEHOLDER: % of MaxMP restored
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
@@ -653,13 +555,11 @@ datum/skill/Meditate
 // FinalizePlayer()/LoadCharacter() (LoginMenu.dm/SaveSystem.dm) already use.
 datum/skill/Return
     parent_type = /datum/skill
-    New()
-        ..()
-        skillName = "Return"
-        icon_state = "weapon"  // PLACEHOLDER, see GenericSpell's note
-        isSpell = TRUE
-        mana_cost = 8  // PLACEHOLDER — confirmed gate is 14 Int (Hero's table)
-        cast_time = 6  // PLACEHOLDER
+    skillName = "Return"
+    icon_state = "weapon"  // PLACEHOLDER, see GenericSpell's note
+    isSpell = TRUE
+    mana_cost = 8  // PLACEHOLDER — confirmed gate is 14 Int (Hero's table)
+    cast_time = 6  // PLACEHOLDER
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
@@ -689,13 +589,11 @@ datum/skill/Return
 // plain damage/heal application.
 datum/skill/Revive
     parent_type = /datum/skill
-    New()
-        ..()
-        skillName = "Revive"
-        icon_state = "weapon"  // PLACEHOLDER, see GenericSpell's note
-        isSpell = TRUE
-        mana_cost = 12  // PLACEHOLDER
-        cast_time = 6  // PLACEHOLDER
+    skillName = "Revive"
+    icon_state = "weapon"  // PLACEHOLDER, see GenericSpell's note
+    isSpell = TRUE
+    mana_cost = 12  // PLACEHOLDER
+    cast_time = 6  // PLACEHOLDER
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
@@ -737,10 +635,8 @@ datum/skill/Revive
 // which does the actual mob-swap.
 datum/skill/Classchange
     parent_type = /datum/skill
-    New()
-        ..()
-        skillName = "Classchange"
-        icon_state = "weapon"  // PLACEHOLDER, see GenericSpell's note
+    skillName = "Classchange"
+    icon_state = "weapon"  // PLACEHOLDER, see GenericSpell's note
 
     OnUse(mob/user, mob/target = null)
         if(!istype(user, /mob/player)) return
