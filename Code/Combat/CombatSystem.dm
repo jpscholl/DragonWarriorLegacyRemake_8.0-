@@ -112,11 +112,14 @@ mob/proc
 #define MIN_DAMAGE 1
 
 mob/proc
+    // defenseBonus/magicDefenseBonus are the Increase/Barrier buffs (StatusEffects.dm),
+    // added here rather than to the underlying stats so a buff can never be caught by a
+    // stat-cap check or accidentally persisted by a mid-buff save.
     GetDefense()
-        return round((Agility + Vitality) / PHYSICAL_DEFENSE_DIVISOR)
+        return round((Agility + Vitality) / PHYSICAL_DEFENSE_DIVISOR) + defenseBonus
 
     GetMagicDefense()
-        return round((Vitality + Intelligence) / MAGIC_DEFENSE_DIVISOR)
+        return round((Vitality + Intelligence) / MAGIC_DEFENSE_DIVISOR) + magicDefenseBonus
 
 // Critical hits — new, no OG numeric formula exists either, only the help file's claim
 // that Spirit drives crit rate. Rolled by the ATTACKER (RollCrit() reads src's own
@@ -358,8 +361,10 @@ mob/proc
             // in the codebase now passes a real skill (enemies pass their own
             // attackSkill, EnemyNPCs.dm), but this stays defensive so a future
             // "just deal a plain hit" caller can't silently break all melee again.
+            // attackBonus is the Upper buff (StatusEffects.dm) — added to Strength for
+            // damage purposes only, never to the stat itself.
             var/mult = S ? S.damage_multiplier : 1
-            var/damage = round(Strength * mult)
+            var/damage = round((Strength + attackBonus) * mult)
             var/isCrit = RollCrit()
             if(isCrit) damage = round(damage * CRIT_DAMAGE_PERCENT / 100)
             M.TakeDamage(damage, src, isMagic = FALSE, isCrit = isCrit)

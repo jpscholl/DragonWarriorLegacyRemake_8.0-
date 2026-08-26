@@ -216,6 +216,90 @@ datum/status_effect/sleep/more
 		tickInterval = SLEEP_DURATION_MORE
 
 // -----------------------------
+// Buffs — Upper (attack), Increase (defense), Barrier (magic defense)
+// -----------------------------
+// CONFIRMED the OG had these as real timed buffs: upper/upper_time/upperon and
+// barrier/barrier_time/barrieron are all real vars in the extracted string table, with
+// the *on flag driving a visual overlay.
+//
+// Until now these three skills were stand-ins that quietly healed a few HP instead
+// (SkillCatalog.dm's "no real buff system exists yet" note) — they claimed to buff and
+// did something unrelated, which is worse than not existing, since a player reading the
+// skill list has no way to know. They're real effects now.
+//
+// The bonus is applied additively to the stat's derived output rather than by mutating
+// the stat itself: mutating Strength directly would be visible in the Battle panel, get
+// caught up in stat-cap checks (ClickableStats.dm), and — worst — could be made
+// permanent by any code path that saves mid-buff (SaveData.dm snapshots raw stats).
+// Keeping the bonus in its own var sidesteps all three.
+//
+// PLACEHOLDER amounts and durations throughout; the OG's own values aren't recovered.
+#define BUFF_DURATION 300          // deciseconds — 30 seconds
+#define UPPER_ATTACK_BONUS 5       // flat added to Strength for damage purposes
+#define INCREASE_DEFENSE_BONUS 4   // flat added to physical defense
+#define BARRIER_MAGIC_DEFENSE_BONUS 6  // flat added to magic defense
+
+mob/var/attackBonus = 0
+mob/var/defenseBonus = 0
+mob/var/magicDefenseBonus = 0
+
+datum/status_effect/buff
+	parent_type = /datum/status_effect
+
+	New()
+		..()
+		duration = BUFF_DURATION
+		tickInterval = BUFF_DURATION  // no ticking — OnApply/OnExpire only
+
+datum/status_effect/buff/upper
+	New()
+		..()
+		effectName = "Upper"
+
+	OnApply()
+		if(holder)
+			holder.attackBonus += UPPER_ATTACK_BONUS
+			holder << output("<font color='orange'>Your attack power rises!</font>", "Info")
+
+	OnExpire()
+		if(holder)
+			holder.attackBonus = max(0, holder.attackBonus - UPPER_ATTACK_BONUS)
+			if(!holder.isDead)
+				holder << output("<font color='orange'>Your attack power returns to normal.</font>", "Info")
+
+datum/status_effect/buff/increase
+	New()
+		..()
+		effectName = "Increase"
+
+	OnApply()
+		if(holder)
+			holder.defenseBonus += INCREASE_DEFENSE_BONUS
+			holder << output("<font color='orange'>Your defense rises!</font>", "Info")
+
+	OnExpire()
+		if(holder)
+			holder.defenseBonus = max(0, holder.defenseBonus - INCREASE_DEFENSE_BONUS)
+			if(!holder.isDead)
+				holder << output("<font color='orange'>Your defense returns to normal.</font>", "Info")
+
+datum/status_effect/buff/barrier
+	New()
+		..()
+		effectName = "Barrier"
+
+	OnApply()
+		if(holder)
+			holder.magicDefenseBonus += BARRIER_MAGIC_DEFENSE_BONUS
+			holder << output("<font color='cyan'>A magical barrier surrounds you!</font>", "Info")
+
+	OnExpire()
+		if(holder)
+			holder.magicDefenseBonus = max(0, holder.magicDefenseBonus - BARRIER_MAGIC_DEFENSE_BONUS)
+			if(!holder.isDead)
+				holder << output("<font color='cyan'>Your barrier fades.</font>", "Info")
+
+// -----------------------------
 // Silence — blocks spell casting. Enforced centrally in UseSkillSlot()
 // (PlayerTemplate.dm), the one place every skill use funnels through, rather than each
 // spell's own OnUse() checking isSilenced itself — covers Fireball/Blaze too, not just
