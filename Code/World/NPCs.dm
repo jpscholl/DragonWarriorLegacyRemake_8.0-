@@ -15,6 +15,55 @@ mob/npc
     icon_state = "man"
     density = 1
 
+    // -----------------------------
+    // Dialogue and idle behavior
+    // -----------------------------
+    // CONFIRMED OG shape: daymsg/nightmsg per NPC, an Action of Stand or Walk, and a
+    // Direction/Face setting — all four are real fields in the OG's own NPC creation
+    // prompts ("Day Speech", "Night Speech", "Action", "Stand", "Walk", "Direction",
+    // "Face"). The remake's NPC was a 16-line placeholder with no behavior at all
+    // (RemakeVsOGStructure.md Part 3.14).
+    //
+    // Which line gets spoken keys off the world clock's isNight (Code/Core/Main.dm) —
+    // the same flag that drives the day/night turf swap, so an NPC's speech changes
+    // over with the world rather than needing its own schedule.
+    var/daymsg = "..."
+    var/nightmsg = null   // falls back to daymsg when unset — most NPCs only need one line
+
+    // "Stand" holds position and facing; "Walk" wanders like a peaceful monster does.
+    var/action = "Stand"
+    var/wanderChance = 15   // % chance per idle tick to take a step, when action is Walk
+    var/idleTickDelay = 20  // deciseconds between idle ticks
+
+    New()
+        ..()
+        if(action == "Walk") IdleLoop()
+
+    // Same polling-loop shape as the enemy AI (EnemyNPCs.dm) and every other loop in
+    // this codebase, just far simpler — an NPC has no target, no combat, no pathing.
+    proc/IdleLoop()
+        set waitfor = 0
+        while(src)
+            sleep(idleTickDelay)
+            if(action != "Walk") continue
+            if(prob(wanderChance))
+                Step(pick(NORTH, SOUTH, EAST, WEST))
+
+    // Interact with an NPC to hear its line. Turns to face whoever spoke to it first —
+    // an NPC that answers you with its back turned reads as broken.
+    OnInteract(mob/user)
+        if(!istype(user, /mob/player)) return FALSE
+
+        dir = get_dir(src, user)
+
+        var/line = (isNight && nightmsg) ? nightmsg : daymsg
+        if(!line || line == "...")
+            view(src) << output("<font color='black'> \icon[src]&lt;[src.name]&gt; ...</font>", "Messages")
+            return TRUE
+
+        view(src) << output("<font color='black'> \icon[src]&lt;[src.name] says:&gt; [line]</font>", "Messages")
+        return TRUE
+
 // -----------------------------
 // Merchants
 // -----------------------------
