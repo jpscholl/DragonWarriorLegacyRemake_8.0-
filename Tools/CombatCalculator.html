@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DWLR Combat Formula Calculator</title>
+<style>
+    :root {
+        --bg: #1b1d24;
+        --panel: #24272f;
+        --panel-alt: #2c2f39;
+        --border: #3a3e4a;
+        --text: #e6e6ea;
+        --text-dim: #9a9ea8;
+        --accent: #6fb3ff;
+        --accent2: #ffb86c;
+        --confirmed: #7ee787;
+        --guess: #ffb86c;
+        --danger: #ff6b6b;
+    }
+    * { box-sizing: border-box; }
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: Segoe UI, Tahoma, sans-serif;
+        margin: 0;
+        padding: 24px;
+    }
+    h1 {
+        margin: 0 0 4px 0;
+        font-size: 22px;
+    }
+    .subtitle {
+        color: var(--text-dim);
+        font-size: 13px;
+        margin-bottom: 20px;
+        max-width: 900px;
+        line-height: 1.5;
+    }
+    .subtitle b { color: var(--text); }
+    .layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        max-width: 1100px;
+    }
+    .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px 18px;
+    }
+    .panel h2 {
+        margin: 0 0 12px 0;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .panel h2 .dot {
+        width: 10px; height: 10px; border-radius: 50%;
+    }
+    .player .dot { background: var(--accent); }
+    .enemy .dot { background: var(--danger); }
+    .row {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    .row label { font-size: 13px; color: var(--text-dim); }
+    input[type=number] {
+        width: 100%;
+        background: var(--panel-alt);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 6px 8px;
+        border-radius: 5px;
+        font-size: 13px;
+    }
+    input[type=number]:focus, input[type=range]:focus {
+        outline: 1px solid var(--accent);
+    }
+    .full { grid-column: 1 / -1; }
+    .coeffs {
+        max-width: 1100px;
+        margin-top: 16px;
+    }
+    .coeffs summary {
+        cursor: pointer;
+        font-size: 14px;
+        padding: 10px 4px;
+        color: var(--text-dim);
+        user-select: none;
+    }
+    .coeffs summary:hover { color: var(--text); }
+    .coeff-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px 18px;
+    }
+    .coeff-item label {
+        display: block;
+        font-size: 12px;
+        color: var(--text-dim);
+        margin-bottom: 4px;
+    }
+    .coeff-item .tag {
+        display: inline-block;
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 999px;
+        margin-left: 6px;
+        vertical-align: middle;
+    }
+    .tag.confirmed { background: rgba(126,231,135,0.15); color: var(--confirmed); }
+    .tag.guess { background: rgba(255,184,108,0.15); color: var(--guess); }
+    .slider-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .slider-row input[type=range] { flex: 1; }
+    .slider-row .val { width: 46px; text-align: right; font-size: 12px; color: var(--text); }
+
+    .results {
+        max-width: 1100px;
+        margin-top: 20px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+    .result-panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px 18px;
+    }
+    .result-panel h3 {
+        margin: 0 0 10px 0;
+        font-size: 14px;
+        color: var(--accent2);
+    }
+    .stat-line {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        padding: 5px 0;
+        border-bottom: 1px dashed var(--border);
+    }
+    .stat-line:last-child { border-bottom: none; }
+    .stat-line .k { color: var(--text-dim); }
+    .stat-line .v { font-weight: 600; }
+    .big-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--border);
+    }
+    .big-line .k { font-size: 13px; color: var(--text-dim); }
+    .big-line .v { font-size: 22px; font-weight: 700; color: var(--accent); }
+
+    .roll-btn {
+        margin-top: 16px;
+        background: var(--accent);
+        color: #10131a;
+        border: none;
+        padding: 10px 18px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .roll-btn:hover { filter: brightness(1.08); }
+    .roll-output {
+        max-width: 1100px;
+        margin-top: 14px;
+        font-size: 13px;
+        color: var(--text-dim);
+        display: flex;
+        gap: 24px;
+    }
+    .roll-output .roll-val {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text);
+    }
+    .roll-output .crit-flag {
+        color: var(--accent2);
+        font-weight: 700;
+    }
+    .derived {
+        max-width: 1100px;
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+    .derived .stat-line .v { color: var(--confirmed); }
+    footer {
+        max-width: 1100px;
+        margin-top: 26px;
+        font-size: 11px;
+        color: var(--text-dim);
+        line-height: 1.6;
+    }
+</style>
+</head>
+<body>
+
+<h1>DWLR Combat Formula Calculator</h1>
+<div class="subtitle">
+    Working synthesis, logged <b>2026-08-22</b> in <b>TODOList.md</b>: damage shape borrowed
+    from the classic Dragon Warrior 1 (NES) formula <code>(ATK/2) - (DEF/4) + random(0..4)</code>,
+    but the stat assignments follow OG DWL's own Help section instead of DW1's — physical defense
+    blends <b>Agility + Vitality</b>, magic defense blends <b>Vitality + Intelligence</b>, and crit
+    is driven by <b>Spirit</b>, not Agility. Everything under "Coefficients" is editable — half of
+    it is still a guess, not a confirmed OG number, so tune it live against real data as it comes in.
+</div>
+
+<div class="layout">
+    <div class="panel player">
+        <h2><span class="dot"></span>Player</h2>
+        <div class="row"><label>Level</label><input type="number" id="p_level" value="6"></div>
+        <div class="row"><label>Strength</label><input type="number" id="p_str" value="15"></div>
+        <div class="row"><label>Agility</label><input type="number" id="p_agi" value="7"></div>
+        <div class="row"><label>Vitality</label><input type="number" id="p_vit" value="2"></div>
+        <div class="row"><label>Intelligence</label><input type="number" id="p_int" value="2"></div>
+        <div class="row"><label>Spirit</label><input type="number" id="p_spr" value="2"></div>
+        <div class="row"><label>Weapon Bonus</label><input type="number" id="p_wpn" value="0"></div>
+    </div>
+    <div class="panel enemy">
+        <h2><span class="dot"></span>Enemy</h2>
+        <div class="row"><label>Level</label><input type="number" id="e_level" value="6"></div>
+        <div class="row"><label>Strength</label><input type="number" id="e_str" value="5"></div>
+        <div class="row"><label>Agility</label><input type="number" id="e_agi" value="3"></div>
+        <div class="row"><label>Vitality</label><input type="number" id="e_vit" value="3"></div>
+        <div class="row"><label>Intelligence</label><input type="number" id="e_int" value="1"></div>
+        <div class="row"><label>Spirit</label><input type="number" id="e_spr" value="1"></div>
+        <div class="row"><label>Weapon Bonus</label><input type="number" id="e_wpn" value="0"></div>
+    </div>
+</div>
+
+<details class="coeffs" open>
+<summary>Coefficients (editable — confirmed vs. guessed per the tag)</summary>
+<div class="coeff-grid">
+    <div class="coeff-item">
+        <label>ATK Divisor <span class="tag guess">NES value</span></label>
+        <input type="number" id="c_atkdiv" value="2" step="0.1">
+    </div>
+    <div class="coeff-item">
+        <label>DEF Divisor <span class="tag guess">NES value</span></label>
+        <input type="number" id="c_defdiv" value="4" step="0.1">
+    </div>
+    <div class="coeff-item">
+        <label>Damage Variance (0 to N) <span class="tag guess">NES value</span></label>
+        <input type="number" id="c_variance" value="4">
+    </div>
+    <div class="coeff-item">
+        <label>Physical Defense: Agility weight <span class="tag guess">unweighted</span></label>
+        <div class="slider-row">
+            <input type="range" id="c_physweight" min="0" max="100" value="50">
+            <span class="val" id="c_physweight_val">50%</span>
+        </div>
+    </div>
+    <div class="coeff-item">
+        <label>Magic Defense: Vitality weight <span class="tag guess">unweighted</span></label>
+        <div class="slider-row">
+            <input type="range" id="c_magweight" min="0" max="100" value="50">
+            <span class="val" id="c_magweight_val">50%</span>
+        </div>
+    </div>
+    <div class="coeff-item">
+        <label>Crit Divisor (Spirit / N) <span class="tag guess">no OG number</span></label>
+        <input type="number" id="c_critdiv" value="64">
+    </div>
+    <div class="coeff-item">
+        <label>Crit Damage Multiplier <span class="tag guess">OG sample ~1.6-1.8x</span></label>
+        <input type="number" id="c_critmult" value="2" step="0.05">
+    </div>
+    <div class="coeff-item">
+        <label>Dodge % per Agility (current code) <span class="tag confirmed">in CombatSystem.dm</span></label>
+        <input type="number" id="c_dodgeperagi" value="1" step="0.1">
+    </div>
+    <div class="coeff-item">
+        <label>Dodge Cap % (current code) <span class="tag confirmed">in CombatSystem.dm</span></label>
+        <input type="number" id="c_dodgecap" value="30">
+    </div>
+</div>
+</details>
+
+<div class="results">
+    <div class="result-panel">
+        <h3>Player attacks Enemy</h3>
+        <div class="stat-line"><span class="k">Player ATK (Str + weapon)</span><span class="v" id="r1_atk"></span></div>
+        <div class="stat-line"><span class="k">Enemy physical DEF</span><span class="v" id="r1_def"></span></div>
+        <div class="stat-line"><span class="k">Base damage (pre-variance)</span><span class="v" id="r1_base"></span></div>
+        <div class="stat-line"><span class="k">Crit chance (Player Spirit)</span><span class="v" id="r1_crit"></span></div>
+        <div class="stat-line"><span class="k">Enemy dodge chance</span><span class="v" id="r1_dodge"></span></div>
+        <div class="big-line"><span class="k">Damage range</span><span class="v" id="r1_range"></span></div>
+        <div class="stat-line"><span class="k">Crit damage (if it lands)</span><span class="v" id="r1_critdmg"></span></div>
+    </div>
+    <div class="result-panel">
+        <h3>Enemy attacks Player</h3>
+        <div class="stat-line"><span class="k">Enemy ATK (Str + weapon)</span><span class="v" id="r2_atk"></span></div>
+        <div class="stat-line"><span class="k">Player physical DEF</span><span class="v" id="r2_def"></span></div>
+        <div class="stat-line"><span class="k">Base damage (pre-variance)</span><span class="v" id="r2_base"></span></div>
+        <div class="stat-line"><span class="k">Crit chance (Enemy Spirit)</span><span class="v" id="r2_crit"></span></div>
+        <div class="stat-line"><span class="k">Player dodge chance</span><span class="v" id="r2_dodge"></span></div>
+        <div class="big-line"><span class="k">Damage range</span><span class="v" id="r2_range"></span></div>
+        <div class="stat-line"><span class="k">Crit damage (if it lands)</span><span class="v" id="r2_critdmg"></span></div>
+    </div>
+</div>
+
+<button class="roll-btn" onclick="rollBoth()">Roll one hit each way</button>
+<div class="roll-output">
+    <div>Player → Enemy: <span class="roll-val" id="roll1"></span></div>
+    <div>Enemy → Player: <span class="roll-val" id="roll2"></span></div>
+</div>
+
+<div class="derived">
+    <div class="result-panel">
+        <h3>Player derived vitals <span class="tag confirmed" style="font-size:10px;">from StatsDatum.dm</span></h3>
+        <div class="stat-line"><span class="k">MaxHP = 30 + Vit&times;5 + Level&times;3</span><span class="v" id="d1_hp"></span></div>
+        <div class="stat-line"><span class="k">MaxMP = 10 + Int&times;4 + Spirit&times;2 + Level&times;2</span><span class="v" id="d1_mp"></span></div>
+    </div>
+    <div class="result-panel">
+        <h3>Enemy derived vitals <span class="tag confirmed" style="font-size:10px;">from StatsDatum.dm</span></h3>
+        <div class="stat-line"><span class="k">MaxHP = 30 + Vit&times;5 + Level&times;3</span><span class="v" id="d2_hp"></span></div>
+        <div class="stat-line"><span class="k">MaxMP = 10 + Int&times;4 + Spirit&times;2 + Level&times;2</span><span class="v" id="d2_mp"></span></div>
+    </div>
+</div>
+
+<footer>
+    Physical/magic defense blends and the Spirit crit-divisor are unconfirmed placeholders —
+    tune the Coefficients panel as real OG DWL data comes in (see CombatDataSheet.md /
+    MonsterStatSpeculation.md). Dodge formula matches the remake's own current code
+    (RollDodge(), CombatSystem.dm) rather than the NES hit/miss model, since that's what's
+    actually live right now. This tool computes numbers only — nothing here writes back to
+    the game or the .dm source.
+</footer>
+
+<script>
+function num(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function computeSide(atkStr, atkWpn, defAgi, defVit, atkSpirit) {
+    const atkDiv = num('c_atkdiv');
+    const defDiv = num('c_defdiv');
+    const variance = num('c_variance');
+    const physWeight = num('c_physweight') / 100;
+    const critDiv = num('c_critdiv');
+    const critMult = num('c_critmult');
+
+    const atk = atkStr + atkWpn;
+    const def = (defAgi * physWeight) + (defVit * (1 - physWeight));
+    const base = Math.max(0, (atk / atkDiv) - (def / defDiv));
+    const low = base;
+    const high = base + variance;
+    const critChance = Math.max(0, Math.min(100, (atkSpirit / critDiv) * 100));
+    const critLow = low * critMult;
+    const critHigh = high * critMult;
+
+    return { atk, def, base, low, high, critChance, critLow, critHigh };
+}
+
+function dodgeChance(agi) {
+    const perAgi = num('c_dodgeperagi');
+    const cap = num('c_dodgecap');
+    return Math.max(0, Math.min(cap, agi * perAgi));
+}
+
+function fmt(n) { return Math.round(n * 10) / 10; }
+
+function recalc() {
+    document.getElementById('c_physweight_val').textContent = num('c_physweight') + '%';
+    document.getElementById('c_magweight_val').textContent = num('c_magweight') + '%';
+
+    const p = {
+        level: num('p_level'), str: num('p_str'), agi: num('p_agi'),
+        vit: num('p_vit'), int: num('p_int'), spr: num('p_spr'), wpn: num('p_wpn')
+    };
+    const e = {
+        level: num('e_level'), str: num('e_str'), agi: num('e_agi'),
+        vit: num('e_vit'), int: num('e_int'), spr: num('e_spr'), wpn: num('e_wpn')
+    };
+
+    const r1 = computeSide(p.str, p.wpn, e.agi, e.vit, p.spr);
+    document.getElementById('r1_atk').textContent = fmt(r1.atk);
+    document.getElementById('r1_def').textContent = fmt(r1.def);
+    document.getElementById('r1_base').textContent = fmt(r1.base);
+    document.getElementById('r1_crit').textContent = fmt(r1.critChance) + '%';
+    document.getElementById('r1_dodge').textContent = fmt(dodgeChance(e.agi)) + '%';
+    document.getElementById('r1_range').textContent = fmt(r1.low) + ' - ' + fmt(r1.high);
+    document.getElementById('r1_critdmg').textContent = fmt(r1.critLow) + ' - ' + fmt(r1.critHigh);
+
+    const r2 = computeSide(e.str, e.wpn, p.agi, p.vit, e.spr);
+    document.getElementById('r2_atk').textContent = fmt(r2.atk);
+    document.getElementById('r2_def').textContent = fmt(r2.def);
+    document.getElementById('r2_base').textContent = fmt(r2.base);
+    document.getElementById('r2_crit').textContent = fmt(r2.critChance) + '%';
+    document.getElementById('r2_dodge').textContent = fmt(dodgeChance(p.agi)) + '%';
+    document.getElementById('r2_range').textContent = fmt(r2.low) + ' - ' + fmt(r2.high);
+    document.getElementById('r2_critdmg').textContent = fmt(r2.critLow) + ' - ' + fmt(r2.critHigh);
+
+    document.getElementById('d1_hp').textContent = 30 + p.vit * 5 + p.level * 3;
+    document.getElementById('d1_mp').textContent = 10 + p.int * 4 + p.spr * 2 + p.level * 2;
+    document.getElementById('d2_hp').textContent = 30 + e.vit * 5 + e.level * 3;
+    document.getElementById('d2_mp').textContent = 10 + e.int * 4 + e.spr * 2 + e.level * 2;
+
+    window._r1 = r1;
+    window._r2 = r2;
+    window._p = p;
+    window._e = e;
+}
+
+function rollOne(r, defenderAgi) {
+    const variance = num('c_variance');
+    const dodge = dodgeChance(defenderAgi);
+    if (Math.random() * 100 < dodge) return 'Dodged!';
+    const roll = r.base + Math.random() * variance;
+    const isCrit = Math.random() * 100 < r.critChance;
+    const final = isCrit ? roll * num('c_critmult') : roll;
+    return Math.round(final) + (isCrit ? ' (CRIT)' : '');
+}
+
+function rollBoth() {
+    recalc();
+    document.getElementById('roll1').textContent = rollOne(window._r1, window._e.agi);
+    document.getElementById('roll2').textContent = rollOne(window._r2, window._p.agi);
+}
+
+document.querySelectorAll('input').forEach(el => el.addEventListener('input', recalc));
+recalc();
+rollBoth();
+</script>
+
+</body>
+</html>
