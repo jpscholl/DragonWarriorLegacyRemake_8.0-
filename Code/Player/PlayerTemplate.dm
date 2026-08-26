@@ -375,12 +375,59 @@ proc/GetClassStatCaps(class_name)
     return caps
 
 // -----------------------------
+// Sage reclass flow — Classchange (SkillCatalog.dm) calls this BEFORE BecomeSage()
+// below. CONFIRMED 2026-08-25 via live OG testing (screenshot): classchange re-runs the
+// actual character creation flow — icon selection ("Who will you look like?", the exact
+// OG-confirmed prompt IconSelect() now shows), color customization, and stat allocation
+// — not a straight carry-over of the old character's appearance/stats. This was missed
+// entirely in the first pass at Classchange, which just copied the old mob's icon/colors/
+// stats onto the new Sage outright.
+//
+// Reuses IconSelect()/CustomizeColors()/StatAllocation() (LoginMenu.dm) directly on the
+// EXISTING player mob P, rather than duplicating that flow — those three procs already
+// only touch vars declared at plain `mob` scope (selectedIcon, hairColor, Strength, ...),
+// so they work identically whether P is a fresh mob/playerTemp or a live mob/player
+// mid-game; IconSelect()/StatAllocation() only needed their parameter type loosened from
+// mob/playerTemp to plain mob to allow the call.
+//
+// Returns TRUE once the player finishes (icon + colors + all stat points spent), FALSE
+// if they back out at the icon step — mirrors STEP_ICON's "Back" meaning "abort" in
+// NewCharacterMenu(). Backing out anywhere doesn't touch P's REAL stats: StatAllocation()
+// only commits into P.Strength/etc on its own "Finish" branch, which is also the only
+// path that reaches this proc's own `return TRUE` — so a player who navigates back and
+// forth several times before committing can't leave P half-mutated, and one who cancels
+// outright is left completely unchanged.
+proc/RunSageReclassFlow(mob/player/P)
+    P.selectedClass = "Sage"  // scratch var read by GetClassIcons()/IconSelect() —
+                                // restricts the icon picker to Sage's own two portraits
+
+    var/step = STEP_ICON
+    while(step)
+        switch(step)
+            if(STEP_ICON)
+                step = IconSelect(P)
+                if(step == STEP_CLASS)
+                    return FALSE  // "Back" at the icon step = cancel the whole reclass
+
+            if(STEP_CUSTOM)
+                P.IconPreview()      // live preview while picking colors, same as creation
+                step = P.CustomizeColors()
+
+            if(STEP_STATS)
+                step = StatAllocation(P)
+                if(step == STEP_STATS)
+                    return TRUE  // all points spent, Finish pressed — P.Strength/etc are
+                                  // already the fresh values, committed in place
+
+// -----------------------------
 // Sage reclass — Goof-off's Classchange skill (SkillCatalog.dm) and, eventually, a
-// Dharma Scroll item (not yet built, any class) both hand off to this. News a fresh
-// mob/player/Sage, copies over everything that should survive the swap, transfers
-// control, and deletes the old mob — same vars-transfer shape FinalizePlayer()/
-// LoadCharacter() (LoginMenu.dm/SaveSystem.dm) already use to stand up a typed mob,
-// just applied mid-game instead of at creation/load.
+// Dharma Scroll item (not yet built, any class) both hand off to this, AFTER
+// RunSageReclassFlow() above has already walked the player through icon/color/stat
+// selection and staged the results directly on P's own vars. News a fresh
+// mob/player/Sage, transplants those freshly-chosen values (not the old character's),
+// transfers control, and deletes the old mob — same vars-transfer shape FinalizePlayer()/
+// LoadCharacter() (LoginMenu.dm/SaveSystem.dm) already use to stand up a typed mob, just
+// applied mid-game instead of at creation/load.
 // -----------------------------
 mob/player/proc/BecomeSage()
     if(!client) return
@@ -389,40 +436,51 @@ mob/player/proc/BecomeSage()
     var/mob/player/Sage/newMob = new /mob/player/Sage
     var/turf/T = loc
 
-    // Identity & appearance
+    // Identity & appearance — sourced from the FRESH picks RunSageReclassFlow() just
+    // staged on P (selectedIcon/selectedIconName via IconSelect(), hairColor/eyeColor/
+    // mainColor/accentColor/palette via CustomizeColors()), not the old character's own
+    // icon/baseIcon/basePlayerIcon. Same fields ApplyCustomColors() (LoginMenu.dm) sets
+    // for a brand-new character — this is the reclass equivalent of that.
     newMob.name = name
-    newMob.icon = icon
-    newMob.icon_state = icon_state
-    newMob.baseIcon = baseIcon
-    newMob.basePlayerIcon = basePlayerIcon
+    newMob.icon = icon(selectedIcon)
+    newMob.icon_state = "world"
+    newMob.baseIcon = selectedIcon
+    newMob.basePlayerIcon = selectedIconName
     newMob.hairColor = hairColor
     newMob.eyeColor = eyeColor
     newMob.mainColor = mainColor
     newMob.accentColor = accentColor
     newMob.palette = palette
+    if(newCharPreview) del newCharPreview  // preview obj RunSageReclassFlow()'s
+                                             // IconPreview() created — only needed during
+                                             // selection, would otherwise sit orphaned in
+                                             // the preview area forever
 
-    // Progress. CONFIRMED OG behavior (its own classchange confirmation prompt: "You
-    // will keep all your items and gold, but you will be set back to level 1") — the
-    // reclass is a real cost, not a free upgrade. This used to carry Level/Exp straight
-    // across, which made Classchange strictly beneficial and skipped the whole tradeoff.
-    // Nexp is recomputed off the reset Level rather than carried, matching how
-    // LevelCheck() (CombatSystem.dm) derives it on a normal level-up.
+    // Progress. CONFIRMED OG behavior, both from the classchange confirmation prompt
+    // ("You will keep all your items and gold, but you will be set back to level 1") and
+    // from the reclass flow above being confirmed as a real re-run of character creation:
+    // the five stats and StatPoints reset the same way Level does, matching a genuinely
+    // fresh character rather than a partial carry-over. Nexp is recomputed off the reset
+    // Level, matching how LevelCheck() (CombatSystem.dm) derives it on a normal level-up.
     newMob.Level = 1
     newMob.Exp = 0
     newMob.Nexp = BASE_EXP
     newMob.Gold = Gold
-    // UNCONFIRMED: the OG prompt names items and gold as what survives, and level as
-    // what resets — it says nothing either way about the five stats or unspent stat
-    // points. Carried across here rather than reset, since resetting them isn't
-    // supported by any string and would be a much harsher penalty than the prompt
-    // describes. Revisit if the collaborator's next decompile pass reaches the real
-    // classchange proc.
+    // Strength/Vitality/Agility/Intelligence/Spirit: NOT copied here — P's own vars were
+    // already overwritten in place by StatAllocation() inside RunSageReclassFlow(), so
+    // reading them off P (unqualified below) already gives the fresh creation-time
+    // allocation, same as ApplyCustomStats() does for a brand-new character.
     newMob.Strength = Strength
     newMob.Vitality = Vitality
     newMob.Agility = Agility
     newMob.Intelligence = Intelligence
     newMob.Spirit = Spirit
-    newMob.StatPoints = StatPoints
+    // Always 0 here: StatAllocation() enforces "spend every point before Finish", so
+    // there is never a leftover to carry — any UNSPENT level-up points the old character
+    // still had are deliberately not preserved either, since carrying those forward would
+    // let this "start over" reclass end up with more allocated stats than a real fresh
+    // Sage, right after already spending a full fresh 12-point pool.
+    newMob.StatPoints = 0
 
     // Skills — every currently-known skill carries over as-is (including anything the
     // old class could learn that Sage's own table never would), same numpad
@@ -440,14 +498,16 @@ mob/player/proc/BecomeSage()
     newMob.saveSlot = saveSlot
     newMob.saveManager = saveManager
 
-    // Vitals — recalculate off Sage's own MaxHP/MaxMP formula (different stat caps can
-    // mean a different max), THEN re-clamp current HP/MP to whatever that turns out to
-    // be, so this can't manufacture free overheal/overmana.
-    newMob.HP = HP
-    newMob.MP = MP
+    // Vitals — recomputed fresh off the reset Level/stats, then topped off to full,
+    // exactly like FinalizePlayer() does for a brand-new character (RecalculateVitals(),
+    // then HP = MaxHP / MP = MaxMP). Carrying the OLD HP/MP number and clamping it down
+    // (the previous behavior) doesn't fit a reclass that's now confirmed to be a genuine
+    // restart — a level-25 character's leftover 400 HP clamped to a level-1 Sage's ~35
+    // max isn't meaningfully different from just starting full, and starting full is what
+    // every other "new character" path in this codebase does.
     newMob.RecalculateVitals()
-    newMob.HP = min(newMob.HP, newMob.MaxHP)
-    newMob.MP = min(newMob.MP, newMob.MaxMP)
+    newMob.HP = newMob.MaxHP
+    newMob.MP = newMob.MaxMP
 
     newMob.loc = T
 

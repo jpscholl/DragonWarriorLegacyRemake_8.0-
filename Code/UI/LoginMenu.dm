@@ -1,14 +1,9 @@
 // -----------------------------
 // Character Creation Pipeline
 // -----------------------------
-
-// Step constants for the creation flow
-#define STEP_NAME   1
-#define STEP_CLASS  2
-#define STEP_ICON   3
-#define STEP_CUSTOM 4
-#define STEP_STATS  5
-
+// Step constants for the creation flow now live in the .dme itself — see its own
+// comment for why (Code/Player/PlayerTemplate.dm's RunSageReclassFlow() needs them too
+// and compiles first).
 
 // Temporary mob used during character creation
 mob
@@ -239,9 +234,16 @@ proc/GetClassIcons(mob/M, selectedClass)
     return list()
 
 //icon selection and storage
-proc/IconSelect(mob/playerTemp/M)
+// Untyped mob (not mob/playerTemp) — the vars this touches (selectedClass/selectedIcon/
+// selectedIconName) are declared at plain `mob` scope specifically so this same proc can
+// run on an existing mob/player mid-game, not just a fresh mob/playerTemp at login. See
+// RunSageReclassFlow() (PlayerTemplate.dm), which reuses this exact flow for Classchange.
+proc/IconSelect(mob/M)
     var/list/iconChoices = GetClassIcons(M, M.selectedClass)
-    var/iconChoice = input(M, "Choose your icon:", "Icon Selection") in iconChoices
+    // CONFIRMED OG wording (string table): "Who will you look like?" — was "Choose your
+    // icon:" with title "Icon Selection", neither of which matches the OG. Title
+    // shortened to "Icon" to match too (confirmed via live OG screenshot, 2026-08-25).
+    var/iconChoice = input(M, "Who will you look like?", "Icon") in iconChoices
 
     if(iconChoice == "Back")
         return STEP_CLASS
@@ -451,7 +453,9 @@ proc/ApplyCustomColors(mob/playerTemp/src, mob/player/dst)
 #define CREATION_STAT_POINTS 12
 #define CREATION_STAT_CAP 10
 
-proc/StatAllocation(mob/playerTemp/M)
+// Untyped mob, same reasoning as IconSelect() above — reused for reclass, not just
+// fresh creation.
+proc/StatAllocation(mob/M)
     var/remainingStatPoints = CREATION_STAT_POINTS
     var/list/statCaps = list(
         "Strength"     = CREATION_STAT_CAP,

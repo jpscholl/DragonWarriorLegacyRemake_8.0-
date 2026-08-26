@@ -695,12 +695,20 @@ datum/skill/Classchange
             return
 
         // CONFIRMED OG requirement (string: "You must unequip everything before you can
-        // change your class."). Nothing in the remake is equippable yet — amulets aren't
-        // built (RemakeVsOGStructure.md Part 2, Items) — so there is nothing to check
-        // and this gate is a no-op today. Wire it here the moment equipment exists;
-        // the message is already the OG's own wording.
+        // change your class."). Now a real check — amulets (obj/item/amulet,
+        // Inventory.dm) are the remake's only equippable slot as of 2026-08-25.
+        for(var/obj/item/amulet/A in P.contents)
+            if(A.worn)
+                P << output("You must unequip everything before you can change your class.", "Info")
+                return
 
         var/confirm = alert(P, "Are you sure you want to change your class to Sage? (You will keep all your items and gold, but you will be set back to level 1.)", "Classchange", "Yes", "No")
         if(confirm != "Yes") return
+
+        // CONFIRMED 2026-08-25 (live OG test): classchange re-runs the actual character
+        // creation flow — icon, colors, stat allocation — not a straight stat/appearance
+        // carry-over. See RunSageReclassFlow()'s own comment (PlayerTemplate.dm).
+        if(!RunSageReclassFlow(P))
+            return  // backed out at the icon step — nothing has changed, still the old class
 
         P.BecomeSage()
