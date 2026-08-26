@@ -27,7 +27,7 @@ that contradicts it as out of date rather than current.
 | Tier 2.7 | No item drops | Built (`dropType`/`dropChance`) |
 | Tier 2.8 | No monster spellcasting / healer AI | Built, incl. `TryHeal()` |
 | Tier 2.9 | Real monster stats not applied | Applied |
-| Tier 3.10 | No day/night cycle | Real clock, drives the turf swap |
+| Tier 3.10 | No day/night cycle | Built — see caveat below, this one shipped with a scope/tuning flag |
 | Tier 4.16 | No quick-cast / quick item | Both built |
 | Tier 4.17 | No whisper/shout, no worldsay limit or toggle | All three built |
 | Tier 4.18 | Hard mute instead of shadow mute | Shadow mute |
@@ -37,20 +37,44 @@ that contradicts it as out of date rather than current.
 | Part 5.6 | Classchange had no gate | Level 25 gate + level-1 reset |
 | Part 5.7 | Mute announced itself | Silent |
 | Part 5.8 | No worldsay rate limit | 1s, per the OG's own message |
+| Tier 3.13 (part) | No storage containers | drawers/chest/pot, Store/Take/Leave |
+| Tier 3.14 | NPCs have no dialogue | Day/Night Speech, Stand/Walk, facing |
+| — (SkillCatalog.dm comment) | Thornwhip still a plain single-tile hit | Real 3-tile line attack, per the OG-confirmed spec |
 
 Also closed, though not separately ranked above: HP/MP regeneration, first-hit kill credit
 (`first_hit`), sleep breaking on hit, real buff effects for Upper/Increase/Barrier (they were
 stand-ins that quietly healed HP), and hazard terrain (lava/swamp).
 
+**Caveat on the day/night clock:** flagged by the user immediately after this pass. Two issues,
+neither yet acted on: (1) its cadence — one game hour per real minute, a full cycle every 24 real
+minutes — is too fast; (2) its only real payoff is RP mode, which is explicitly NOT a current
+priority (see the project's own priority notes). It compiles and runs, but should be treated as
+unvetted scope, not a tuned feature — a future RP-mode pass is the more natural home for it, along
+with weather/temperature/hunger/thirst below, rather than it standing alone as this pass's one
+RP-adjacent system.
+
+**Correction on item art**, also flagged after this pass: an earlier draft of this section claimed
+NO item art existed at all. That was wrong via overgeneralization — one folder (`World Icons/Items/`,
+which really does hold only `key.dmi`) was checked and the finding was extended to the whole game.
+`UI & Effects/` actually holds real, multi-state art for the HUD meters (`meter.dmi`/`expmeter.dmi`/
+`magicmeter.dmi`/`swimmeter.dmi`), floating damage numbers (`numbers.dmi`), a bitmap font
+(`text.dmi`), screen fades (`fade.dmi`), and player-written paper (`paper.dmi`) — none of it wired to
+code yet, but the asset gap the "No HUD" item below describes is code, not art. The real, still-open
+art gap is scoped tighter than originally stated: consumables, amulets, and lava.
+
 **Still open, and the highest-value remaining work:**
 
-1. **No item art.** Every consumable and amulet borrows `key.dmi`. They are functionally complete
-   and visually indistinguishable — the single most visible unfinished thing in the game right now.
-2. **No HUD.** Still zero `screen_loc` usage anywhere. This also blocks the drag-to-slot half of
-   quick items that the OG's help file describes.
-3. **No survival layer** — hunger, thirst, sleepiness, temperature, weather, drowning.
-4. **No `/stat` scenery kit or NPC dialogue.** Still the largest single volume gap.
-5. **No storage containers, no world serializer.**
+1. **Item/amulet/lava art.** `World Icons/Items/` holds only `key.dmi`, so every consumable and
+   amulet borrows it and is visually indistinguishable from a key or from each other. Lava borrows a
+   scorched-floor state. The single most visible unfinished thing in the game right now.
+2. **HUD code.** The art for it already exists (see the correction above) — `meter.dmi` and its
+   siblings just aren't wired to any screen-object code yet. Zero `screen_loc` usage anywhere. This
+   also blocks the drag-to-slot half of quick items that the OG's help file describes.
+3. **No survival layer** — hunger, thirst, sleepiness, temperature, weather, drowning. Per the
+   day/night caveat above, this whole category is likely RP-mode-scoped too, not a standalone gap.
+4. **No `/stat` scenery kit.** Still the largest single volume gap (storage and NPC dialogue closed
+   this pass; the OG's other ~55 placeable object types did not).
+5. **No world serializer** — anything built or stored at runtime doesn't survive a reboot.
 6. **The `delay` column** in `OGMonsterBaseStats.tsv` is extracted but unapplied — its units are
    unknown, and mapping it onto `attackCooldown`'s deciseconds would roughly double every monster's
    attack rate on an unverified conversion.
