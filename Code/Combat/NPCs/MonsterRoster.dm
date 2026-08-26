@@ -1,146 +1,216 @@
 // -----------------------------
 // Monster Roster — every mob/enemy subtype in the game
 // -----------------------------
-// Same shape as the AI base type they all inherit (mob/enemy, EnemyNPCs.dm): icon,
-// icon_state, and a stat block. icon_state = "world" confirmed for every monster
-// sampled here (bat/cyclops/dragonlord/metalslime/kingslime/wraith/squid/acolyte, all
-// old-format DMI — read via raw printable-string dump, not PNG zTXt, same technique
-// already used for castmeter.dmi) — all 88 files share the exact same state set
-// (world/hit/sleep/attack/weapon), so "world" is safe for the rest without checking
-// each individually.
+// Stat blocks are REAL OG DATA as of 2026-08-25, not placeholders: every Level/MaxHP/
+// MaxMP/Strength/Agility/Vitality/Intelligence/Spirit/element/exp/gold value below is
+// read straight out of the original Dragon Warrior Legacy .dmb's own type table (see
+// Markdowns/OGMonsterBaseStats.tsv for the raw extract and Markdowns/MonsterBaseStats.md
+// for the confidence notes). The two flat placeholder tiers this file used to carry
+// (TIER1_*/TIER2_* defines, then mob/enemy/tier1 and /tier2 base types) are gone —
+// they were never a real OG concept. Real monsters differ per-stat, most sharply in
+// Agility, which spans 1 (Babble) to 10 (Bat) across just these ten.
 //
-// PLACEHOLDER stat tiers: grouped by naming cues per your "use them all, best
-// judgement" call — common-animal names (bat, cat, wolf...) = Tier 1, humanoid/
-// elemental names (acolyte, skeleton, wizard...) = Tier 2, named/knight/dragon-type
-// names (archbishop, iceknight, kingslime...) = Tier 3, boss-sounding names (cyclops,
-// dragonlord, leviathan, manticore, wraith) = Tier 4. Each tier is one flat stat block
-// — no ranged/spellcasting AI this pass (TODOList.md Phase 6), every monster stays
-// melee-only via the shared AILoop()/PerformMeleeHit() pipeline (EnemyNPCs.dm/
-// CombatSystem.dm), regardless of tier or name.
+// Per that TSV's own header, confidence varies by column: element is CERTAIN (the stored
+// values are literally element name strings), Level/MaxHP/MaxMP and the five stats are
+// HIGH, exp/gold are MEDIUM. Nothing here is a guess of ours; where a column was too
+// uncertain to apply, it's called out below rather than used.
 //
-// `name` is set per-monster (capitalized filename) — combat messages ("[src] has been
-// defeated!", CombatSystem.dm) read this directly, and leaving the roster all sharing
-// one default name would make the whole point of a varied roster invisible in play.
+// The roster is deliberately trimmed to the ten monsters covered by the OG difficulty
+// ordering (CombatDataSheet.md) — cat, slime, dog, redslime, bat, fox, babble, skeleton,
+// drakee, healer — per the "5-6 monster types for training cages, not the full ~86
+// roster" call from the 2026-08-14 session. The TSV holds real stats for all 77; adding
+// one back is now just a block below with its row's numbers, no tier to pick.
 //
-// 2026-08-18: TRIMMED DOWN to just the first real OG difficulty-ordering data set
-// (CombatDataSheet.md's "Monster difficulty ordering" section) — cat, dog, redslime,
-// bat, fox, babble, skeleton, drakee, healer, plus slime. The other ~77 speculative
-// Tier 1-3 subtypes are cut for now per your request, matching the "5-6 monster types
-// for training cages, not the full ~86-roster" call from the 2026-08-14 session recap.
-// Tier 3/Tier 4 blocks are gone entirely since nothing in the trimmed roster used them —
-// re-add both the tier(s) and any cut monster block below (unchanged shape, still in git
-// history if you want the old values back) once you're validating further up the roster.
-// "Healer" is the proper OG name for what earlier notes called "healslime"/"healer
-// slime" (confirmed 2026-08-18, see its own block below and CombatDataSheet.md) — same
-// monster, not a separate gap.
-//
-// Each tier is a real abstract base type below and every monster inherits its whole stat
-// block via parent_type, rather than each monster re-listing the same 10 values. The
-// tiers used to be #define blocks copy-pasted into every single monster; a tier retune
-// is now one edit in one place. Both bases are excluded from GM_MakeMob's placement
-// picker (GetTypeChoices()'s exclude list, BuildTools.dm) — they're stat templates, not
-// monsters anyone should be able to spawn.
+// TWO COLUMNS DELIBERATELY NOT APPLIED:
+//   delay — real and high-confidence (inversely monotonic with Agility across the whole
+//     roster), but its UNITS are unknown. Values run 4-8; attackCooldown (EnemyNPCs.dm)
+//     is in deciseconds and currently defaults to 10, so mapping delay straight across
+//     would roughly double every monster's attack rate on an unverified unit conversion.
+//     Left alone until the collaborator's bytecode pass recovers how delay is consumed.
+//   flee — applied below as fleeHealthPercent, but flagged MEDIUM confidence in the TSV
+//     ("name is a guess"). The values behave exactly like a percent — 0 on every boss and
+//     on Skeleton, highest on the metal monsters — which is what fleeHealthPercent already
+//     means, so the mapping is safe even if the name turns out wrong.
 
 // =============================================================================
-// TIER BASE TYPES — stat blocks only, never placed directly
+// TIER 1-equivalent — the low end of the real difficulty ordering (Levels 1-3)
 // =============================================================================
-// PLACEHOLDER exp/gold rewards, roughly tracking each tier's own Level against the
-// convex exp curve (BASE_EXP * Level^2, LevelCheck() in CombatSystem.dm) so a tier stays
-// worth farming while it's level-appropriate and falls off once you outgrow it. Rough
-// feel at these numbers: ~35 same-tier kills per level-up early, ~70 late. Tune by feel —
-// the whole curve is placeholder until there's real playtesting behind it.
-
-// Tier 1 — common animals/weak basics
-mob/enemy/tier1
-    icon_state = "world"
-    Level = 2
-    HP = 20
-    MaxHP = 20
-    Strength = 4
-    Agility = 3
-    Vitality = 3
-    Intelligence = 1
-    Spirit = 2
-    expReward = 10
-    goldReward = 6
-
-// Tier 2 — humanoid/elemental basics
-mob/enemy/tier2
-    icon_state = "world"
-    Level = 10
-    HP = 50
-    MaxHP = 50
-    Strength = 9
-    Agility = 7
-    Vitality = 8
-    Intelligence = 4
-    Spirit = 5
-    expReward = 45
-    goldReward = 25
-
-// =============================================================================
-// TIER 1 MONSTERS
-// =============================================================================
-mob/enemy/babble
-    parent_type = /mob/enemy/tier1
-    name = "Babble"
-    icon = 'babble.dmi'
-
-mob/enemy/bat
-    parent_type = /mob/enemy/tier1
-    name = "Bat"
-    icon = 'bat.dmi'
-
 mob/enemy/cat
-    parent_type = /mob/enemy/tier1
     name = "Cat"
     icon = 'cat.dmi'
+    icon_state = "world"
+    Level = 1
+    HP = 30
+    MaxHP = 30
+    Strength = 3
+    Agility = 8
+    Vitality = 2
+    Intelligence = 1
+    Spirit = 1
+    expReward = 3
+    goldReward = 3
+    fleeHealthPercent = 20
 
-mob/enemy/dog
-    parent_type = /mob/enemy/tier1
-    name = "Dog"
-    icon = 'dog.dmi'
-
-mob/enemy/drakee
-    parent_type = /mob/enemy/tier1
-    name = "Drakee"
-    icon = 'drakee.dmi'
-
-mob/enemy/fox
-    parent_type = /mob/enemy/tier1
-    name = "Fox"
-    icon = 'fox.dmi'
-
-mob/enemy/redslime
-    parent_type = /mob/enemy/tier1
-    name = "Redslime"
-    icon = 'redslime.dmi'
-
-// The one Tier 1 monster that isn't a plain tier clone: Level 1 rather than the tier's
-// 2, deliberately kept as the single weakest thing in the game (it predates the roster
-// as the original hand-written example enemy, and was the only monster in the game for
-// a long stretch). Every other stat is the tier default.
 mob/enemy/slime
-    parent_type = /mob/enemy/tier1
     name = "Slime"
     icon = 'slime.dmi'
+    icon_state = "world"
     Level = 1
+    HP = 40
+    MaxHP = 40
+    Strength = 4
+    Agility = 2
+    Vitality = 4
+    Intelligence = 1
+    Spirit = 1
+    mobElement = "Water"
+    expReward = 3
+    goldReward = 3
+    fleeHealthPercent = 15
+
+mob/enemy/dog
+    name = "Dog"
+    icon = 'dog.dmi'
+    icon_state = "world"
+    Level = 2
+    HP = 45
+    MaxHP = 45
+    Strength = 4
+    Agility = 4
+    Vitality = 5
+    Intelligence = 1
+    Spirit = 1
+    expReward = 4
+    goldReward = 4
+    fleeHealthPercent = 10
+
+mob/enemy/redslime
+    name = "Red Slime"
+    icon = 'redslime.dmi'
+    icon_state = "world"
+    Level = 2
+    HP = 45
+    MaxHP = 45
+    Strength = 5
+    Agility = 2
+    Vitality = 5
+    Intelligence = 4
+    Spirit = 1
+    mobElement = "Fire"
+    expReward = 4
+    goldReward = 4
+    fleeHealthPercent = 15
+
+mob/enemy/bat
+    name = "Bat"
+    icon = 'bat.dmi'
+    icon_state = "world"
+    Level = 3
+    HP = 45
+    MaxHP = 45
+    Strength = 5
+    Agility = 10   // fastest thing in the trimmed roster — the stat the old flat tiers erased
+    Vitality = 3
+    Intelligence = 2
+    Spirit = 1
+    mobElement = "Air"
+    expReward = 5
+    goldReward = 5
+    fleeHealthPercent = 25
+
+mob/enemy/fox
+    name = "Fox"
+    icon = 'fox.dmi'
+    icon_state = "world"
+    Level = 3
+    HP = 55
+    MaxHP = 55
+    Strength = 6
+    Agility = 9
+    Vitality = 4
+    Intelligence = 4
+    Spirit = 1
+    expReward = 6
+    goldReward = 6
+    fleeHealthPercent = 25
 
 // =============================================================================
-// TIER 2 MONSTERS
+// TIER 2-equivalent — Levels 4-5. Note these are NOT a separate power band: they sit
+// directly on top of the above, which is exactly what the old tier2 block got wrong
+// (it had Skeleton and Healer at Level 10 with 50 HP).
 // =============================================================================
-// CONFIRMED 2026-08-18: this is the "healslime"/"healer slime" from the difficulty
-// ordering + AI-behavior findings (CombatDataSheet.md, SpellRequirementDataSheet.md) —
-// "Healer" is the proper OG name, not a new/separate monster. Self/ally-heal behavior
-// (casts heal on itself or a weakened nearby monster) is NOT implemented — AILoop()/
-// HandlePetTick() (EnemyNPCs.dm) are melee-only for every mob/enemy right now, no
-// monster-side spellcasting exists at all yet (TODOList.md Phase 6).
-mob/enemy/healer
-    parent_type = /mob/enemy/tier2
-    name = "Healer"
-    icon = 'healer.dmi'
+mob/enemy/babble
+    name = "Babble"
+    icon = 'babble.dmi'
+    icon_state = "world"
+    Level = 4
+    HP = 60
+    MaxHP = 60
+    Strength = 6
+    Agility = 1    // slowest in the roster
+    Vitality = 6
+    Intelligence = 8
+    Spirit = 1
+    mobElement = "Plant"
+    expReward = 7
+    goldReward = 7
+    fleeHealthPercent = 10
 
 mob/enemy/skeleton
-    parent_type = /mob/enemy/tier2
     name = "Skeleton"
     icon = 'skeleton.dmi'
+    icon_state = "world"
+    Level = 4
+    HP = 60
+    MaxHP = 60
+    Strength = 6
+    Agility = 3
+    Vitality = 1
+    Intelligence = 4
+    Spirit = 1
+    mobElement = "Darkness"
+    expReward = 8
+    goldReward = 8
+    fleeHealthPercent = 0  // never flees — real value, matches every boss in the TSV
+
+mob/enemy/drakee
+    name = "Drakee"
+    icon = 'drakee.dmi'
+    icon_state = "world"
+    Level = 5
+    HP = 65
+    MaxHP = 65
+    Strength = 7
+    Agility = 8
+    Vitality = 4
+    Intelligence = 4
+    Spirit = 1
+    expReward = 9
+    goldReward = 9
+    fleeHealthPercent = 20
+
+// The only monster in the trimmed roster with an MP pool. CONFIRMED 2026-08-18: "Healer"
+// is the proper OG name for what earlier notes called "healslime"/"healer slime" — same
+// monster, not a separate gap. Its self/ally-heal AI is TryHeal() (EnemyNPCs.dm), the
+// remake's equivalent of the OG's HealCheck; the real MaxMP below is what pays for it.
+// With only 20 MP and Heal costing 4, it gets roughly five casts before it's dry and
+// drops to melee — which is what makes killing it first actually matter.
+mob/enemy/healer
+    name = "Healer"
+    icon = 'healer.dmi'
+    icon_state = "world"
+    Level = 5
+    HP = 70
+    MaxHP = 70
+    MP = 20
+    MaxMP = 20
+    Strength = 7
+    Agility = 2
+    Vitality = 3
+    Intelligence = 6
+    Spirit = 6
+    mobElement = "Water"
+    expReward = 10
+    goldReward = 10
+    fleeHealthPercent = 20
+    healSkills = list(/datum/skill/Heal)
