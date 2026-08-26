@@ -28,6 +28,10 @@ mob/player
         stat("Magic Points: [MP]/[MaxMP]")// Current/max MP
         stat("Experience Points: [Exp]/[Nexp]") // Current/next level XP
         stat("Gold: [Gold]")              // Currency
+        // World clock (GetGameTimeString(), Code/Core/Main.dm) — the OG's Status panel
+        // carried a Time line too. Now that a real day/night clock drives the world,
+        // this is what tells a player how long until sunset.
+        stat("Time: [GetGameTimeString()]")
         stat("Players online: [length(players)]") // Total players online
 
         // Active status effects (Code/Combat/StatusEffects.dm) — only shown when

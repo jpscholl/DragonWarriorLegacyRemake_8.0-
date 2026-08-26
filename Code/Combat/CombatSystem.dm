@@ -185,6 +185,14 @@ mob/proc
             CleanUpDead()
 
 mob/proc
+    // Spawns this mob's item drop, if it has one. Base mob drops nothing — mob/enemy
+    // overrides this with the real dropType/dropChance roll (EnemyNPCs.dm). Declared on
+    // the base so Die() can call it unconditionally without an istype guard, same
+    // reasoning as expReward/goldReward living on the base mob.
+    DropLoot(mob/killer)
+        return
+
+mob/proc
     // Remove this mob asynchronously — never applies to players, who go through the
     // isDead/respawn flow in Die() instead of being deleted.
     CleanUpDead()
@@ -231,6 +239,12 @@ mob/proc
 
             if(goldDrop)
                 attacker << output("You gain [goldDrop] Gold.", "Info")
+
+            // Item drops (the OG's drop_type/drop_rate). Rolled here, inside the
+            // attacker branch, so an unattributed death (a GM_KillMonsters sweep with no
+            // credited killer, a scripted despawn) doesn't scatter loot with nobody
+            // around to claim it.
+            DropLoot(attacker)
 
         if(istype(src, /mob/player))
             // Player death: no deletion. Respawn happens either automatically after
