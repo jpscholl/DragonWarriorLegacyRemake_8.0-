@@ -33,6 +33,10 @@
 // How long a dead player must wait before Interact() (Code/Player/Commands/PlayerVerbs.dm)
 // will respawn them.
 #define RESPAWN_DELAY 100  // world.time units (10 real seconds at the default tick rate)
+// OG FINDING 2026-08-10: real OG respawn is automatic after 60 seconds, no manual
+// Interact() press needed at all. This 10s manual-trigger minimum is a remake design
+// choice, not OG-derived — needs a real decision (auto-fire at 60s? keep manual as an
+// early-respawn option on top?) before retuning. See TODOList.md Phase 6.
 
 mob/var/isDead = FALSE
 mob/var/deathTime = 0
@@ -41,8 +45,12 @@ mob/var/deathTime = 0
 // shield (icon_state = "defend"), reducing incoming damage. No duration/cooldown, just
 // an on/off stance the player controls directly.
 mob/var/isDefending = FALSE
-// Placeholder — you weren't sure what the real reduction should be, so this is a
-// starting guess, not OG-derived (no confirmed number for it). Tune by feel.
+// CONFIRMED 2026-08-10: live OG testing shows Defend literally halves incoming
+// physical damage while held — this 50% guess matches exactly, no longer a
+// placeholder. OG also drops the stance on attack, same as DropDefendForAction()
+// below already does. User's preference, same finding: keep the remake's own
+// attack-speed-penalty-on-drop addition (DEFEND_ATTACK_SPEED_PENALTY below) on top of
+// this — it's not in the OG, but explicitly liked better than OG's plain drop.
 #define DEFEND_DAMAGE_REDUCTION_PERCENT 50
 
 // Bumped every time isDefending is toggled BY THE PLAYER (Defend.OnUse(), SkillDatum.dm)
@@ -84,9 +92,50 @@ mob/proc
         var/dodgeChance = min(DODGE_MAX_PERCENT, DODGE_BASE_PERCENT + Agility * DODGE_AGILITY_SCALE)
         return prob(dodgeChance)
 
+// Defense — new, no OG numeric formula exists to confirm this against (only the OG
+// help file's plain-language claim that Agility+Vitality drive physical defense and
+// Vitality+Intelligence drive magic defense, ClassReference.md/OGGameStructure.md).
+// Divisors are placeholders, tune by feel. Flat subtraction rather than a percentage
+// reduction — keeps a heavily-invested tank able to shrug off weak hits entirely
+// without needing a separate armor stat, same spirit as DEFEND_DAMAGE_REDUCTION_PERCENT
+// being a flat stance bonus rather than scaling off anything.
+#define PHYSICAL_DEFENSE_DIVISOR 4
+#define MAGIC_DEFENSE_DIVISOR 4
+// A defended hit is never fully negated — always at least this much gets through, so
+// stacking defense can't turn combat into a stalemate.
+#define MIN_DAMAGE 1
+
 mob/proc
-    // Apply damage to this mob
-    TakeDamage(damage, mob/attacker)
+    GetDefense()
+        return round((Agility + Vitality) / PHYSICAL_DEFENSE_DIVISOR)
+
+    GetMagicDefense()
+        return round((Vitality + Intelligence) / MAGIC_DEFENSE_DIVISOR)
+
+// Critical hits — new, no OG numeric formula exists either, only the help file's claim
+// that Spirit drives crit rate. Rolled by the ATTACKER (RollCrit() reads src's own
+// Spirit), same shape as RollDodge() above but on the other side of the hit. Applies to
+// both melee (PerformMeleeHit()) and spell damage (ApplySpellDamage()) — the help file
+// doesn't say Spirit is melee-only, and there's no reason a caster's crit investment
+// should do nothing.
+#define CRIT_BASE_PERCENT 0
+#define CRIT_SPIRIT_SCALE 1  // % crit chance per point of Spirit
+#define CRIT_MAX_PERCENT 50
+#define CRIT_DAMAGE_PERCENT 150  // damage dealt on a crit, as % of normal
+
+mob/proc
+    RollCrit()
+        var/critChance = min(CRIT_MAX_PERCENT, CRIT_BASE_PERCENT + Spirit * CRIT_SPIRIT_SCALE)
+        return prob(critChance)
+
+mob/proc
+    // Apply damage to this mob. isMagic picks which defense stat mitigates it
+    // (ApplySpellDamage() below passes TRUE; melee's default FALSE is correct as-is).
+    // isCrit only affects the message shown — the damage number itself is expected to
+    // already include the crit multiplier by the time it gets here (see
+    // PerformMeleeHit()/ApplySpellDamage()), same division of labor as isDefending's
+    // reduction happening in here while the crit roll happens at the source.
+    TakeDamage(damage, mob/attacker, isMagic = FALSE, isCrit = FALSE)
         if(HP <= 0) return
 
         // "src" here is a /mob/enemy check because enemies and players use different
@@ -110,13 +159,20 @@ mob/proc
         // used to interrupt/kill it every hit.
         PlaySFXAt(src, isEnemy ? 'enemyhit.wav' : 'hit.wav')  // see usr note above
 
+        // Defense subtracted before the defend-stance percentage, then floored — stops
+        // a heavily-defended mob from ever taking a true zero, and stops the two
+        // mitigation layers from compounding into an unhittable wall.
+        var/defense = isMagic ? GetMagicDefense() : GetDefense()
+        damage = max(MIN_DAMAGE, damage - defense)
+
         // Applied after the dodge roll (a dodge avoids damage entirely, unrelated to
         // defending) but before HP is reduced.
         if(isDefending)
             damage = round(damage * (100 - DEFEND_DAMAGE_REDUCTION_PERCENT) / 100)
+        damage = max(MIN_DAMAGE, damage)
 
         HP -= damage
-        view(src) << output("[src] takes [damage] damage! (HP: [max(HP,0)])", "Info")
+        view(src) << output(isCrit ? "[src] takes a critical hit for [damage] damage! (HP: [max(HP,0)])" : "[src] takes [damage] damage! (HP: [max(HP,0)])", "Info")
 
         if(HP <= 0)
             Die(attacker)
@@ -248,7 +304,9 @@ mob/proc
             // "just deal a plain hit" caller can't silently break all melee again.
             var/mult = S ? S.damage_multiplier : 1
             var/damage = round(Strength * mult)
-            M.TakeDamage(damage, src)
+            var/isCrit = RollCrit()
+            if(isCrit) damage = round(damage * CRIT_DAMAGE_PERCENT / 100)
+            M.TakeDamage(damage, src, isMagic = FALSE, isCrit = isCrit)
 
 // Elemental scaffolding — real, working code, but currently inert: nothing anywhere
 // yet actually sets elementalWeakness/elementalResistance on a player or monster, so
@@ -273,7 +331,9 @@ mob/proc
             else if(target.elementalResistance == element)
                 damage = round(damage * (100 - ELEMENTAL_RESISTANCE_REDUCTION_PERCENT) / 100)
 
-        target.TakeDamage(damage, src)
+        var/isCrit = RollCrit()
+        if(isCrit) damage = round(damage * CRIT_DAMAGE_PERCENT / 100)
+        target.TakeDamage(damage, src, isMagic = TRUE, isCrit = isCrit)
         // Can later add AoE and more elaborate elemental effects (status ailments tied
         // to an element, etc.) — this proc just handles the damage-modifier half.
 

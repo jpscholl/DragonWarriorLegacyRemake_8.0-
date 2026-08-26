@@ -42,5 +42,5 @@ mob/proc/UpdateAppearance()
 mob/proc/SetZoneColorPrompt(zone)
     var/choice = input(src, "Pick a color") in color_swatches
     if(choice)
-        palette.SetZoneColor(zone, color_swatches[choice])
+        palette.SetZoneColor(zone, color_swatches[choice], src)
         UpdateAppearance()   // push change to preview

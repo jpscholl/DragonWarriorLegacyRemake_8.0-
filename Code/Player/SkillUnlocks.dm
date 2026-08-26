@@ -16,7 +16,7 @@ datum/skillUnlock
     var
         skillType             // typepath to instantiate, e.g. /datum/skill/Fireball
         requiredLevel = 1
-        requiredStat = null   // "Strength"/"Vitality"/"Agility"/"Intelligence"/"Luck", or null for no stat gate
+        requiredStat = null   // "Strength"/"Vitality"/"Agility"/"Intelligence"/"Spirit", or null for no stat gate
         requiredStatValue = 0
 
     New(type, level = 1, stat = null, statValue = 0)
@@ -190,7 +190,7 @@ proc/BuildHeroSkillUnlocks()
         new /datum/skillUnlock(/datum/skill/Chainsickle, 20, "Strength", 19),
         new /datum/skillUnlock(/datum/skill/Thordain, 21, "Intelligence", 20),
         new /datum/skillUnlock(/datum/skill/Bang, 23, "Intelligence", 18),
-        new /datum/skillUnlock(/datum/skill/Meditate, 24, "Luck", 15),
+        new /datum/skillUnlock(/datum/skill/Meditate, 24, "Spirit", 15),
         new /datum/skillUnlock(/datum/skill/SwordOfLethargy, 25, "Strength", 23),
         new /datum/skillUnlock(/datum/skill/Healus, 25, "Intelligence", 21),
         new /datum/skillUnlock(/datum/skill/Stopspell, 28, "Intelligence", 20),   // originally a 17-23 range
@@ -254,7 +254,7 @@ proc/BuildPilgrimSkillUnlocks()
         new /datum/skillUnlock(/datum/skill/Increase, 7, "Intelligence", 11),
         new /datum/skillUnlock(/datum/skill/Infernos, 9, "Intelligence", 12),
         new /datum/skillUnlock(/datum/skill/Morningstar, 10, "Strength", 12),
-        new /datum/skillUnlock(/datum/skill/Meditate, 12, "Luck", 15),
+        new /datum/skillUnlock(/datum/skill/Meditate, 12, "Spirit", 15),
         new /datum/skillUnlock(/datum/skill/Lightsword, 13, "Strength", 14),
         new /datum/skillUnlock(/datum/skill/Healmore, 14, "Intelligence", 14),
         new /datum/skillUnlock(/datum/skill/Return, 15, "Intelligence", 14),
@@ -278,7 +278,7 @@ proc/BuildWizardSkillUnlocks()
         new /datum/skillUnlock(/datum/skill/Lightning, 5, "Intelligence", 10),
         new /datum/skillUnlock(/datum/skill/Blazemore, 8, "Intelligence", 14),
         new /datum/skillUnlock(/datum/skill/Barrier, 10, "Intelligence", 17),
-        new /datum/skillUnlock(/datum/skill/Meditate, 12, "Luck", 15),
+        new /datum/skillUnlock(/datum/skill/Meditate, 12, "Spirit", 15),
         new /datum/skillUnlock(/datum/skill/Blizzard, 14, "Intelligence", 16),
         new /datum/skillUnlock(/datum/skill/Icespears, 16, "Intelligence", 13),
         new /datum/skillUnlock(/datum/skill/Boom, 18, "Intelligence", 18),

@@ -26,11 +26,11 @@ datum/DefaultIconColors
         colors_by_class["Goof-off"] = list()
         colors_by_class["Sage"] = list()
 
-    proc/GetIconColors(class, icon_id)
+    proc/GetIconColors(class, icon_id, mob/M)
         if(!(class in colors_by_class))
-            src << output("No default colors for class [class]", "Info")
+            if(M) M << output("No default colors for class [class]", "Info")
             return list()
         if(!(icon_id in colors_by_class[class]))
-            src << output("No default colors for icon [icon_id]", "Info")
+            if(M) M << output("No default colors for icon [icon_id]", "Info")
             return list()
         return colors_by_class[class][icon_id]

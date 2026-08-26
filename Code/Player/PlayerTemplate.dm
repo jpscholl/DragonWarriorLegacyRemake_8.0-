@@ -65,13 +65,24 @@ mob
                          // RecalculateVitals() in Code/Player/StatsDatum.dm. Overridden
                          // per-class below (Soldier has none).
 
+    // Per-class HP/MP multipliers, applied in RecalculateVitals() (StatsDatum.dm) —
+    // the OG confirms these existed (HPfactor/MPfactor vars, OGGameStructure.md §4) but
+    // not their real values, so a Soldier and a Wizard at equal Vitality no longer come
+    // out with identical HP. PLACEHOLDER numbers, grounded in the OG help file's own
+    // class flavor text ("Soldiers are the best class at taking damage", "Wizard: very
+    // weak in physical combat... most powerful offensive magic", etc.) rather than
+    // invented from nothing — tune by feel per class below.
+    var
+        HPfactor = 1.0
+        MPfactor = 1.0
+
     // Core stats
     var
         Strength = 1
         Vitality = 1
         Agility = 1
         Intelligence = 1
-        Luck = 1
+        Spirit = 1
         StatPoints = 0
 
     // Per-class stat ceilings — enforced at both creation-time allocation
@@ -84,7 +95,7 @@ mob
         capAgility = 10
         capVitality = 10
         capIntelligence = 10
-        capLuck = 10
+        capSpirit = 10
 
 // Appearance
 mob
@@ -240,61 +251,71 @@ mob/player
 // -----------------------------
 mob/player/Hero
     class = "Hero"
+    HPfactor = 1.0  // PLACEHOLDER: "balanced in all areas" (help file)
+    MPfactor = 1.0
     capStrength = 60       // confirmed (ClassReference.md)
     capAgility = 60        // PLACEHOLDER: unconfirmed, mirrored off Strength cap
     capVitality = 80       // PLACEHOLDER: unconfirmed
     capIntelligence = 150  // confirmed
-    capLuck = 60           // PLACEHOLDER: unconfirmed
+    capSpirit = 60           // PLACEHOLDER: unconfirmed
 
 mob/player/Soldier
     class = "Soldier"
     hasMana = FALSE
+    HPfactor = 1.3  // PLACEHOLDER: "the best class at taking damage" (help file)
     capStrength = 100      // confirmed (ClassReference.md)
     capAgility = 60        // PLACEHOLDER: unconfirmed
     capVitality = 100      // confirmed
     capIntelligence = 20   // PLACEHOLDER: unconfirmed, kept low — Soldier has no
                             // Intelligence-gated skills in ClassReference.md
-    capLuck = 40           // PLACEHOLDER: unconfirmed
+    capSpirit = 40           // PLACEHOLDER: unconfirmed
 
 mob/player/Wizard
     class = "Wizard"
+    HPfactor = 0.7  // PLACEHOLDER: "very weak in physical combat" (help file)
+    MPfactor = 1.3  // PLACEHOLDER: "the most powerful offensive magic of any class"
     capStrength = 40       // confirmed (ClassReference.md)
     capAgility = 40        // confirmed
     capVitality = 60       // confirmed
     capIntelligence = 100  // confirmed
-    capLuck = 60           // PLACEHOLDER: unconfirmed
+    capSpirit = 60           // PLACEHOLDER: unconfirmed
 
 mob/player/Fighter
     class = "Fighter"
     hasMana = FALSE        // PLACEHOLDER: no Intelligence-gated skill in
                             // ClassReference.md's Fighter table — assumed non-caster
+    HPfactor = 0.85  // PLACEHOLDER: "not so good at taking damage" (help file)
     capStrength = 100      // confirmed (ClassReference.md)
     capAgility = 100       // confirmed
     capVitality = 80       // confirmed
     capIntelligence = 40   // confirmed
-    capLuck = 40           // confirmed
+    capSpirit = 40           // confirmed
 
 mob/player/Pilgrim
     class = "Pilgrim"
+    MPfactor = 1.1  // PLACEHOLDER: "specializes in healing and defensive magic" (help file)
     capStrength = 80       // confirmed (ClassReference.md)
     capAgility = 60        // confirmed
     capVitality = 60       // PLACEHOLDER: unconfirmed
     capIntelligence = 100  // confirmed
-    capLuck = 60           // PLACEHOLDER: unconfirmed
+    capSpirit = 60           // PLACEHOLDER: unconfirmed
 
 mob/player/Goofoff
     class = "Goof-off"
     hasMana = FALSE        // PLACEHOLDER: no Intelligence-gated skill in
                             // ClassReference.md's Goof-off table — assumed non-caster
                             // (Magicknife's governing stat is itself unconfirmed)
+    HPfactor = 0.9  // PLACEHOLDER: "weaker than the rest" (help file)
     capStrength = 80       // confirmed (ClassReference.md)
     capAgility = 60        // PLACEHOLDER: unconfirmed
     capVitality = 60       // confirmed
     capIntelligence = 40   // confirmed
-    capLuck = 40           // confirmed
+    capSpirit = 40           // confirmed
 
 mob/player/Sage
     class = "Sage"
+    HPfactor = 0.7  // PLACEHOLDER: "horrible in physical combat" (help file)
+    MPfactor = 1.3  // matches Wizard — Sage's spell list is a strict superset of it
     // Every cap here is PLACEHOLDER: (ClassReference.md has no Sage numbers at all)
     // — kept in confirmed caster territory per the doc's explicit call ("horrible in
     // physical combat"), Intelligence matched to Hero's since Sage's skill list is the
@@ -303,7 +324,7 @@ mob/player/Sage
     capAgility = 40
     capVitality = 60
     capIntelligence = 150
-    capLuck = 60
+    capSpirit = 60
 
 // -----------------------------
 // Class name -> type lookup — the one place this switch exists. ApplyPlayerClass()
@@ -346,7 +367,7 @@ proc/GetClassStatCaps(class_name)
         "Vitality"     = initial(type:capVitality),
         "Agility"      = initial(type:capAgility),
         "Intelligence" = initial(type:capIntelligence),
-        "Luck"         = initial(type:capLuck)
+        "Spirit"         = initial(type:capSpirit)
     )
 
     classStatCapCache[class_name] = caps
@@ -388,7 +409,7 @@ mob/player/proc/BecomeSage()
     newMob.Vitality = Vitality
     newMob.Agility = Agility
     newMob.Intelligence = Intelligence
-    newMob.Luck = Luck
+    newMob.Spirit = Spirit
     newMob.StatPoints = StatPoints
 
     // Skills — every currently-known skill carries over as-is (including anything the

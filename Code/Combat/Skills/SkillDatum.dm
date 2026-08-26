@@ -6,7 +6,7 @@
 // be cast repeatedly while tuning them. Flip to FALSE to restore real per-spell costs;
 // nothing else needs changing (see GetManaCost() below, which is the single place any
 // spell should ever read a cost from).
-#define TESTING_CHEAP_SPELLS TRUE
+#define TESTING_CHEAP_SPELLS FALSE
 
 datum/skill
     var
@@ -48,12 +48,10 @@ datum/skill
 datum/skill/Attack
     parent_type = /datum/skill
 
-    New()
-        ..()
-        skillName = "Attack"
-        icon_state = "weapon"
-        isMelee = TRUE
-        cast_time = 2
+    skillName = "Attack"
+    icon_state = "weapon"
+    isMelee = TRUE
+    cast_time = 2
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
@@ -128,10 +126,8 @@ datum/skill/Defend
                               // instance (EquipSkill(), SkillUnlocks.dm), so this can't
                               // leak between players
 
-    New()
-        ..()
-        skillName = "Defend"
-        icon_state = "defend"  // player holding up their shield
+    skillName = "Defend"
+    icon_state = "defend"  // player holding up their shield
 
     OnUse(mob/user, mob/target = null)
         if(!user.InBattleArea()) return
@@ -173,15 +169,13 @@ datum/skill/Defend
 datum/skill/Blaze
     parent_type = /datum/skill
 
-    New()
-        ..()
-        skillName = "Blaze"  // no, we are not adding a THC damage-over-time effect,
-                              // put the pipe down and finish reviewing the projectile code
-        icon_state = "blaze"  // spells.dmi — this is also the projectile's own sprite
-        isSpell = TRUE
-        element = "fire"
-        mana_cost = 5  // low, placeholder per your own guidance — tune once you've
-                        // actually seen it in action
+    skillName = "Blaze"  // no, we are not adding a THC damage-over-time effect,
+                          // put the pipe down and finish reviewing the projectile code
+    icon_state = "blaze"  // spells.dmi — this is also the projectile's own sprite
+    isSpell = TRUE
+    element = "fire"
+    mana_cost = 5  // low, placeholder per your own guidance — tune once you've
+                    // actually seen it in action
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
@@ -272,13 +266,11 @@ datum/skill/Blaze
 datum/skill/Fireball
     parent_type = /datum/skill
 
-    New()
-        ..()
-        skillName = "Fireball"
-        icon_state = "fireball"
-        isSpell = TRUE
-        cast_time = 6
-        element = "fire"
+    skillName = "Fireball"
+    icon_state = "fireball"
+    isSpell = TRUE
+    cast_time = 6
+    element = "fire"
 
     OnUse(mob/user, mob/target)
         if(!user.canAct) return
