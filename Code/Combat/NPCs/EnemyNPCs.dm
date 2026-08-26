@@ -150,6 +150,28 @@ mob/enemy
 	// this threshold is a PLACEHOLDER.
 	var/healThresholdPercent = 60
 
+	// -----------------------------
+	// Item drops (the OG's drop_type / drop_rate)
+	// -----------------------------
+	// dropType is a single obj/item typepath; dropChance is a percent rolled once on
+	// death. The OG stored exactly this pair per monster. The real per-monster values
+	// aren't recovered (the monster extract's columns stop before them), so what's
+	// assigned in MonsterRoster.dm is PLACEHOLDER — the mechanism is the OG's, the
+	// numbers are ours.
+	var/dropType = null
+	var/dropChance = 0
+
+	// Drops on the corpse's own tile, not the killer's, so loot has a real position in
+	// the world and the killer has to actually walk over and pick it up (Interact(),
+	// PlayerVerbs.dm). Fires before CleanUpDead() deletes the body, so loc is still valid.
+	DropLoot(mob/killer)
+		if(!dropType || !prob(dropChance)) return
+		var/turf/T = loc
+		if(!T) return
+		var/obj/item/I = new dropType(T)
+		if(killer)
+			killer << output("[src] dropped [I.name]!", "Info")
+
 	// Pet state — null/PET_MODE_FOLLOW until a GM assigns this mob via
 	// ShowAssignPetMenu() below. See file header for the overall design.
 	var/mob/player/owner

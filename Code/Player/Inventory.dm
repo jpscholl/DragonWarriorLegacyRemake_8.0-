@@ -100,6 +100,99 @@ obj/item/key
         user << output("You're not facing a door.", "Info")
 
 // -----------------------------
+// Consumables
+// -----------------------------
+// Names and behavior are OG-confirmed (they appear verbatim in the extracted string
+// table): "medical herb", "herbal tea", "leaf of the world tree", "wing of wyvern".
+// Amounts are PLACEHOLDER — the OG stored a heal_amount per item but that value isn't
+// recovered yet.
+//
+// ART PLACEHOLDER: World Icons/Items/ currently contains only key.dmi, so every
+// consumable below borrows the key sprite. They are functionally complete but visually
+// indistinguishable from each other and from an actual key — this needs real item art
+// before it's playable, and is the single most visible unfinished thing about them.
+obj/item/consumable
+    icon = 'key.dmi'
+    icon_state = "key"
+
+    // Subtypes return TRUE if the item was actually consumed. Returning FALSE (e.g.
+    // already at full HP) leaves the item in the inventory rather than wasting it —
+    // matching the OG's own "You are not hurt!" refusal.
+    proc/OnConsume(mob/user)
+        return TRUE
+
+    UseItem(mob/user)
+        if(!OnConsume(user)) return
+        del src
+
+obj/item/consumable/herb
+    name = "medical herb"
+    description = "Restores a small amount of HP."
+    var/healAmount = 30  // PLACEHOLDER
+
+    OnConsume(mob/user)
+        if(user.HP >= user.MaxHP)
+            user << output("You are not hurt!", "Info")  // OG wording, verbatim
+            return FALSE
+        user.ApplyHeal(user, healAmount)
+        return TRUE
+
+obj/item/consumable/tea
+    name = "herbal tea"
+    description = "Restores a small amount of MP."
+    var/restoreAmount = 20  // PLACEHOLDER
+
+    OnConsume(mob/user)
+        if(!user.hasMana || user.MaxMP <= 0)
+            user << output("You have no magic to restore.", "Info")
+            return FALSE
+        if(user.MP >= user.MaxMP)
+            user << output("You are at full MP!", "Info")  // OG wording, verbatim
+            return FALSE
+        user.MP = min(user.MaxMP, user.MP + restoreAmount)
+        user << output("You restore [restoreAmount] MP! (MP: [user.MP]/[user.MaxMP])", "Info")
+        return TRUE
+
+// Revives a fallen ally. OG usage note, verbatim: "Face another player to use this item,
+// or give it to them while they are dead." Only the facing case is implemented here —
+// the give-to-a-dead-player case works already, since a dead player can just use it
+// themselves once it's in their inventory.
+obj/item/consumable/leaf
+    name = "leaf of the world tree"
+    description = "Revives a fallen ally."
+
+    OnConsume(mob/user)
+        // Self-use while dead is the "give it to them while they are dead" half.
+        if(user.isDead)
+            user.RespawnPlayer()
+            return TRUE
+
+        var/turf/facing = get_step(user, user.dir)
+        if(facing)
+            for(var/mob/player/P in facing.contents)
+                if(!P.isDead) continue
+                P.RespawnPlayer()
+                user << output("You revive [P.name] with [src.name].", "Info")
+                return TRUE
+
+        user << output("Face another player to use this item, or give it to them while they are dead.", "Info")
+        return FALSE
+
+// Teleports the user back to the world spawn point — the item equivalent of the Return
+// spell (SkillCatalog.dm), and it reuses the same GetPlayerSpawnTurf() lookup.
+obj/item/consumable/wyvernwing
+    name = "wing of wyvern"
+    description = "Returns you to town."
+
+    OnConsume(mob/user)
+        if(user.isDead)
+            user << output("But the strange force contains the wing's powers!", "Info")  // OG wording
+            return FALSE
+        user.loc = GetPlayerSpawnTurf()
+        user << output("You return to town!", "Info")
+        return TRUE
+
+// -----------------------------
 // Mob-side inventory helpers
 // -----------------------------
 mob/proc/GetInventoryCapacity()

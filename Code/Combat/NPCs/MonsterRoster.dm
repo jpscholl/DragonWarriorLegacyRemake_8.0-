@@ -50,6 +50,8 @@ mob/enemy/cat
     expReward = 3
     goldReward = 3
     fleeHealthPercent = 20
+    dropType = /obj/item/consumable/herb
+    dropChance = 8
 
 mob/enemy/slime
     name = "Slime"
@@ -67,6 +69,8 @@ mob/enemy/slime
     expReward = 3
     goldReward = 3
     fleeHealthPercent = 15
+    dropType = /obj/item/consumable/herb
+    dropChance = 10
 
 mob/enemy/dog
     name = "Dog"
@@ -83,6 +87,8 @@ mob/enemy/dog
     expReward = 4
     goldReward = 4
     fleeHealthPercent = 10
+    dropType = /obj/item/consumable/herb
+    dropChance = 8
 
 mob/enemy/redslime
     name = "Red Slime"
@@ -100,6 +106,8 @@ mob/enemy/redslime
     expReward = 4
     goldReward = 4
     fleeHealthPercent = 15
+    dropType = /obj/item/consumable/herb
+    dropChance = 10
 
 mob/enemy/bat
     name = "Bat"
@@ -117,6 +125,8 @@ mob/enemy/bat
     expReward = 5
     goldReward = 5
     fleeHealthPercent = 25
+    dropType = /obj/item/consumable/herb
+    dropChance = 8
 
 mob/enemy/fox
     name = "Fox"
@@ -133,6 +143,8 @@ mob/enemy/fox
     expReward = 6
     goldReward = 6
     fleeHealthPercent = 25
+    dropType = /obj/item/consumable/herb
+    dropChance = 10
 
 // =============================================================================
 // TIER 2-equivalent — Levels 4-5. Note these are NOT a separate power band: they sit
@@ -155,6 +167,8 @@ mob/enemy/babble
     expReward = 7
     goldReward = 7
     fleeHealthPercent = 10
+    dropType = /obj/item/consumable/tea
+    dropChance = 8
 
 mob/enemy/skeleton
     name = "Skeleton"
@@ -172,6 +186,8 @@ mob/enemy/skeleton
     expReward = 8
     goldReward = 8
     fleeHealthPercent = 0  // never flees — real value, matches every boss in the TSV
+    dropType = /obj/item/consumable/herb
+    dropChance = 12
 
 mob/enemy/drakee
     name = "Drakee"
@@ -188,6 +204,8 @@ mob/enemy/drakee
     expReward = 9
     goldReward = 9
     fleeHealthPercent = 20
+    dropType = /obj/item/consumable/tea
+    dropChance = 10
 
 // The only monster in the trimmed roster with an MP pool. CONFIRMED 2026-08-18: "Healer"
 // is the proper OG name for what earlier notes called "healslime"/"healer slime" — same
@@ -213,4 +231,6 @@ mob/enemy/healer
     expReward = 10
     goldReward = 10
     fleeHealthPercent = 20
+    dropType = /obj/item/consumable/tea
+    dropChance = 15
     healSkills = list(/datum/skill/Heal)

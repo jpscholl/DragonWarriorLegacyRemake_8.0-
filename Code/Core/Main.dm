@@ -65,9 +65,74 @@ var/global/adultServer = FALSE
 // this is a dev/testing escape hatch, not something a live server should leave on.
 var/global/allowMultiLogin = FALSE
 
-// Day/night state — toggled by GM_DayNight() in Code/Admin/Commands/GMCommands.dm.
+// Day/night state — driven automatically by the world clock below, and still toggleable
+// on demand by GM_DayNight() in Code/Admin/Commands/GMCommands.dm.
 // World icons only (turfs/objs), not mobs — the OG has no night sprites for those.
 var/global/isNight = FALSE
+
+// -----------------------------
+// World clock
+// -----------------------------
+// CONFIRMED OG shape (string table): a running clock with per-minute/per-hour ticks,
+// sunrise at 6:00 AM and sunset at 6:00 PM, a 12:00 PM start, and a distinct flavor
+// message for each transition. The remake had `isNight` and IsNightVariant() as helpers
+// with nothing driving them — day/night only ever changed if a GM typed the verb. This
+// is the missing clock.
+//
+// PLACEHOLDER cadence: the OG's real-time-to-game-time ratio isn't recovered, so one
+// game hour per real minute is chosen here — a full day/night cycle every 24 real
+// minutes, which keeps both halves visible in a normal play session. Tune freely; every
+// other part of the clock is derived from these two numbers.
+#define GAME_MINUTES_PER_TICK 10
+#define REAL_DECISECONDS_PER_TICK 10   // one tick per real second
+
+#define SUNRISE_HOUR 6
+#define SUNSET_HOUR 18
+
+// Minutes since midnight. Starts at 12:00 PM, matching the OG's own documented start.
+var/global/gameMinuteOfDay = 720
+
+// Human-readable clock, e.g. "6:00 PM" — the format the OG's own strings use. Shown in
+// the Status panel (Code/Player/StatPanels.dm).
+proc/GetGameTimeString()
+    var/hour24 = round(gameMinuteOfDay / 60)
+    var/minute = gameMinuteOfDay % 60
+    var/period = hour24 >= 12 ? "PM" : "AM"
+    var/hour12 = hour24 % 12
+    if(!hour12) hour12 = 12
+    return "[hour12]:[minute < 10 ? "0" : ""][minute] [period]"
+
+// Applies a day/night transition to the whole world. Shares GM_DayNight()'s own
+// ToggleNightIconState() sweep (GMCommands.dm) rather than reimplementing the turf/obj
+// walk, so a clock-driven sunset and a GM-forced one produce identical results.
+proc/SetWorldNight(toNight, message)
+    if(isNight == toNight) return
+    isNight = toNight
+
+    for(var/turf/T in world)
+        ToggleNightIconState(T, isNight)
+    for(var/obj/O in world)
+        if(istype(O, /obj/StatLink)) continue
+        ToggleNightIconState(O, isNight)
+
+    if(message)
+        players << output("<center><b>[message]</b></center>", "Messages")
+
+// Advances the clock one tick and fires the sunrise/sunset transitions as they're
+// crossed. Started once from world/New().
+proc/WorldClockLoop()
+    set waitfor = 0
+    while(TRUE)
+        sleep(REAL_DECISECONDS_PER_TICK)
+
+        gameMinuteOfDay = (gameMinuteOfDay + GAME_MINUTES_PER_TICK) % 1440
+        var/hour24 = round(gameMinuteOfDay / 60)
+
+        // Flavor lines are the OG's own, verbatim from the string table.
+        if(hour24 >= SUNSET_HOUR || hour24 < SUNRISE_HOUR)
+            SetWorldNight(TRUE, "The sun sinks below the horizon and night falls over the land.")
+        else
+            SetWorldNight(FALSE, "The sun rises in the east and a new day is born.")
 
 // Sends `filename` to every client-having mob visible from `center` — same audience a
 // bare `view(center) << sound(...)` broadcast would reach, except personalized to each
@@ -130,6 +195,10 @@ world
         // line and auto-logs connect/disconnect/host events into the same stream.
         // Chat verbs write into this same log via LogChat() (Code/Core/TextFilter.dm).
         log = file("server.log")
+        // Starts the day/night clock (above). Runs here rather than at a global scope
+        // so a world.Reboot() restarts it cleanly along with everything else — the
+        // reboot's object wipe kills the old loop.
+        WorldClockLoop()
 
     // world.Reboot() itself only wipes/reinitializes world state — it does NOT
     // automatically give already-connected clients a fresh mob or call Login() on
