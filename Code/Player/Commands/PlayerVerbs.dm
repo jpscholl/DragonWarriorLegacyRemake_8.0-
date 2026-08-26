@@ -28,6 +28,115 @@ mob/DblClick()
     ..()
 
 // -----------------------------
+// Quick item — numpad * cycles, numpad - uses
+// -----------------------------
+// CONFIRMED OG feature, described in its own help file: "To choose a quick item, drag it
+// onto the slot in your inventory or press * on your numpad to cycle through items. To
+// use your quick item, press - on your numpad." The cycle half is what's built here; the
+// drag-onto-a-slot half needs a screen-object HUD, which doesn't exist yet (there is no
+// screen_loc usage anywhere in the codebase — RemakeVsOGStructure.md Part 3.15).
+mob/var/obj/item/quickItem = null
+
+mob/verb/ScrollQuickItem()
+    set hidden = 1
+
+    var/list/items = list()
+    for(var/obj/item/I in contents)
+        items += I
+
+    if(!items.len)
+        src << output("You have no items.", "Info")
+        quickItem = null
+        return
+
+    // Advance to the next item after the current one, wrapping around. A quick item that
+    // has since been used up or dropped isn't in the list any more, so this falls
+    // through to the first entry.
+    var/index = items.Find(quickItem)
+    index = (index >= items.len) ? 1 : index + 1
+
+    quickItem = items[index]
+    src << output("Quick Item: [quickItem.name]", "Info")
+
+mob/verb/UseQuickItem()
+    set hidden = 1
+
+    if(!quickItem)
+        src << output("No quick item selected. Press * on your numpad to choose one.", "Info")
+        return
+
+    // The item may have been dropped, given away, or consumed since it was picked.
+    if(quickItem.loc != src)
+        quickItem = null
+        src << output("You no longer have that item.", "Info")
+        return
+
+    quickItem.UseItem(src)
+
+// -----------------------------
+// Quick cast — F5 / F6 / F7
+// -----------------------------
+// CONFIRMED OG feature (quick_5/quick_6/quick_7 vars, plus its own "Quick Cast Hotkeys"
+// prompt and the "You have no spells that can be hotkeyed." refusal, both verbatim
+// below). Three spell hotkeys separate from the five numpad skill slots, so a caster can
+// keep utility spells reachable without spending a combat slot on them.
+mob/var/list/quickSpells = alist(5 = null, 6 = null, 7 = null)
+
+mob/player/verb/SetQuickCast()
+    set category = "Actions"
+    set desc = "Assign a spell to one of the F5/F6/F7 hotkeys"
+
+    var/list/castable = list()
+    for(var/datum/skill/S in skills)
+        if(S.isSpell) castable[S.skillName] = S
+
+    if(!castable.len)
+        src << output("You have no spells that can be hotkeyed.", "Info")
+        return
+
+    var/keyChoice = input(src, "Which hotkey will you change?", "Quick Cast Hotkeys") in list("F5", "F6", "F7", "Cancel")
+    if(!keyChoice || keyChoice == "Cancel") return
+
+    var/slot = text2num(copytext(keyChoice, 2))
+
+    var/spellChoice = input(src, "Which spell for [keyChoice]?", "Quick Cast Hotkeys") in castable + "Clear"
+    if(!spellChoice) return
+
+    if(spellChoice == "Clear")
+        quickSpells[slot] = null
+        src << output("[keyChoice] cleared.", "Info")
+        return
+
+    quickSpells[slot] = castable[spellChoice]
+    src << output("[keyChoice] set to [spellChoice].", "Info")
+
+// Driven by the F5/F6/F7 macros (Interface.dmf). Targets whoever is on the tile in
+// front, exactly like UseSkillSlot() (PlayerTemplate.dm) — a quick-cast spell is still
+// a normal cast, it just skips the numpad slot.
+mob/verb/UseQuickSpell(slot as num)
+    set hidden = 1
+
+    var/datum/skill/S = quickSpells[slot]
+    if(!S)
+        src << output("No spell assigned to F[slot].", "Info")
+        return
+
+    // Same central silence gate every other casting entry point uses.
+    if(isSilenced)
+        src << output("You are silenced and cannot cast!", "Info")
+        return
+
+    var/mob/target = null
+    var/turf/stepTile = get_step(src, src.dir)
+    if(stepTile)
+        for(var/mob/M in stepTile.contents)
+            if(M == src) continue
+            target = M
+            break
+
+    S.OnUse(src, target)
+
+// -----------------------------
 // Player click menu
 // -----------------------------
 // CONFIRMED OG feature (strings: "What shall you do?", "Give Gold", "Give Item",
