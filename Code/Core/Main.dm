@@ -171,6 +171,22 @@ proc/IsNightVariant(text)
     var/len = length(text)
     return len > 5 && copytext(text, len - 4, len + 1) == "night"
 
+// Given ANY icon_state (day or night form), returns the version matching the CURRENT
+// global isNight — stripping an existing "night" suffix first, so it's safe to pass
+// either. Used by obj/door's close() (Code/World/Obj.dm): closed_icon_state is a fixed
+// value set once at door creation and GM_DayNight's own sweep (ToggleNightIconState()
+// below) only ever touches a door's live icon_state, never that stored baseline — so a
+// door closing during night was reverting straight back to its creation-time (often day)
+// skin instead of the currently-correct one. This computes the right sprite fresh every
+// time instead of trusting a value that can go stale.
+proc/ApplyNightSuffix(baseState)
+    if(!baseState) return baseState
+    var/state = baseState
+    if(IsNightVariant(state))
+        state = copytext(state, 1, length(state) - 4)
+    if(isNight) state += "night"
+    return state
+
 // Global battle-mode override — toggled by GM_BattleMode() in
 // Code/Admin/Commands/GMCommands.dm. Forces every area's battleModeOn to the same
 // value, disregarding each area type's own default (Code/World/Area.dm).
