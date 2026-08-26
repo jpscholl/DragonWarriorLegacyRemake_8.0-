@@ -5,13 +5,13 @@ datum/PaletteManager
     var/list/originalColors   // defaults
     var/list/colors           // current/custom
 
-    New(_class, _icon_id)
+    New(_class, _icon_id, mob/M)
         class = _class
         icon_id = _icon_id
 
-        var/defaults = new /datum/DefaultIconColors().GetIconColors(class, icon_id)
+        var/defaults = new /datum/DefaultIconColors().GetIconColors(class, icon_id, M)
         if(!defaults)
-            src << output("No base icon colors for [class]/[icon_id]", "Info")
+            if(M) M << output("No base icon colors for [class]/[icon_id]", "Info")
             return
 
         originalColors = list()
@@ -23,8 +23,8 @@ datum/PaletteManager
     proc/GetZoneColor(zone)
         return colors[zone]
 
-    proc/SetZoneColor(zone, newColor)
+    proc/SetZoneColor(zone, newColor, mob/M)
         if(!(zone in colors))
-            src << output("Invalid zone: [zone]", "Info")
+            if(M) M << output("Invalid zone: [zone]", "Info")
             return
         colors[zone] = newColor

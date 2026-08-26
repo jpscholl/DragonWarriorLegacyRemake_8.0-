@@ -7,7 +7,7 @@ mob/player
         obj/StatLink/vitStatPanel
         obj/StatLink/agiStatPanel
         obj/StatLink/intStatPanel
-        obj/StatLink/luckStatPanel
+        obj/StatLink/spiritStatPanel
 
     // -----------------------------
     // Display player stats
@@ -45,18 +45,18 @@ mob/player
         if(!vitStatPanel)  vitStatPanel  = new /obj/StatLink("Vitality", src)
         if(!agiStatPanel)  agiStatPanel  = new /obj/StatLink("Agility", src)
         if(!intStatPanel)  intStatPanel  = new /obj/StatLink("Intelligence", src)
-        if(!luckStatPanel) luckStatPanel = new /obj/StatLink("Luck", src)
+        if(!spiritStatPanel) spiritStatPanel = new /obj/StatLink("Spirit", src)
 
         // Header panel for combat-related stats
         statpanel("Battle")
 
         // Display clickable stat links for allocation — order matches the confirmed OG
-        // Battle tab layout (Str, Agi, Vit, Int, Luck).
+        // Battle tab layout (Str, Agi, Vit, Int, Spirit).
         stat(strStatPanel)
         stat(agiStatPanel)
         stat(vitStatPanel)
         stat(intStatPanel)
-        stat(luckStatPanel)
+        stat(spiritStatPanel)
 
         // Show remaining stat points available for allocation
         stat("Stat Points: [StatPoints]")

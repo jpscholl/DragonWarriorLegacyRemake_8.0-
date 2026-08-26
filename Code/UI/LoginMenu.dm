@@ -281,7 +281,7 @@ mob/proc/IconPreview(turf/T = locate(3,3,2))
 // -----------------------------
 mob/proc/CustomizeColors()
     // Build palette ONCE
-    palette = new /datum/PaletteManager(selectedClass, selectedIconName)
+    palette = new /datum/PaletteManager(selectedClass, selectedIconName, src)
 
     while(TRUE)
         var/list/options = list("Main", "Accent", "Hair", "Eyes", "Finish", "Back")
@@ -421,7 +421,7 @@ proc/ApplyCustomStats(mob/playerTemp/src, mob/player/dst)
     dst.Vitality     = src.Vitality
     dst.Agility      = src.Agility
     dst.Intelligence = src.Intelligence
-    dst.Luck         = src.Luck
+    dst.Spirit       = src.Spirit
 
 
 //copy player appearance from preview
@@ -443,12 +443,23 @@ proc/ApplyCustomColors(mob/playerTemp/src, mob/player/dst)
 // -----------------------------
 // Stat Allocation
 // -----------------------------
+// Confirmed 2026-08-10: creation starts every stat at 1 (base mob default,
+// PlayerTemplate.dm) with 12 points to allocate, each stat capped at 10 for this
+// screen specifically — the much higher per-class ceilings (GetClassStatCaps(),
+// PlayerTemplate.dm) still govern level-up spend (ClickableStats.dm), just not
+// reachable at creation anymore.
+#define CREATION_STAT_POINTS 12
+#define CREATION_STAT_CAP 10
+
 proc/StatAllocation(mob/playerTemp/M)
-    var/remainingStatPoints = 14
-    // Per-class ceiling (PlayerTemplate.dm's GetClassStatCaps()) — replaces the old
-    // flat cap-10-for-everyone so e.g. Hero's 150 Intelligence cap is actually reachable
-    // at creation time, not silently clamped to 10 like every other stat.
-    var/list/statCaps = GetClassStatCaps(M.selectedClass)
+    var/remainingStatPoints = CREATION_STAT_POINTS
+    var/list/statCaps = list(
+        "Strength"     = CREATION_STAT_CAP,
+        "Vitality"     = CREATION_STAT_CAP,
+        "Agility"      = CREATION_STAT_CAP,
+        "Intelligence" = CREATION_STAT_CAP,
+        "Spirit"       = CREATION_STAT_CAP
+    )
     var/lastStat = null   // which stat was picked last, so the dialog can re-highlight it
 
     // Temporary stat storage
@@ -457,7 +468,7 @@ proc/StatAllocation(mob/playerTemp/M)
         "Vitality"     = M.Vitality,
         "Agility"      = M.Agility,
         "Intelligence" = M.Intelligence,
-        "Luck"         = M.Luck
+        "Spirit"       = M.Spirit
     )
 
     while(TRUE)

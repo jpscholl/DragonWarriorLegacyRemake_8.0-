@@ -23,7 +23,7 @@ datum/CharacterSaveData
     var/Vitality
     var/Agility
     var/Intelligence
-    var/Luck
+    var/Spirit
     var/StatPoints
 
     // Appearance
@@ -63,7 +63,7 @@ datum/CharacterSaveData/proc/BuildFromCharacter(mob/player/P)
     Vitality = P.Vitality
     Agility = P.Agility
     Intelligence = P.Intelligence
-    Luck = P.Luck
+    Spirit = P.Spirit
     StatPoints = P.StatPoints
 
     baseIcon = P.baseIcon        // <- save the base icon here
@@ -95,7 +95,7 @@ datum/CharacterSaveData/proc/ApplyToCharacter(mob/player/P)
     P.Vitality = Vitality
     P.Agility = Agility
     P.Intelligence = Intelligence
-    P.Luck = Luck
+    P.Spirit = Spirit
     P.StatPoints = StatPoints
 
     P.baseIcon = baseIcon       // <- restore the base icon
