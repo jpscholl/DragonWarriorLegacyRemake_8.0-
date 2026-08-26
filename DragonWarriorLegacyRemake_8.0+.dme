@@ -51,6 +51,18 @@
 // Shared across LoginMenu.dm/SaveSystem.dm/GMCommands.dm so all three stay in sync.
 #define MAX_CHARACTERS 4
 
+// Character-creation step constants (originally only in Code\UI\LoginMenu.dm, which
+// still owns the real creation flow). Same #include-order reason as the others above —
+// Code\Player\PlayerTemplate.dm's RunSageReclassFlow() needs these too (it reuses
+// LoginMenu.dm's IconSelect()/CustomizeColors()/StatAllocation() for Classchange's real
+// OG behavior — a full re-run of icon/color/stat selection, not a stat carry-over) and
+// compiles before Code\UI\LoginMenu.dm alphabetically.
+#define STEP_NAME   1
+#define STEP_CLASS  2
+#define STEP_ICON   3
+#define STEP_CUSTOM 4
+#define STEP_STATS  5
+
 // BEGIN_INCLUDE
 #include "Interface.dmf"
 #include "Code\Admin\AdminLevels.dm"
