@@ -400,11 +400,22 @@ mob/player/proc/BecomeSage()
     newMob.accentColor = accentColor
     newMob.palette = palette
 
-    // Progress
-    newMob.Level = Level
-    newMob.Exp = Exp
-    newMob.Nexp = Nexp
+    // Progress. CONFIRMED OG behavior (its own classchange confirmation prompt: "You
+    // will keep all your items and gold, but you will be set back to level 1") — the
+    // reclass is a real cost, not a free upgrade. This used to carry Level/Exp straight
+    // across, which made Classchange strictly beneficial and skipped the whole tradeoff.
+    // Nexp is recomputed off the reset Level rather than carried, matching how
+    // LevelCheck() (CombatSystem.dm) derives it on a normal level-up.
+    newMob.Level = 1
+    newMob.Exp = 0
+    newMob.Nexp = BASE_EXP
     newMob.Gold = Gold
+    // UNCONFIRMED: the OG prompt names items and gold as what survives, and level as
+    // what resets — it says nothing either way about the five stats or unspent stat
+    // points. Carried across here rather than reset, since resetting them isn't
+    // supported by any string and would be a much harsher penalty than the prompt
+    // describes. Revisit if the collaborator's next decompile pass reaches the real
+    // classchange proc.
     newMob.Strength = Strength
     newMob.Vitality = Vitality
     newMob.Agility = Agility

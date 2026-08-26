@@ -24,19 +24,25 @@
 // pipeline above and EnemyNPCs.dm both lean on — attack speed, "am I actually next to
 // my target" (not just Chebyshev-close), and "is combat even allowed here."
 
-// Placeholder death penalty percentages — Gold loss matches "lose half gold" already
-// documented from the original design notes; EXP loss is a new addition with no prior
-// number, tunable like everything else here.
-#define DEATH_EXP_LOSS_PERCENT 25
+// CONFIRMED 2026-08-25 (OG string table, string 605): "You have lost 5% of your EXP as
+// penalty for respawn." — 5%, verbatim. Was 25%, an invented number.
+#define DEATH_EXP_LOSS_PERCENT 5
+
+// UNCONFIRMED — remake-only, deliberately left in place. The old comment here claimed
+// this matched a "lose half gold" original design note, but the full 4450-string OG table
+// contains no gold-loss message and no gold-loss variable anywhere (see
+// RemakeVsOGStructure.md Part 5.2). The OG's only stated respawn penalty is the 5% EXP
+// line above. Kept at 50 rather than silently zeroed since removing a penalty is a
+// balance decision, not a correction — but treat it as a remake addition, not OG-derived.
 #define DEATH_GOLD_LOSS_PERCENT 50
 
-// How long a dead player must wait before Interact() (Code/Player/Commands/PlayerVerbs.dm)
-// will respawn them.
-#define RESPAWN_DELAY 100  // world.time units (10 real seconds at the default tick rate)
-// OG FINDING 2026-08-10: real OG respawn is automatic after 60 seconds, no manual
-// Interact() press needed at all. This 10s manual-trigger minimum is a remake design
-// choice, not OG-derived — needs a real decision (auto-fire at 60s? keep manual as an
-// early-respawn option on top?) before retuning. See TODOList.md Phase 6.
+// CONFIRMED 2026-08-25 (OG string table, string 887): "You will auto-respawn in 60
+// seconds.  You may press 5 on your numpad to respawn before then." Both halves are now
+// implemented: RespawnPlayer() fires automatically after this delay (scheduled in Die()
+// below), and numpad 5 — the "Center" macro, bound to Interact() in Interface.dmf —
+// respawns immediately with NO minimum wait. The old model was the reverse of the OG's:
+// a 10-second minimum before a manual press was even allowed, and no auto-respawn at all.
+#define RESPAWN_AUTO_DELAY 600  // world.time units (60 real seconds at the default tick rate)
 
 mob/var/isDead = FALSE
 mob/var/deathTime = 0
@@ -227,24 +233,60 @@ mob/proc
                 attacker << output("You gain [goldDrop] Gold.", "Info")
 
         if(istype(src, /mob/player))
-            // Player death: no auto-respawn, no deletion — wait for Interact() once
-            // RESPAWN_DELAY has passed. Lose a percentage of Exp/Gold as a penalty.
+            // Player death: no deletion. Respawn happens either automatically after
+            // RESPAWN_AUTO_DELAY or immediately on numpad 5 (Interact(), PlayerVerbs.dm),
+            // matching the OG exactly. Lose a percentage of Exp/Gold as a penalty.
             isDead = TRUE
             deathTime = world.time
+            // Exp is per-level progress here (LevelCheck() resets it to 0 on every
+            // level-up), so flooring at 0 already gives the OG's exp_min behavior for
+            // free: a death penalty can never de-level you.
             Exp = max(0, Exp - round(Exp * DEATH_EXP_LOSS_PERCENT / 100))
             Gold = max(0, Gold - round(Gold * DEATH_GOLD_LOSS_PERCENT / 100))
             density = 0
             icon_state = "sleep"
             // Locks movement via mob/proc/Step()'s existing canAct gate
             // (SmoothMovement.dm) — same mechanism already used to root a player
-            // mid-attack. Reset on respawn, see Interact() in PlayerVerbs.dm.
+            // mid-attack. Reset on respawn, see RespawnPlayer() below.
             canAct = FALSE
-            src << output("You have died. Press Interact in [RESPAWN_DELAY / 10] seconds to respawn.", "Info")
+            src << output("You will auto-respawn in [RESPAWN_AUTO_DELAY / 10] seconds. You may press 5 on your numpad to respawn before then.", "Info")
+
+            // Auto-respawn timer. Captures deathTime so a player who respawned early
+            // (numpad 5), died again, and is now on a NEW death doesn't get yanked by
+            // this older timer firing late — RespawnPlayer() no-ops unless this is still
+            // the same death it was scheduled for.
+            var/thisDeath = deathTime
+            spawn(RESPAWN_AUTO_DELAY)
+                if(isDead && deathTime == thisDeath)
+                    RespawnPlayer()
         else
             // Enemy death: CleanUpDead() (called from TakeDamage right after this)
             // handles the actual deletion.
             density = 0
             icon_state = "sleep"
+
+mob/proc
+    // Brings a dead player back at the respawn point, full HP/MP. The single respawn
+    // path — reached automatically by Die()'s RESPAWN_AUTO_DELAY timer above, or
+    // immediately when the player presses numpad 5 (Interact(), PlayerVerbs.dm). Both
+    // routes used to be one inline block inside Interact(); the auto-respawn timer needed
+    // the same work, so it lives here rather than being written twice.
+    RespawnPlayer()
+        if(!isDead) return
+
+        isDead = FALSE
+        HP = MaxHP
+        MP = MaxMP
+        density = 1
+        icon_state = "world"
+        isDefending = FALSE  // clear a stale defend stance from before death — icon_state
+                               // above already resets visually, this resets the actual
+                               // damage-reduction flag (Defend, SkillDatum.dm) to match
+        ClearStatusEffects()  // don't respawn still poisoned (StatusEffects.dm)
+        loc = GetRespawnTurf()
+        canAct = TRUE  // re-enable movement — Die() above locks this as part of the
+                        // death flow
+        src << output("You respawn.", "Info")
 
 // PLACEHOLDER exp curve — convex on purpose ("fast at first, slows down" per your own
 // description): cheap early on, requirement balloons at high levels. Quadratic

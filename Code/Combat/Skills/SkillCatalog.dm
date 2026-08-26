@@ -630,9 +630,11 @@ datum/skill/Revive
             user.canAct = TRUE
 
 // Goof-off's signature unlock — transforms this character into a Sage (DW3-style).
-// Level 25, no stat gate — the one real data point TODOList.md already has for this
-// (2026-08-04 decision notes). OnUse() just hands off to BecomeSage() (PlayerTemplate.dm),
-// which does the actual mob-swap.
+// Level 25, no stat gate — confirmed by the OG help file, and matching the data point
+// TODOList.md already carried (2026-08-04 decision notes). OnUse() gates on level and
+// confirms, then hands off to BecomeSage() (PlayerTemplate.dm) for the actual mob-swap
+// and the level-1 reset the OG's own confirmation prompt promises.
+#define CLASSCHANGE_MIN_LEVEL 25
 datum/skill/Classchange
     parent_type = /datum/skill
     skillName = "Classchange"
@@ -645,5 +647,23 @@ datum/skill/Classchange
         if(istype(P, /mob/player/Sage))
             P << output("You are already a Sage.", "Info")
             return
+
+        // CONFIRMED level gate (OG help file: Goof Off "at level 25 they can turn into
+        // the very powerful Sage class"). The skill itself is already granted at level 25
+        // via Goofoff's unlock table (SkillUnlocks.dm), but that only controls when it's
+        // LEARNED — a GM_LevelIncrease down, a future respec, or any other path that
+        // moves Level after the fact would otherwise let it fire under-level.
+        if(P.Level < CLASSCHANGE_MIN_LEVEL)
+            P << output("You must be at least level [CLASSCHANGE_MIN_LEVEL] to change your class.", "Info")
+            return
+
+        // CONFIRMED OG requirement (string: "You must unequip everything before you can
+        // change your class."). Nothing in the remake is equippable yet — amulets aren't
+        // built (RemakeVsOGStructure.md Part 2, Items) — so there is nothing to check
+        // and this gate is a no-op today. Wire it here the moment equipment exists;
+        // the message is already the OG's own wording.
+
+        var/confirm = alert(P, "Are you sure you want to change your class to Sage? (You will keep all your items and gold, but you will be set back to level 1.)", "Classchange", "Yes", "No")
+        if(confirm != "Yes") return
 
         P.BecomeSage()

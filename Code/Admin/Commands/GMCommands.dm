@@ -340,8 +340,11 @@ mob/verb/GM_Mute()
     if(confirm != "Yes") return
 
     target.isMuted = TRUE
-    target << output("You have been muted by a GM.", "Info")
-    src << output("Muted [target.name] ([target.key]).", "Info")
+    // Deliberately NO message to the target — the OG's mute is silent ("You have
+    // secretly muted X"), and DeliverChat() (SocialVerbs.dm) keeps echoing their own
+    // chat back to them so nothing looks broken from their side. Telling them here
+    // would defeat the entire mechanism.
+    src << output("You have secretly muted [target.name] ([target.key]).", "Info")
 
 // isMuted is session-only (no savefile field), so unlike ShowBanList this just
 // scans the live `players` list instead of every savefile on disk.
@@ -365,8 +368,9 @@ mob/proc/ShowMuteList()
     if(!target) return
 
     target.isMuted = FALSE
-    target << output("You have been unmuted by a GM.", "Info")
-    src << output("Unmuted [choice].", "Info")
+    // Silent on the target's side too, same reasoning as muting above — they were never
+    // told it started, so telling them it ended would reveal it retroactively.
+    src << output("You have secretly unmuted [choice].", "Info")
 
 // -----------------------------
 // GM Pwipe

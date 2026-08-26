@@ -1,10 +1,62 @@
+// -----------------------------
+// Chat delivery — shadow mute
+// -----------------------------
+// CONFIRMED 2026-08-25 (OG string table): mute in the original was SILENT to its target.
+// The table carries GM-only "(Muted)<name(key) says:> ..." copies of every chat form
+// alongside the normal ones, and GM_Mute's own confirmation reads "You have secretly
+// [un]muted X" — the whole design is that a muted player keeps talking into a void,
+// never learning they've been muted. The remake previously hard-muted instead, telling
+// the target "You are muted and cannot speak." and sending nothing, which tips them off
+// immediately and makes the mute useless as a moderation tool.
+//
+// DeliverChat() is now the single delivery path for every chat verb below (and PartySay,
+// PartyVerbs.dm). Not muted: everyone in `audience` hears it, normally. Muted: only the
+// speaker sees their own line (so nothing looks wrong from their side), plus every
+// connected GM gets a "(Muted)" copy so moderation can still watch what they're saying.
 mob
-    // Shared mute gate for every chat verb below (and PartySay, PartyVerbs.dm) —
-    // isMuted is set by GM_Mute (GMCommands.dm).
+    proc/DeliverChat(list/audience, msg)
+        if(!isMuted)
+            audience << output(msg, "Messages")
+            return
+
+        // Speaker still sees their own message — this is what makes the mute invisible.
+        src << output(msg, "Messages")
+
+        // GM-visible copy. Tagged so a GM can tell at a glance that nobody else received
+        // it, matching the OG's own "(Muted)<...>" prefix convention.
+        for(var/mob/player/P in players)
+            if(P == src) continue
+            if(P.client && P.client.canAdmin)
+                P << output("<font color='gray'>(Muted)</font> [msg]", "Messages")
+
+    // Retained so existing callers keep compiling, but it no longer speaks to the target
+    // — see DeliverChat() above. Returns whether this mob is muted, for any caller that
+    // needs to branch on it without sending anything.
     proc/CheckMuted()
-        if(!isMuted) return FALSE
-        src << output("You are muted and cannot speak.", "Info")
-        return TRUE
+        return isMuted
+
+// -----------------------------
+// World chat rate limit
+// -----------------------------
+// CONFIRMED 2026-08-25 (OG string table): "You must wait 1 second between each world say"
+// and "You must wait 1 second between each world emote", backed by the OG's own
+// `wsay_limit` var. WorldSay/WorldEmote reach every player on the server at once and had
+// no throttle at all here before this. One shared timestamp for both, same as the OG's
+// single var — spamming alternately between the two shouldn't dodge the limit.
+#define WORLD_CHAT_COOLDOWN 10  // world.time units (1 real second)
+
+mob/var/wsayLimit = 0
+
+mob
+    // Returns TRUE (and explains why) if this mob is still inside the world-chat
+    // cooldown. Unlike the mute check above, this one DOES tell the player — it's a
+    // rate limit, not a moderation action, and the OG shows the message too.
+    proc/WorldChatThrottled(what)
+        if(world.time - wsayLimit < WORLD_CHAT_COOLDOWN)
+            src << output("You must wait 1 second between each world [what]", "Info")
+            return TRUE
+        wsayLimit = world.time
+        return FALSE
 
     verb
         // -----------------------------
@@ -16,12 +68,11 @@ mob
 
             if(trimtext(msg) == "") return  // ignore empty messages
             LogChat("<[src.name]([src.key]) [msg]>", src)
-            if(CheckMuted()) return
             msg = CensorText(msg)
 
             // Send an emote to all players in view
             // Styled in black, shows the player icon and emote text
-            view() << output("<font color='black'> \icon[src]&lt;[src.name] [msg]&gt;</font>", "Messages")
+            DeliverChat(view(src), "<font color='black'> \icon[src]&lt;[src.name] [msg]&gt;</font>")
 
 
         // -----------------------------
@@ -33,12 +84,11 @@ mob
 
             if(trimtext(msg) == "") return  // ignore empty messages
             LogChat("<[src.name]([src.key]) says:> [msg]", src)
-            if(CheckMuted()) return
             msg = CensorText(msg)
 
             // Send a spoken message to all players in view
             // Styled in blue, includes "says:" prefix
-            view() << output("<font color='blue'> \icon[src]&lt;[src.name] says:&gt; [msg]</font>", "Messages")
+            DeliverChat(view(src), "<font color='blue'> \icon[src]&lt;[src.name] says:&gt; [msg]</font>")
 
 
         // -----------------------------
@@ -50,13 +100,15 @@ mob
 
             if(trimtext(msg) == "") return  // ignore empty messages
             LogChat("<[src.name]([src.key]) tells [M.name]([M.key]):> [msg]", src)
-            if(CheckMuted()) return
             msg = CensorText(msg)
             if(M != src)
-                // Message to the recipient, styled in navy
-                M << output("<font color='navy'> \icon[src]&lt;[src] tells you:&gt; [msg]</font>", "Messages")
+                // Recipient's copy goes through DeliverChat() so a muted sender's Tell
+                // silently doesn't arrive, same as every other chat form.
+                DeliverChat(list(M), "<font color='navy'> \icon[src]&lt;[src] tells you:&gt; [msg]</font>")
 
-                // Confirmation back to the sender
+                // Confirmation back to the sender — direct, not via DeliverChat(), since
+                // this line is always meant for the sender alone and a muted sender must
+                // still see it for the mute to stay invisible.
                 src << output("<font color='navy'> \icon[M]&lt;You tell [M]:&gt; [msg]</font>", "Messages")
 
 
@@ -83,13 +135,13 @@ mob
             set desc = "Emote to all players in the world"
 
             if(trimtext(msg) == "") return  // ignore empty messages
+            if(WorldChatThrottled("emote")) return
             LogChat("<[src.name]([src.key]) [msg] to the world>", src)
-            if(CheckMuted()) return
             msg = CensorText(msg)
 
             // Send an emote to every player in the world
             // Styled in maroon
-            players << output("<font color='maroon'> \icon[src]&lt;[src.name] [msg] to the world&gt;</font>", "Messages")
+            DeliverChat(players, "<font color='maroon'> \icon[src]&lt;[src.name] [msg] to the world&gt;</font>")
 
 
         // -----------------------------
@@ -100,10 +152,10 @@ mob
             set desc = "Chat to all players in the world"
 
             if(trimtext(msg) == "") return  // ignore empty messages
+            if(WorldChatThrottled("say")) return
             LogChat("<[src.name]([src.key]) wsays:> [msg]", src)
-            if(CheckMuted()) return
             msg = CensorText(msg)
 
             // Send a spoken message to every player in the world
             // Styled in purple, "wsays:" prefix distinguishes it from local Say
-            players << output("<font color='purple'> \icon[src]&lt;[src.name] wsays:&gt; [msg]</font>", "Messages")
+            DeliverChat(players, "<font color='purple'> \icon[src]&lt;[src.name] wsays:&gt; [msg]</font>")

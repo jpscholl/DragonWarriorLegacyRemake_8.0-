@@ -33,28 +33,13 @@ mob/DblClick()
 mob/verb/Interact()
     set hidden = 1   // don’t clutter verb panel
 
-    // Dead players use Interact() to respawn instead of the normal interact flow —
-    // see Die()'s player branch in Code/Combat/CombatSystem.dm for where isDead/
-    // deathTime get set and RESPAWN_DELAY is defined.
+    // Dead players use Interact() to respawn instead of the normal interact flow.
+    // Interact() is bound to the "Center" macro (Interface.dmf) — i.e. numpad 5 — which
+    // is exactly the early-respawn key the OG documents, so this needs no minimum wait:
+    // pressing it respawns immediately, and Die()'s own timer (CombatSystem.dm) handles
+    // the automatic 60-second case for a player who doesn't press anything.
     if(isDead)
-        if(world.time - deathTime < RESPAWN_DELAY)
-            var/secondsLeft = round((RESPAWN_DELAY - (world.time - deathTime)) / 10)
-            src << output("You can't respawn yet — [secondsLeft] more second[secondsLeft == 1 ? "" : "s"].", "Info")
-            return
-
-        isDead = FALSE
-        HP = MaxHP
-        MP = MaxMP
-        density = 1
-        icon_state = "world"
-        isDefending = FALSE  // clear a stale defend stance from before death — icon_state
-                               // above already resets visually, this resets the actual
-                               // damage-reduction flag (Defend, SkillDatum.dm) to match
-        ClearStatusEffects()  // don't respawn still poisoned (StatusEffects.dm)
-        loc = GetRespawnTurf()
-        canAct = TRUE  // re-enable movement — see Die()'s player branch in
-                        // Code/Combat/CombatSystem.dm for where this gets locked
-        src << output("You respawn.", "Info")
+        RespawnPlayer()
         return
 
     // Get the turf one step in the direction the mob is facing

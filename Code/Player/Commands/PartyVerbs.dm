@@ -72,10 +72,12 @@ mob/player/verb/PartySay(msg as text)
     if(!Party) return
     if(trimtext(msg) == "") return
     LogChat("<[src.name]([src.key]) psays ([Party.name]):> [msg]", src)
-    if(CheckMuted()) return
     msg = CensorText(msg)
 
-    Party.Broadcast("\icon[src]&lt;[src.name] psays:&gt; [msg]")
+    // Routed through DeliverChat() (SocialVerbs.dm) rather than Party.Broadcast() so a
+    // muted speaker gets the same shadow-mute treatment here as in every other chat
+    // form — they still see their own party line, the rest of the party doesn't.
+    DeliverChat(Party.members, "<font color='#006400'> \icon[src]&lt;[src.name] psays:&gt; [msg]</font>")
 
 mob/player/verb/PartyShare()
     set category = "Party"
