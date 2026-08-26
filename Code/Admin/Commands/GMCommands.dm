@@ -438,6 +438,79 @@ mob/proc/PwipeCharacter(mob/player/target)
         del(C)
 
 // -----------------------------
+// GM Name Change
+// -----------------------------
+// Confirmed OG spec (GMCommandsReference.md): broader target scope than the
+// player-only pickers above — players AND mobs (NPCs/monsters), so a GM can rename
+// wildlife too, not just people. Player half reuses GetModerationTargets() (same
+// hierarchy/self-exclusion rule as Ban/Boot/Mute/Pwipe); mob half is just every
+// non-player mob currently in the GM's view — there's no "pick a nearby obj/mob"
+// primitive yet to reuse (GMdelobjmob isn't built), so view(src) is the simplest
+// "what can I actually see to click on" scope. Same name validation as character
+// creation (PromptForName(), LoginMenu.dm) — reject outright via IsTextFiltered()
+// rather than censoring, so a GM can't accidentally leave a half-asterisked name.
+// Confirmed persistence: this is a live mob.name change, so a renamed player's next
+// save (including a normal logout autosave) writes the new name permanently — no
+// separate "make it stick" step. GM-tier power per the original design notes.
+#define MAX_NAME_LENGTH 24
+mob/verb/GM_NameChange()
+    set category = "GM"
+    set desc = "Rename a connected player's character, or any NPC/monster in view"
+
+    if(!client || client.adminLevel < LEVEL_GM_HOST)
+        src << output("You don't have GM access.", "Info")
+        return
+
+    var/list/targets = GetModerationTargets()
+    for(var/mob/M in view(src))
+        if(istype(M, /mob/player)) continue
+        targets["[M.name] ([M.type])"] = M
+
+    if(!targets.len)
+        src << output("No one eligible to rename is connected or in view.", "Info")
+        return
+
+    var/list/options = targets.Copy()
+    options += "Cancel"
+
+    var/choice = input(src, "Select a player or mob to rename:", "GM_NameChange") in options
+    if(!choice || choice == "Cancel") return
+
+    var/mob/target = targets[choice]
+    if(!target) return
+
+    var/newName
+    var/prompt = "New name for [target.name]:"
+    while(TRUE)
+        newName = input(src, prompt, "GM_NameChange") as text|null
+        if(isnull(newName)) return  // Cancel
+
+        newName = trimtext(newName)
+
+        if(!length(newName))
+            prompt = "Name can't be blank. New name for [target.name]:"
+            continue
+
+        if(length(newName) > MAX_NAME_LENGTH)
+            prompt = "Name is too long (max [MAX_NAME_LENGTH] characters). New name for [target.name]:"
+            continue
+
+        if(IsTextFiltered(newName))
+            prompt = "That name isn't allowed. New name for [target.name]:"
+            continue
+
+        break
+
+    var/confirm = alert(src, "Rename [target.name] to \"[newName]\"?", "Confirm Rename", "Yes", "No")
+    if(confirm != "Yes") return
+
+    var/oldName = target.name
+    target.name = newName
+    src << output("Renamed [oldName] to [newName].", "Info")
+    if(target.client)
+        target << output("A GM renamed you to [newName].", "Info")
+
+// -----------------------------
 // GM Create Obj
 // -----------------------------
 // Creates any of the game's functional world objects at the GM's own location — not
