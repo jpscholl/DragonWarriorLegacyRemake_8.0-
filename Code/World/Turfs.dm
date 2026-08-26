@@ -394,3 +394,74 @@ turf/table/longtablecenter
 
 		DblClick()
 			if(usr) RenameWarpTurf(src, usr)
+
+// ------------------------------------------------------
+// Hazard terrain — damage on step
+// ------------------------------------------------------
+// CONFIRMED the OG had these: its own type list carries /turf/grass/swamp with an
+// Entered() override, and lava alongside it. The remake had no damaging terrain at all
+// (RemakeVsOGStructure.md Part 3.12), which meant a whole category of level design —
+// making a route cost something rather than just blocking it — wasn't available.
+//
+// Damage is applied per STEP, not on a timer while standing. That's the simpler reading
+// of the OG's Entered()-based implementation, and it keeps hazards predictable: crossing
+// a five-tile swamp always costs exactly five ticks of damage regardless of how fast the
+// player moves. A standing-still drain would also fight with the passive regeneration
+// added in StatsDatum.dm in a way that isn't designed yet.
+//
+// PLACEHOLDER damage values throughout — no OG numbers recovered.
+//
+// This is a BEHAVIOR type, so it belongs here as a real subtype rather than a repainted
+// instance (see this file's own convention note up top): the whole point is the
+// Entered() override.
+turf/hazard
+	// Flat HP lost per step onto this tile.
+	var/stepDamage = 5
+	// Shown to whoever steps on it. Kept per-type so lava and swamp read differently.
+	var/hazardMessage = "The ground burns!"
+	// % chance per step to also inflict poison (StatusEffects.dm). Swamps use this;
+	// lava doesn't.
+	var/poisonChance = 0
+
+	Entered(atom/movable/A)
+		..()
+		if(!ismob(A)) return
+		var/mob/M = A
+		if(M.HP <= 0 || M.isDead) return
+		// Ghosted GMs pass through the world untouched (GM_GhostForm, GMCommands.dm) —
+		// they have no business taking terrain damage while observing.
+		if(M.isGhostform) return
+
+		// Direct HP change rather than TakeDamage(), for the same reason poison does it
+		// (StatusEffects.dm): TakeDamage() would roll RollDodge(), and terrain isn't
+		// something you dodge. Death still routes through the real pipeline below so
+		// nothing is skipped by going around it.
+		M.HP -= stepDamage
+		flick("hit", M)
+		PlaySFXAt(M, istype(M, /mob/enemy) ? 'enemyhit.wav' : 'hit.wav')
+		M << output("<font color='red'>[hazardMessage] (-[stepDamage] HP)</font>", "Info")
+
+		if(poisonChance && prob(poisonChance))
+			M.ApplyStatusEffect(/datum/status_effect/poison)
+
+		if(M.HP <= 0)
+			M.Die(null)  // no attacker to credit — terrain isn't a mob
+			M.CleanUpDead()
+
+turf/hazard/lava
+	name = "lava"
+	icon = 'floor.dmi'
+	icon_state = "burntcobble"  // ART PLACEHOLDER: no lava sprite exists in World Icons/
+	                             // yet, so this borrows the scorched-floor state. Repaint
+	                             // as a map instance once real lava art is drawn.
+	stepDamage = 15
+	hazardMessage = "The lava scorches you!"
+
+turf/hazard/swamp
+	name = "swamp"
+	icon = 'grass.dmi'
+	icon_state = "swamp"
+	stepDamage = 3
+	hazardMessage = "The swamp saps your strength!"
+	poisonChance = 15  // PLACEHOLDER — classic Dragon Warrior swamps poison, and the
+	                    // remake already has a poison effect to reach for
