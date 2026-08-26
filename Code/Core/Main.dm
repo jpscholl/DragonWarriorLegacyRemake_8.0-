@@ -147,6 +147,64 @@ proc/PlaySFXAt(atom/center, filename, channel = SFX_CHANNEL, base = 100)
         if(!M.client) continue
         M.client << sound(filename, channel = channel, volume = M.client.ScaledVolume(base))
 
+// -----------------------------
+// Screen fade transition
+// -----------------------------
+// Full-screen black fade used by stairs and sky-fall (Turfs.dm) to mask the instant
+// z-level teleport those already did — confirmed real icon_states in 'UI & Effects/fade.dmi'
+// (dumped from the actual file, not guessed): 0, 12.5, 25, 37.5, 50, 62.5, 75, 87.5, 100 —
+// 8 steps from fully transparent to fully black, plus an unrelated "waterfade" state this
+// doesn't use. Each state is a solid single-color 32x32 tile (confirmed from the .dmi's own
+// pixel data), which is exactly what makes screen_loc range-tiling below work: one icon
+// tiled across the whole 13x13 view (world.view, this file) reads as one uniform overlay,
+// not a repeating pattern.
+var/list/FADE_STATES = list("0", "12.5", "25", "37.5", "50", "62.5", "75", "87.5", "100")
+#define FADE_STEP_DELAY 1  // deciseconds per frame
+// Every OTHER state (0, 25, 50, 75, 100) rather than all 9 — sleep(1) is already
+// world.tick_lag's floor (no explicit tick_lag set, so BYOND's default 0.1s/tick), so
+// halving frame COUNT is what actually speeds this up rather than shrinking a delay
+// that's already at the minimum meaningfully visible step. 4 transitions = 0.4s per
+// direction, down from 0.8s, and still four distinct visible stages rather than a snap.
+#define FADE_STEP_INCREMENT 2
+#define FADE_STEP_DECREMENT -2
+
+client/var/obj/fadeOverlay
+
+client/proc/GetFadeOverlay()
+    if(!fadeOverlay)
+        var/obj/F = new
+        F.icon = 'fade.dmi'
+        F.icon_state = "0"
+        // Tiles one icon across the whole 13x13 view (this file's own `view = "13x13"`)
+        // rather than stretching a single image — BYOND screen_loc ranges repeat the icon
+        // per tile, which is exactly right for a uniform solid-color overlay.
+        F.screen_loc = "1,1 to 13,13"
+        F.layer = FLOAT_LAYER  // above everything, including other screen objects
+        fadeOverlay = F
+    return fadeOverlay
+
+// toBlack TRUE fades 0 -> 100 (transparent to black); FALSE reverses it (100 -> 0) and
+// then removes the overlay from client.screen — no need to leave a fully-transparent
+// screen object sitting there permanently once the transition finishes. Blocks the
+// calling proc for the sequence's duration (uses sleep() directly, not `set waitfor = 0`)
+// — callers that need this to happen alongside other logic (e.g. an actual teleport
+// between the two halves) should call it from within their own spawn(), same pattern
+// sky's Entered() already used for its old placeholder delay (Turfs.dm).
+mob/proc/PlayScreenFade(toBlack = TRUE)
+    if(!client) return
+    var/obj/F = client.GetFadeOverlay()
+    if(!(F in client.screen)) client.screen += F
+
+    if(toBlack)
+        for(var/i = 1 to FADE_STATES.len step FADE_STEP_INCREMENT)
+            F.icon_state = FADE_STATES[i]
+            sleep(FADE_STEP_DELAY)
+    else
+        for(var/i = FADE_STATES.len to 1 step FADE_STEP_DECREMENT)
+            F.icon_state = FADE_STATES[i]
+            sleep(FADE_STEP_DELAY)
+        client.screen -= F
+
 // Bare last path segment of a typepath or icon path, e.g. /mob/enemy/slime -> "slime".
 // Generic string util (not UI- or icon-specific) — used by LoginMenu.dm for icon
 // selection and by BuildTools.dm's typesof()-driven pickers for display names.
