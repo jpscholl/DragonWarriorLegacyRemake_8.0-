@@ -41,7 +41,7 @@ Follow the exact pattern Hero/Soldier/Wizard already use:
 - **`Code/Player/PlayerTemplate.dm`**: add `mob/player/Fighter`, `/Pilgrim`, `/Goofoff`,
   `/Sage` subtypes (`class = "..."`, `hasMana` where the class is a caster). Add
   per-class stat-cap vars on each subtype (`capStrength`/`capAgility`/`capVitality`/
-  `capIntelligence`/`capLuck`) for **all 7 classes**, not just the new 4 — using
+  `capIntelligence`/`capSpirit`) for **all 7 classes**, not just the new 4 — using
   `ClassReference.md`'s confirmed numbers where known, `// PLACEHOLDER:` invented ones
   elsewhere (every class has at least one `?` gap today).
 - **`Code/UI/LoginMenu.dm`**: add to `PromptForClass()`'s list; add `GetClassIcons()`
@@ -117,7 +117,7 @@ Stats: `// PLACEHOLDER:` tiered stat blocks — group the 88 names into a handfu
 tiers by obvious naming cues (common-animal names like bat/cat/dog = weak; humanoid/
 elemental names = mid; named/boss-sounding entries like `dragonlord`, `cyclops`,
 `devil` = strong), each tier just a multiplier on one base stat block (HP/Strength/
-Agility/Vitality/Intelligence/Luck), per the user's "use them all, best judgement"
+Agility/Vitality/Intelligence/Spirit), per the user's "use them all, best judgement"
 call. No ranged/spellcasting AI this pass (already deferred in `TODOList.md` Phase 6 —
 every monster stays melee-only for now, personal MP pools for casters are a confirmed
 future addition).
@@ -181,6 +181,34 @@ New code (likely a new `Code/Admin/Commands/BuildTools.dm`, added to the `.dme`)
   mouse-up tile, Flood does a same-icon/icon_state contiguous-tile fill (BFS), Delete
   clears the clicked tile then immediately places the current selection (confirmed
   "clear-and-replace" semantics, not a plain delete).
+
+  **Reference details confirmed 2026-08-19** (from the community DM reference at
+  <https://ref.dm-lang.org/DM/mouse/>, built against BYOND 516.1687 — worth consulting
+  directly when this stage actually gets built):
+  - Real signatures — on `client`: `MouseDown(object, location, control, params)`;
+    on an atom: `MouseDown(location, control, params)`. Drag/drop are wider:
+    `MouseDrag(src_object, over_object, src_location, over_location, src_control,
+    over_control, params)` on client, same minus `src_object` on an atom.
+  - **`params` is the key piece for this whole stage.** It's a string — run it through
+    `params2list()` — carrying icon-x/icon-y, screen-loc, which button was used
+    (left/middle/right), ctrl/shift/alt modifier state, and drag-cell/drop-cell. That's
+    exactly what Block/Line/Move need to compute a rectangle or constrain a line
+    between the down and up points, and it means modifier-key variants (e.g. shift to
+    constrain) are basically free if wanted later.
+  - **Performance note from the reference**: the compiler skips mouse-event
+    communication overhead for events you *don't* define — so only define the specific
+    mouse procs this stage needs, don't blanket-define all of them. (`mob/enemy`
+    already defines `DblClick()` for the pet menu, `EnemyNPCs.dm` — that one's earning
+    its keep, no change needed.)
+  - **Version caveat, currently moot but worth knowing**: pre-514 BYOND used a
+    different parameter format entirely (`icon_x`/`icon_y` instead of
+    `control`/`params`). The machine currently has an old 2010-era `dm.exe` installed
+    on purpose for OG research access, but the remake's last build was 516.1686 and
+    will go back to a modern BYOND before this stage is built — so target the modern
+    signatures above, not the legacy ones. If cross-version support ever matters,
+    `DM_VERSION`/`DM_BUILD` are built-in preprocessor macros, so `#if DM_VERSION >= 514`
+    can guard version-specific syntax cleanly (this also applies to the pre-existing
+    `?.` safe-navigation compile blocker noted elsewhere).
 - A white cursor-square screen overlay tracks the current build target — same
   `screen`-object-overlay shape `GMseeareas`'s existing area-grid overlay already uses,
   just a single square instead of a grid.

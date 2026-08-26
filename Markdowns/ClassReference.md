@@ -6,11 +6,25 @@ This is raw source data from the OG game, not final remake design — the remake
 is real-time (Zelda-style), not turn-based, so numbers may need rebalancing even once
 they're all confirmed.
 
-**Naming note:** the OG game calls the 5th stat "Spirit" (`spt`/`spr` in the raw notes
-below). This remake renamed it to `Luck` (see `TODOList.md` Open Questions — Luck is the
-period-correct name going back to Dragon Quest III/IV, whereas "Spirit" isn't a real
-Dragon Warrior/Quest stat at any point). Every `Spirit`/`spt`/`spr` reference below should
-be read as `Luck` when this gets implemented.
+**Naming note (reversed 2026-08-09):** the OG game calls the 5th stat "Spirit" (`spt`/`spr`
+in the raw notes below). This remake originally renamed it to `Luck` for period-correctness
+(Luck is real Dragon Quest III/IV lineage, whereas "Spirit" isn't a real Dragon Warrior/Quest
+stat at any point — see `TODOList.md` Open Questions for that original reasoning). **Reversed
+back to `Spirit`** once testing found it also drives MaxMP in combination with Level (see
+Stat effects below) — Spirit reads better than Luck for a stat that's now partly a magic
+stat, not just crit/drop chance. The stat still keeps its crit-rate/item-drop role too, it's
+not purely "Spirit" flavored even now. Code (`var/Spirit` and all its usages) already
+updated to match.
+
+**2026-08-23 — confirmed straight from OG DWL's own compiled files, not just play
+testing.** A collaborator extracted the real string table from the OG's `.dmb` (world bin
+v341, 4450 strings). Internal stat vars really are `str`/`agi`/`vit`/`int`/`spr` — but the
+"Amulet of Spirit" item's own internal keyword is `luck`, sitting right next to it in the
+data. The OG itself never fully settled this naming: the Help section text recovered in
+this same dump literally includes its own disclaimer, word for word, "Note: the following
+is outdated. Some information may be incorrect." So "go off the Help section" is right as
+a priority call, but treat any single term in it (like "Luck") as one data point, not the
+final word, when other OG data disagrees with it.
 
 ---
 
@@ -20,7 +34,32 @@ be read as `Luck` when this gets implemented.
 - **Agility** — attack speed, casting speed, physical defense
 - **Vitality** — max HP, HP regen rate, physical defense, magic defense
 - **Intelligence** — max MP, MP regen rate, magic power, magic defense
-- **Luck** (OG: Spirit) — critical hit rate, monster item-drop chance
+- **Spirit** (was renamed `Luck` in this remake, reversed back — see Naming note above) —
+  critical hit rate, **and max MP in combination with Level** (confirmed from the OG's
+  own — self-admitted outdated — Help section; not yet cross-checked by actual play
+  testing). Exact relationship to Intelligence's own MaxMP contribution unclear — likely
+  both feed the same MaxMP formula rather than one overriding the other, needs
+  confirming. Implemented as a placeholder `MP_PER_SPIRIT` coefficient in
+  `RecalculateVitals()` (`Code/Player/StatsDatum.dm`), tune once confirmed.
+
+**2026-08-23 — two of the lines above now have real data-file backing, not just the Help
+section's word.** Straight from the OG's own extracted `.dmb` string table (see
+`TODOList.md` Phase 6 for the full extraction context):
+- No dedicated "Defense"/"def"-style stat variable exists anywhere in the OG's data.
+  Real support for physical/magic defense being genuinely *derived* from Agility+Vitality
+  and Vitality+Intelligence (per the bullets above), not a stat this list is missing.
+- `crit_rate` is a real, separately tracked variable — not just something computed inline
+  each hit — consistent with Spirit driving it as its own line item above.
+- `HPfactor`/`MPfactor`/`HPregen`/`cur_HPregen`/`MPregen`/`cur_MPregen` all exist as real
+  vars too, confirming "HP/MP regen rate" above is a genuine mechanic with real state
+  behind it, not just flavor text. Not built anywhere in the remake yet — see `TODOList.md`
+  Phase 6's new regen entry.
+
+**Design decision (2026-08-09, your call, not OG behavior):** monster item-drop chance is
+NOT tied to any player stat (OG's own drop mechanic, if any, not confirmed either way) —
+instead it's a hidden flat rate defined per monster type, independent of the dropper's
+Spirit/Luck. Not built yet; when it is, the rate lives on the monster definition
+(`Code/Combat/NPCs/MonsterRoster.dm`), not derived from any player stat.
 
 **Stat display notation**: the `base+X` format seen throughout (Battle tab, `GMplayerstatus`)
 is base stat + bonus points from equipped items — confirmed OG UI behavior. **Your own
@@ -41,7 +80,7 @@ roster's stats — recoverable *names*, not recoverable *numbers*).
 `cost to raise a stat by 1 = 2 + floor(currentStat / 5)`
 
 Backed by 5 real data points from a level 1 Hero's Battle tab: Str 10→4, Agi 4→2, Vit 4→2,
-Int 1→2, Luck 1→2 — all fit the formula exactly. Still need one data point in the 5–9
+Int 1→2, Spirit 1→2 — all fit the formula exactly. Still need one data point in the 5–9
 range to fully confirm the bracket boundary, but this is a working formula now, not just
 a guess.
 
@@ -59,7 +98,7 @@ unequipped skills show up, not Zap's real default state — see corrected Hero r
 ## Hero
 
 - Level cap: 99
-- Stat caps: Strength 60, Intelligence 150, Agility ?, Vitality ?, Luck ?
+- Stat caps: Strength 60, Intelligence 150, Agility ?, Vitality ?, Spirit ?
 - Default equipped slots (confirmed): Numpad 9 = Attack, Numpad 7 = Defend,
   Numpad 3 = Zap, Numpad 1 = Nothing, Numpad 0 = Nothing. Note this doesn't line up
   position-for-position with the "Attack, Defend, Nothing, Zap, Nothing" list from the
@@ -82,7 +121,7 @@ unequipped skills show up, not Zap's real default state — see corrected Hero r
 | [ ] | 20 | Chainsickle | 19 Str | unconfirmed |
 | [ ] | 21 | Thordain | 20 Int | unconfirmed |
 | [ ] | 23 | Bang | 18 Int | unconfirmed |
-| [ ] | 24 | Meditate | 15 Luck | unconfirmed |
+| [ ] | 24 | Meditate | 15 Spirit | unconfirmed |
 | [ ] | 25 | SwordOfLethargy | 23 Str | unconfirmed |
 | [ ] | 25 | Healus | 21 Int | unconfirmed |
 | [ ] | 28 | Stopspell | 17–23 Int | unconfirmed (range?) |
@@ -97,7 +136,7 @@ unequipped skills show up, not Zap's real default state — see corrected Hero r
 ## Soldier
 
 - Level cap: 99
-- Stat caps: Strength 100, Vitality 100, Agility ?, Intelligence ?, Luck ?
+- Stat caps: Strength 100, Vitality 100, Agility ?, Intelligence ?, Spirit ?
 - Default skills: Attack, Defend, Club
 
 | Skill | Requirement | Level |
@@ -121,7 +160,7 @@ All levels/exact stat thresholds unconfirmed — only the governing stat is know
 ## Fighter
 
 - Level cap: 99
-- Stat caps: Strength 100, Agility 100, Vitality 80, Intelligence 40, Luck 40
+- Stat caps: Strength 100, Agility 100, Vitality 80, Intelligence 40, Spirit 40
 - Default skills: Punch
 
 | Skill | Requirement | Level |
@@ -141,7 +180,7 @@ All levels/exact stat thresholds unconfirmed — only the governing stat is know
 ## Goof-off
 
 - Level cap: 99
-- Stat caps: Strength 80, Vitality 60, Intelligence 40, Luck 40, Agility ?
+- Stat caps: Strength 80, Vitality 60, Intelligence 40, Spirit 40, Agility ?
 - Default skills: Attack
 
 Learning `Classchange` transforms this character into a Sage (DW3-style) — not a
@@ -166,7 +205,7 @@ list (not yet documented).
 ## Pilgrim
 
 - Level cap: 99
-- Stat caps: Strength 80, Agility 60, Intelligence 100, Vitality ?, Luck ?
+- Stat caps: Strength 80, Agility 60, Intelligence 100, Vitality ?, Spirit ?
 - Default skills: Attack, Heal
 
 | Skill | Requirement | Level |
@@ -190,14 +229,14 @@ list (not yet documented).
 | SwordOfLethargy | Str | ? |
 | Lightsword | Str | ? |
 | Battleaxe | Str | ? |
-| Meditate | Luck | ? |
+| Meditate | Spirit | ? |
 
 ---
 
 ## Wizard
 
 - Level cap: 99
-- Stat caps: Strength 40, Agility 40, Vitality 60, Intelligence 100, Luck ?
+- Stat caps: Strength 40, Agility 40, Vitality 60, Intelligence 100, Spirit ?
 - Default skills: Attack, Fireball, Icebolt
 
 | Skill | Requirement | Level |
@@ -216,7 +255,7 @@ list (not yet documented).
 | Snowstorm | Int | ? |
 | Barrier | Int | ? |
 | Explodet | Int | ? |
-| Meditate | Luck | ? |
+| Meditate | Spirit | ? |
 
 ---
 
@@ -237,7 +276,7 @@ list (not yet documented).
 
 ## Still needed
 
-- Every class: full Agility/Vitality/Intelligence/Luck stat caps where marked `?` above
+- Every class: full Agility/Vitality/Intelligence/Spirit stat caps where marked `?` above
   — **placeholder policy (2026-08-04)**: invent reasonable numbers now, all tunable
   later, don't block building on these.
 - Soldier/Fighter/Goof-off/Pilgrim/Wizard/Sage: exact level + exact stat threshold per

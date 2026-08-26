@@ -76,14 +76,15 @@ Status key: `[ ]` not discussed yet, `[x]` confirmed behavior documented below.
 
 ## Builder tier (per original design notes)
 
-- [x] `GMdelobjmob` — deletes the closest obj/mob within a 1-square radius of the GM in
-      every direction (not the whole view range as first thought — a tight 3x3 area
-      centered on the GM). If there are multiple equally-close candidates within that
-      radius, opens a selection list instead of guessing. Confirmed
-      deletable targets include doors, bookcases, musical bookcases, and signs — all
-      objs, consistent with how doors/signs/bookcases are already built as `obj` types
-      in `Code/World/Obj.dm` (the "musical bookcase" is the paused jukebox feature idea,
-      also an obj as expected).
+- [x] `GMdelobjmob` (short for GM_Delete_Obj_Mob) — deletes the closest obj/mob within
+      a 1-tile radius of the GM in every direction (confirmed 3x3 area centered on the
+      GM). If there are multiple equally-close candidates within that radius, opens a
+      selection list instead of guessing. Confirmed deletable targets include doors,
+      bookcases, musical bookcases, and signs — all objs, consistent with how doors/
+      signs/bookcases are already built as `obj` types in `Code/World/Obj.dm` (the
+      "musical bookcase" is the paused jukebox feature idea, also an obj as expected).
+      **Players are excluded** — this verb can't delete/kill a player character,
+      obj/mob targets only (use `GMboot`/`GMpwipe`/`GMban` for players instead).
 - [x] `GMghostform` — **already implemented**, confirmed matching our existing
       `GM_GhostForm()` in `Code/Admin/Commands/GMCommands.dm` (invisible + no
       collision + ghost sprite overlay). Was `GM_GhostIconform` — renamed to match
@@ -215,6 +216,12 @@ Status key: `[ ]` not discussed yet, `[x]` confirmed behavior documented below.
       Note: GMs are never considered "players" for this check — players can still hurt a
       GM regardless of coop mode. Every area defaults to Coop ON except the Arena, which
       defaults OFF since it exists specifically for PvP.
+
+      **Confirmed scope**: coop mode only ever gates player-vs-player damage. Enemy
+      monster aggression is a wholly separate system, gated only by `battleModeOn`
+      (`GMbattlemode`) — a monster attacks any player or GM whenever battle mode is on
+      for that area, regardless of what coop mode is set to. Coop toggling PvP on/off
+      never turns monster attacks on/off, and vice versa.
 - [x] `GMdaynight` — **implemented** in `Code/Admin/Commands/GMCommands.dm`. A toggle
       (day→night and back again) that swaps **World Icons only** (turfs/objects/
       environment) to their night variant by appending `"night"` directly onto the
@@ -231,17 +238,31 @@ Status key: `[ ]` not discussed yet, `[x]` confirmed behavior documented below.
 - [x] `GMglobalrespawn` — a full named monster-spawn management system. Opens a list of
       existing spawn definitions (e.g. "Slimes") plus a "Create New Respawn" option.
 
-      **Creating a new one** walks through 5 prompts in order:
-      1. Name (text input) — e.g. "Slimes"
-      2. Monster type — a list of `/mob/monster/*` types to pick from (cat, slime, dog,
+      **Creating a new one** walks through 5 prompts in order (**order corrected** —
+      Area comes before Monster type, not after):
+      1. Name (text input, OK/Cancel) — e.g. "Slimes"
+      2. Area — same area-instance picker as `GMbattlemode`/`GMcoopmode` (specific placed
+         areas like `/area/town/rain`, not area types generally), or all areas at once
+      3. Monster type — a list of `/mob/monster/*` types to pick from (cat, slime, dog,
          redslime, bat, fox, babble, skeleton, drakee, healer, snailslime, magician, etc.
          — confirms these monster types exist in the OG, useful reference for our own
          enemy roster later)
-      3. Area — same area-instance picker as `GMbattlemode`/`GMcoopmode` (specific placed
-         areas like `/area/town/rain`, not area types generally)
       4. Z level — numeric input, "Levels are 1-5; use 0 for all levels" (confirms the OG
          world has exactly 5 z-levels, and spawn definitions can target one or all of them)
-      5. Spawn rate — numeric input, how many of that monster to maintain/spawn
+      5. Spawn count — numeric input, how many of that monster to spawn
+
+      **Confirmed quirk — this is a one-shot spawn, not a maintained population**: unlike
+      the other monster-respawn methods (which keep spawning back up to a set cap as
+      monsters die), `GMglobalrespawn` spawns exactly the count entered in step 5 once,
+      then stops permanently — it does not replenish killed monsters. Don't assume it
+      behaves like a population-maintaining spawner when this gets built.
+
+      **Confirmed quirk — Area and Z level must actually match, or nothing spawns**: the
+      Area picked in step 2 has to exist on the Z level picked in step 4, or the
+      definition silently spawns nothing at all. Example: picking the Bar area but Z
+      level 3 when no Bar instance exists on level 3 — no error, no fallback, just zero
+      monsters. This isn't a validation step in the UI, it's a real consequence of the
+      spawner needing a real matching turf to place monsters on.
 
       **Selecting an existing definition** prompts Modify / Delete / Cancel. Modify
       re-runs the same 5-step creation flow and overwrites the saved definition. Both
@@ -278,6 +299,14 @@ Status key: `[ ]` not discussed yet, `[x]` confirmed behavior documented below.
       alias — if the renamed player's character saves afterward (including a normal
       auto-save on logout), the new name overwrites the original name in their savefile
       permanently, no separate confirmation or revert step.
+
+      **Implemented as `GM_NameChange` (`GMCommands.dm`)** — target list is
+      `GetModerationTargets()` (players, same hierarchy rule as Ban/Boot/Mute/Pwipe)
+      plus every non-player mob in the GM's `view()` (NPCs/monsters), since there's no
+      "pick a nearby obj/mob" primitive yet to reuse. Name validation matches character
+      creation exactly (`PromptForName()`, `LoginMenu.dm`): trim, non-blank,
+      `MAX_NAME_LENGTH`, `IsTextFiltered()` (reject outright, not censored). One "are
+      you sure?" confirm before it lands, GM-tier power.
 - [x] `GMplayerstatus` — opens a player list with an "All" option at the bottom. Picking
       one (or All) opens a popup window ("Status of [Name]") dumping a full character
       sheet — confirmed fields, in order:

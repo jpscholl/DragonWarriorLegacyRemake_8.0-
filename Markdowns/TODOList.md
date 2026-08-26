@@ -90,10 +90,27 @@ build pass, not just one phase:
   this file — no exceptions — for this entire pass, including systems built brand new
   in it (e.g. the building/map-editor tools in Phase 10).
 - **"The Big Beautiful Update" (your joke name for it, riffing on a certain bill)** is
-  the explicitly-planned *next* major pass after this one: real HUD, floating damage
-  numbers, on-screen meters, menu/character-select polish, the graphical build-mode
-  picker, the splashscreen — see the Quality of Life section below for the full list.
-  Nothing in that bucket starts before this mechanics pass is actually done.
+  the explicitly-planned *next* major pass after this one: menu/character-select
+  polish, the graphical build-mode picker, the splashscreen/title screen — see the
+  Quality of Life section below for the full list. Nothing in that bucket starts
+  before this mechanics pass is actually done.
+  **2026-08-13 carve-out — combat feedback UI is IN SCOPE NOW, not BBU:** the bottom
+  HUD (Level/HP/XP/MP) and floating combat numbers (red damage/miss, yellow crit,
+  green heal-with-animation) plus HP/MP meters floating above each player/mob are
+  needed for this pass, not deferred — combat isn't really playable/testable without
+  them. Everything else in the v1 bare-bones-`stat()`-interface rule above still
+  applies (no menu polish, no splash/title screen, no graphical build-mode picker
+  yet) — this is a narrow, explicit carve-out for combat legibility specifically, not
+  a general "UI work is fine now" reversal. See the Map-overlay HUD and Floating
+  damage numbers entries below (Phase 3) for the full spec.
+  **Also clarified, same date — overall release sequencing:** phase 1 (this pass)
+  targets matching the OG as closely as possible; once done, that faithful version
+  ships as its own standalone release in honor of the OG DWL; the Big Beautiful
+  Update (graphics/modernization) is a separate pass that comes after that release,
+  not a continuation blended into it.
+  **2026-08-10, joke floated, not committed**: a possible BBU easter-egg NPC caricature
+  in the same "certain bill" spirit as the nickname itself. Purely a bit at this point
+  — no design, no scheduling, not something to start building unprompted.
 - **Deferred out of this pass entirely** (revisit in a future version, not this one):
   Guilds, "Master" class tier, Merchant/Thief classes, weapon/tome-gated skills,
   Mounts, TM/HM-style spell scrolls. Each is still logged in its normal phase below,
@@ -160,7 +177,11 @@ not gospel). New confirmed mechanics not previously in this file:
 - [x] Create Character flow: Name → Class → Icon → Colors → Stats (`LoginMenu.dm`)
 - [x] Class list: Hero, Soldier, Wizard (icons + palettes)
 - [x] Zone-based recoloring (Main/Accent/Hair/Eyes) via `PaletteManager`/`ColorSwap.dm`
-- [x] Stat allocation on creation (14 points, cap 10 per stat) via `ClickableStats.dm`
+- [x] Stat allocation on creation (12 points, cap 10 per stat, `StatAllocation()` in
+      `LoginMenu.dm`) — creation cap is flat 10 regardless of class; the much higher
+      per-class ceilings (`GetClassStatCaps()`, `PlayerTemplate.dm`) only apply to
+      later level-up spend (`ClickableStats.dm`). Confirmed 2026-08-10; all 5 stats
+      also start at 1 (base mob default) instead of any higher baseline.
 - [ ] Add remaining starting classes: Fighter, Pilgrim, Goof-off (6 playable classes total
       at launch: Hero, Soldier, Wizard, Fighter, Pilgrim, Goof-off)
 - [ ] Sage is normally NOT a creation-time class choice — it's what any class becomes by
@@ -200,8 +221,9 @@ not gospel). New confirmed mechanics not previously in this file:
 
 ## Phase 2 — Core Player Data Model
 
-- [x] Base stats on mob: STR/VIT/AGI/INT/Luck (Luck confirmed as the right pick — see
-      Open Questions below)
+- [x] Base stats on mob: STR/VIT/AGI/INT/Spirit (named `Luck` originally, reversed back
+      to `Spirit` 2026-08-09 once MaxMP tie-in was confirmed — see Open Questions below
+      and `ClassReference.md`'s Naming note)
 - [x] Class, Level, Exp/Nexp, Gold, HP/MaxHP, MP/MaxMP, StatPoints (`PlayerTemplate.dm`)
 - [x] Admin/Builder resolution on `client` (not mob) — hardcoded ckey lists, fresh every
       connect, savefile-tamper-proof by design (`AdminLevels.dm`)
@@ -327,22 +349,51 @@ not gospel). New confirmed mechanics not previously in this file:
       - Experience Points: OG format is `current/next (X.X%)` **with one decimal place**
         (e.g. "10882/14011 (10.3%)"), not a whole-number percent — ours currently has no
         percent shown at all
+        **2026-08-10 real finding, live-confirmed with a second data point:** the shown
+        percentage is **not** `current/next` as a raw ratio. Hero1 at Level 5 showed
+        `389/637 (13.3%)` — 389/637 is actually 61.1%, nowhere near the displayed 13.3%.
+        Same mismatch pattern as the original 10882/14011 (10.3%) reference example
+        above (10882/14011 = 77.7% raw, not 10.3%), so this isn't a one-off glitch, it's
+        consistently how the OG computes the percentage. Working theory: it's progress
+        *within the current level's band* — `(currentExp - thisLevelFloor) /
+        (nextThreshold - thisLevelFloor)`, not progress against the raw total — but
+        this level's floor value isn't known yet for either sample, so the theory is
+        unconfirmed. Also separately noted: the percentage appears to visually update
+        on a short delay relative to the exp number itself (UI-refresh quirk, not a
+        data problem). Needs the floor/threshold value at the moment each sample was
+        taken to actually solve the formula — capture "exp at the exact moment this
+        level was reached" going forward, not just current exp mid-level.
 - [ ] Players-online count in Status panel
 - [ ] **Map-overlay HUD** (Level/HP/XP/MP in large pixel font along the bottom of the
       game view) — confirmed this exists in the OG as a `screen`-anchored overlay drawn
       over the map itself, not a stat panel; nothing like it exists in our code at all
       yet (`screen_loc`/HUD search turned up nothing). Spans the full view width and
-      about 1 tile tall, exact tile count varies with window/zoom size. **Real UI work —
-      out of scope for v1 per the Scope Note at the top of this file**, logged here only
-      as reference for the later visual-polish pass. **Reference found (2026-07-31)**:
+      about 1 tile tall, exact tile count varies with window/zoom size. **2026-08-13:
+      carved out of the Big Beautiful Update, now in scope for this pass** — see the
+      Mechanics-First Build Philosophy note above. **Reference found (2026-07-31)**:
       Silk Wizard's Dragon Warrior Online (a well-known older DW-style BYOND game) uses
       this exact DW-style HUD layout — worth pulling up as a visual/behavioral reference
-      when this pass actually happens.
-- [ ] **Floating damage numbers** — new idea, not OG-derived. A number overlay that pops
-      up on a mob when it takes damage (`TakeDamage()`/`ApplySpellDamage()`,
-      `CombatSystem.dm`), rather than (or alongside) the existing hit flick/sound. Same
-      "Real UI work, later visual-polish pass" scope note as the HUD entry above applies
-      here too — not v1.
+      when this gets built.
+- [ ] **HP/MP meters floating above each player/mob** — new item, 2026-08-13. A small
+      bar or numeric overlay hovering above each character showing current HP/MP at a
+      glance, separate from the bottom HUD (which only shows the local player's own
+      stats) — this one needs to work for any mob in view, not just yourself. Not
+      scoped beyond the concept yet: exact visual style, whether it shows for
+      monsters too or just players/party, whether it's always-on or only appears on
+      damage/nearby-combat. Same in-scope-now carve-out as the HUD above.
+- [ ] **Floating combat numbers** — full spec confirmed 2026-08-13, carved out of the
+      Big Beautiful Update into this pass (previously logged as a deferred "new idea,
+      not OG-derived" — superseded, it's needed now regardless of OG-authenticity).
+      Pops up on a mob when it takes an action, alongside the existing hit flick/sound
+      rather than replacing it (`TakeDamage()`/`ApplySpellDamage()`, `CombatSystem.dm`):
+      - Red number = normal damage taken, or "Miss" text on a dodge (`RollDodge()`)
+      - Yellow number = critical hit damage — note the remake has no crit mechanic
+        built at all yet (see Phase 6's crit findings from OG testing,
+        `CombatDataSheet.md`), so this half is blocked on that being built first
+      - Healing: plays an animation, then a green number showing the amount healed
+        (`ApplyHeal()`)
+      Not scoped beyond the concept yet: exact number font/size, pop/float animation
+      style, stacking behavior if multiple hits land close together.
 
 ## Phase 4 — Actions & Social Panels
 
@@ -536,12 +587,98 @@ not gospel). New confirmed mechanics not previously in this file:
       would produce under the plain DW1 formula above — confirms the OG's real formula
       involves more than just Strength alone (weapon bonus, level scaling, or a
       skill-specific multiplier on the "Attack" ability), consistent with the decision
-      not to chase the exact formula. Useful as a rough feel/scale reference when tuning
-      our own numbers, not as a value to match exactly.
+      not to chase it exactly — the "crit ~42" part of that same data point also means
+      **no crit mechanic exists in the remake's code at all yet**: that number is from
+      the OG, not something `TakeDamage()`/`PerformMeleeHit()` currently calculates.
+      Needed before "metal monster" archetypes (see `SpellRequirementDataSheet.md`'s
+      Special Monster Archetypes table, 2026-08-10 finding: very low HP, high dodge,
+      heavy flat damage reduction, but a crit bypasses both dodge and reduction —
+      probably a one-shot) are buildable, along with a per-monster dodge-rate/
+      damage-reduction override (`RollDodge()` is flat Agility-based for every mob
+      right now, no per-species knob).
+      **2026-08-10 addition — crits confirmed on the incoming side too, not just
+      outgoing:** a cat fight logged 18 monster attacks against Hero1: 2 crits (~11.1%
+      crit rate), 16 normal, 0 misses (`CombatDataSheet.md`). The original "crit ~42"
+      sample above was the player critting an enemy; this is a monster critting the
+      player, so crit isn't a one-sided player-only mechanic in the OG — reinforces
+      that a real crit system (still nonexistent in `TakeDamage()`/`PerformMeleeHit()`)
+      needs to apply uniformly to both attacker directions, not be bolted on as a
+      player-only bonus. ~11% is a single small sample, not a rate to lock in yet.
+      The sample data point itself is still just a
+      rough feel/scale reference for tuning our own numbers, not a value to match
+      exactly.
+      **2026-08-22 revision — supersedes the "don't chase OG's formula" decision
+      above.** Two new sources changed the plan: (1) the plain Dragon Warrior 1 (NES)
+      formula pulled from a public disassembly on GitHub —
+      `damage = (ATK/2) - (DEF/4) + random(0,4)`, floored at 0, same shape for both
+      attack directions (`ATK`/`DEF` swap sides) — and (2) a clean re-read of OG DWL's
+      own in-game Help section (`ClassReference.md`'s Stat effects list, originally
+      recovered 2026-08-09). The Help section wins on **what each stat does** every
+      time it conflicts with the NES formula, since it's the actual target game's own
+      documentation, not just same-genre inspiration — the NES formula only supplies
+      the **shape** (a subtractive ATK-vs-DEF term plus small random variance, a real
+      crit mechanic) where DWL's own exact coefficients aren't recoverable. Confirmed
+      conflict: the NES formula computes crit off `PlayerAGI/64`, but the Help section
+      says crit rate is a Spirit effect, not Agility — going with Spirit, per OG's own
+      docs. Synthesized model to build against once compiling resumes:
+      - **Physical defense** = blend of Agility + Vitality (both confirmed contributors
+        per the Help section; exact weighting between them unconfirmed — start at an
+        even split, tune from data)
+      - **Magic defense** = blend of Vitality + Intelligence (same caveat)
+      - **Crit chance** = Spirit-driven, coefficient unknown (Spirit isn't a real DW
+        stat, so no NES-equivalent number exists — has to come from OG playtesting,
+        e.g. the ~11% incoming crit sample above, once more samples exist at known
+        Spirit values)
+      - **Crit damage multiplier** — NES uses a flat 2x; the one real OG sample (crit
+        ~42 vs normal ~23-26, same Level-13 fight above) reads closer to ~1.6-1.8x, but
+        that could include a weapon/skill bonus riding along — not a clean multiplier
+        yet, needs isolating
+      Not implemented in `CombatSystem.dm` yet — `ApplySpellDamage()` in particular has
+      zero magic-defense mitigation coded (elemental weak/resist only), and no
+      Agility+Vitality physical-defense blend exists anywhere. This entry stays open
+      until that gets built.
+      **2026-08-23 addition — real `.dmb` string-table extraction supports the
+      composite model and names real targets for the next disassembly pass.** Same
+      source as the Spirit/Luck finding above (Somnium13 `somdump` against the actual
+      OG DWL host files). Searched all 4450 recovered strings for any dedicated
+      "Defense"/"def"-style stat variable — **none exists**, which is real evidence
+      for the Agility+Vitality composite model above rather than a single missing
+      stat. Also surfaced real local variable names that almost certainly belong to
+      the actual attack/damage procs: `atk` (sitting directly next to
+      `/skill/attack/use`), plus `tmp_damage`, `hitstate`, `showhitstate`, `blockable`,
+      `chance`, and `delay` clustered together near `/mob/proc/TakeDamage`. These are
+      the names worth asking the collaborator to prioritize once they move to the next
+      stage (`sompipe.js`, turning bytecode into pseudo-assembly) — that's where the
+      real ATK/DEF divisors and crit coefficient would actually show up as numbers.
+      One false lead ruled out: `getblock`/`blocker` looked like a mitigation proc at
+      a glance, but is grouped with `getring`/`getcircle`/`px`/`py`/`line` in the
+      string table — a map/geometry helper, unrelated to combat.
+- [ ] **HP/MP regeneration — confirmed real OG mechanic, not built in the remake at
+      all.** Same 2026-08-23 string-table extraction surfaced `HPfactor`, `MPfactor`,
+      `HPregen`, `cur_HPregen`, `MPregen`, `cur_MPregen` as real tracked vars — the
+      Help section's "Vitality/Intelligence increase HP/MP regeneration rate" line
+      (`ClassReference.md`) is a real mechanic with real backing variables, not just
+      flavor text. No regen of any kind exists in the current codebase (`TakeDamage()`/
+      `RecalculateVitals()`, `CombatSystem.dm`/`StatsDatum.dm`) — HP/MP only change via
+      direct damage/heal/level-up. Needs a tick-based regen loop once there's a rate
+      formula to base it on; no coefficient recovered yet, just confirmation the
+      mechanic itself is real.
 - [x] Dodge mechanic (`CombatSystem.dm`'s `RollDodge()`, called from `TakeDamage()`) —
       new, not OG-derived (no such mechanic existed anywhere before). Agility-based
       chance to avoid a hit entirely, capped at `DODGE_MAX_PERCENT` (30%) so it's never
-      guaranteed even at high Agility — all placeholder constants, tune by feel. Also
+      guaranteed even at high Agility — all placeholder constants, tune by feel.
+      **2026-08-10 OG finding, relevant even though dodge itself is invented:** OG
+      monsters do miss, but not consistently — dog landed every hit in one full fight
+      (0 misses), then a slime missed 1 of 14 attacks (~7.1%) in the fight that killed
+      Hero1 (`CombatDataSheet.md`). Both at the same Agility (4), so ~7% (or lower,
+      still a small sample) looks like a reasonable ballpark for Tier 1 monster miss
+      rate at low player Agility. Since the remake's dodge chance is invented wholesale
+      (no OG mechanic to directly match, this is the target being avoided not
+      matched — dodge is the PLAYER avoiding monster hits, this data is the reverse),
+      use this as a rough ceiling: don't let monster-side hit consistency in the remake
+      feel wildly more miss-prone than ~7% at low Agility. Still needs more
+      fights/monsters logged before treating 7.1% as more than a single data point.
+      Also
       split several combat sounds between players and enemies, since they turned out
       to need different files: `hit.wav`/`enemyhit.wav`, `attack.wav`/`enemyattack.wav`,
       `dodge.wav`/`enemydodge.wav` (`istype(mob, /mob/enemy)` picks which). Along the
@@ -623,9 +760,13 @@ not gospel). New confirmed mechanics not previously in this file:
          split, and death/`Die()` handling. No new damage-application code needed —
          this reuses everything already built.
       9. **Piercing is per-skill, via `/obj/projectile`'s `pierces` var** (`FALSE` by
-         default) — Blaze leaves it `FALSE` (stops on first hit). A future piercing
-         skill like Thornwhip would set `pierces = TRUE` on its own projectile
-         subtype instead of needing an entirely separate moving-entity system.
+         default) — Blaze leaves it `FALSE` (stops on first hit). **Correction,
+         2026-08-10 live OG test:** Thornwhip was assumed to be the go-to
+         `pierces = TRUE` example here, but live testing shows it does NOT pierce —
+         it's a 3-tile line in the caster's facing direction that stops on the first
+         enemy hit, same as Blaze's default. No confirmed piercing skill exists yet;
+         don't build Thornwhip as the `pierces = TRUE` reference case. See
+         `SkillCatalog.dm`'s `Thornwhip` entry for the full finding.
       10. **Cast interruption**: not implemented — taking damage mid-cast doesn't
           cancel the spell. `if(user.isDead) return` after the windup at least stops
           a dead caster from launching a projectile or stomping `Die()`'s own
@@ -854,14 +995,66 @@ not gospel). New confirmed mechanics not previously in this file:
         something earned/changed later, and how it interacts with the class/skill
         system — the scaffolding doesn't force any of these answers, it just needed
         somewhere for the eventual data to live.
+- [ ] **OG monster AI is not melee-only — several findings from live OG testing,
+      2026-08-10, none built yet.** Current remake AI (`EnemyNPCs.dm`'s `AILoop()`) is
+      melee-only against a single locked `target` (always a player) — no
+      ally-targeting, no spellcasting at all, no MP pool on `mob/enemy`, no
+      keep-distance behavior. Confirmed-by-fresh-testing this session:
+      - Healer slimes cast a heal spell on OTHER injured healer slimes, not just fight
+        the player — not characterized yet (HP% trigger? proximity? does it require
+        the healer itself to be safe first?).
+      - Acolytes self-cast `Increase` (physical defense buff) the instant they spot the
+        player — a self-buff-on-aggro pattern, distinct from the healer slime's
+        ally-targeting.
+
+      Recalled from memory (not yet re-confirmed this session, treat as a hypothesis
+      to verify, same as everything else in this doc without a live-test source):
+      - Caster-type monsters (magician, etc.) have a real MP pool with **no in-combat
+        regen** — once drained, they fall back to physical attacks for the rest of the
+        fight. Remake's `mob/enemy` currently has no MP tracking or a physical-attack
+        fallback path at all.
+      - Caster-type monsters with a projectile spell available prefer to keep their
+        distance and cast rather than close to melee range — the opposite of
+        `AILoop()`'s current behavior, which always chases straight to
+        `attackRange`/1 regardless of what the monster can cast.
+
+      - Some species feel noticeably more "hyperactive and aggressive" than others —
+        general impression from testing, not yet pinned to a specific cause (reaction
+        speed? aggro range? attack frequency? some combo). Unlike the MP/kiting items
+        above, this one may need NO new mechanism — `aiTickDelay`/`wanderChance`/
+        `attackCooldown`/`sightRange` (`EnemyNPCs.dm`) are already per-instance vars
+        meant to be overridden per species, just nothing overrides them yet since only
+        `slime` exists as a built subtype. Likely just a per-species tuning pass once
+        the roster (see below) actually has multiple subtypes to tune differently —
+        confirm what's actually driving the "hyperactive" feel first, though, before
+        assuming it's fully covered by these existing knobs.
+
+      Building the spellcasting/MP/kiting pieces is a real `AILoop()`/`EnemyNPCs.dm`
+      redesign — worth its own pass once `SpellRequirementDataSheet.md`'s
+      AI-observations table has more data points to design against, not a quick patch
+      onto the current wild-monster block.
 - [ ] Monster roster — the *names* can likely be recovered from playing/documenting the
       OG. Confirmed so far via `GMglobalrespawn`/`GMkillallmonsters`'s monster-type
       pickers: cat, slime, dog, redslime, bat, fox, babble, skeleton, drakee, healer,
       snailslime, magician, ghost, wolf, magidrakee, reptile, arcticfox, panther,
       gremlin, acolyte, blazeghost, tiger, yeti, manowar — see `GMCommandsReference.md`.
-      **Stats and balance for each one are not recoverable from play** and will need to
-      be designed from scratch, same situation as the Merchant/Thief classes in
-      `ClassReference.md`.
+      **Correction, 2026-08-10 — not fully recoverable, but not "design from scratch"
+      either.** Exact source stat values are still out of reach (no source access), but
+      this session's `CombatDataSheet.md` testing already pulled real bounded data for
+      slime/cat/dog from live combat alone — damage taken/dealt (bounds attack/
+      defense), hits-to-kill (bounds HP), exp/gold per kill, even a resistance hint
+      (cat's partial electric resistance vs. Zap). Enough controlled samples per
+      monster should let a fitted approximation (closest-plausible curve, not the OG's
+      literal number) stand in for a from-scratch design — same spirit as the DW1
+      formula approximation already used for player damage. Worth treating monster
+      stat recovery as "get close via data + fitting," not "impossible, invent freely."
+      **Scoped next phase, same date**: once the current Hero1
+      skill-unlock control test wraps (caps at "all of Hero's skills learned," not a
+      fixed level), the bulk of remaining OG-research work shifts to this kind of
+      monster-by-monster combat data collection instead of more skill-unlock testing —
+      monsters don't carry anywhere near the skill/level-gate complexity a class does,
+      so this phase should move faster per-monster than the skill-unlock control test
+      did per-character.
 - [ ] **Munching Moler** — original boss idea (a big mole), named after the auto-generated
       codename of the combat-system planning session's plan file. Not from the OG, purely
       a remake original. No design details yet beyond "big mole boss."
@@ -878,15 +1071,76 @@ not gospel). New confirmed mechanics not previously in this file:
       macro, unchanged by the numpad-skill rework above) respawns after a 10s
       `RESPAWN_DELAY` (resetting `canAct = TRUE` too), printing a "wait N more seconds"
       message if pressed early.
+      **2026-08-10 OG finding, real behavior differs:** respawn is **automatic after
+      60 seconds**, no manual input needed at all — not a manual Numpad-5 press after a
+      10s wait like the remake currently does. `RESPAWN_DELAY` needs to change from a
+      manual-trigger minimum wait to a real auto-fire timer (60s).
+      **2026-08-14 follow-up, resolves the "unclear which" question above** — confirmed
+      via a real drowning-death log/message screenshot: Numpad-5 **does** still work as
+      an early-respawn option on top of the 60s auto-timer, exact confirmed message is
+      "You will auto-respawn in 60 seconds. You may press 5 on your numpad to respawn
+      before then." So the target behavior is both: auto-fire at 60s AND a manual
+      Numpad-5 override any time before that fires, not an either/or.
+      **2026-08-10 OG finding, real number confirmed:** exp loss on death is **5%**, not
+      the remake's placeholder 25% — retune to match once the placeholder-policy owner
+      is ready to lock it in. Also confirmed: **level can never be lost to death exp
+      loss.** If the loss would drop exp below the current level's floor, the level
+      stays put and exp effectively bottoms out — leveling up only ever raises the next
+      threshold, it doesn't reset exp to 0, so it's possible to be sitting on *less*
+      exp than you had right when you hit the current level (e.g. level up at the
+      threshold, then lose some to a death, without ever dropping the level itself).
+      Remake's `Die()` needs an explicit floor clamp for this, not just a flat
+      percentage subtraction — a naive `exp -= exp*0.05` with no floor could still let
+      exp go negative or under the level's minimum if it happens repeatedly near a
+      threshold.
 
 ## Phase 7 — Leveling System
 
 - [x] Exp/Nexp/Level/StatPoints tracked, flat +10 Nexp / +5 StatPoints per level
+      **2026-08-10 OG finding:** real number is **6 StatPoints per level**, not 5 —
+      confirmed via Hero1 sitting on 12 unspent points after 2 level-ups (1→2→3), no
+      points spent along the way. Retune the remake's flat award to match.
 - [ ] Real exp curve (currently flat, not scaling). **Balance goal**: the OG's leveling
       felt too fast, so aim slower than it — but explicitly not into grind territory
       either. The target is a middle ground (not too easy, not too grindy), not just
       "slower is better." Worth playtesting/tuning rather than picking a curve shape
       once and assuming it's right.
+      **2026-08-10 re-confirmation, unresolved which side is the cause:** current
+      remake pacing feels too fast too, same complaint as the OG — but it's unclear
+      whether that's the exp curve itself (`BASE_EXP` = 15, quadratic, `CombatSystem.dm`
+      — placeholder, no OG data behind it), the per-monster reward values (`TIER1_EXP`
+      10 / `TIER2_EXP` 45 / `TIER3_EXP` 160 / `TIER4_EXP` 520, `MonsterRoster.dm` — also
+      placeholder), or both compounding. Both sides are unconfirmed guesses right now,
+      so don't retune just one without checking whether the other also needs it —
+      worth isolating via actual kill-count-to-level data once there's real monster
+      variety to test against (currently only `slime`, Tier 1, exists as a built
+      subtype). **Stated preference, same date**: lean toward longer/harder rather than
+      easier when tuning either side — explicitly doesn't want the game to feel too
+      easy, wants playtime on the longer side. Still bounded by the existing
+      "not into grind territory" goal above — longer/harder, not tedious.
+      **2026-08-10 clarification**: the OG's fast pace wasn't an accident to preserve —
+      it was built like a one-shot D&D-style session (everyone hits ~level 25-30 and
+      basically knows all their spells within a couple hours). The remake is
+      deliberately NOT aiming for that; it wants real longer-term progression instead.
+      So don't treat "aim slower than the OG" as a small nudge — the OG's curve is the
+      wrong shape entirely for what this game is going for, not just slightly too
+      generous.
+      **2026-08-18 — the kill-count-to-level data this was waiting on now exists.**
+      Live-playtesting the trimmed Tier 1/2 roster (`CombatDataSheet.md`'s combat-log
+      session, same date), Hero1 went Level 1→3 in roughly the number of kills it took
+      to test damage against cat/slime/dog/redslime/bat/fox — about 6 kills total. Math
+      checks out against the current placeholder numbers: `Nexp = BASE_EXP * Level^2`
+      (`CombatSystem.dm`) means 15 cumulative exp to hit Level 2 and 60 to hit Level 3;
+      at `TIER1_EXP` = 10 per kill (`MonsterRoster.dm`), that's 2 kills to Level 2 and
+      ~6 total to Level 3 — matches what actually happened. Directly reproduces the
+      "leveling is too fast" complaint flagged as unresolved above, and resolves which
+      side is at fault (or at least confirms both current placeholder values combine
+      into the too-fast pace, whether or not one alone would suffice) — this is real
+      data, not the guess this section was working from before. Not retuning
+      `BASE_EXP`/`TIER1_EXP` right now (can't compile/playtest this session to check the
+      fix), but this is the concrete "too fast, felt it directly" confirmation to act on
+      next time numbers get tuned — lean toward the longer/harder side per the stated
+      preference above, not a small bump.
 - [ ] Level cap
 - [ ] Class-specific stat growth on level-up (right now growth is generic across classes)
 - [ ] Skill/spell unlocks by level + stat threshold — **needs the "what does each class
@@ -912,6 +1166,53 @@ not gospel). New confirmed mechanics not previously in this file:
 
 ## Phase 8 — World Systems
 
+- [ ] **Idea pile, 2026-08-10, not scoped, your idea**: overworld areas — the OG never
+      had an overworld at all (dungeons/towns only), this would be new. Concept: a
+      dedicated area type (or a flag on existing types) for "traveling between places"
+      space, distinct from dungeon/town, with player movement deliberately slowed while
+      on it — the classic old-RPG "trudging across the overworld map" feel. Technical
+      hook already exists and is cheap: `step_delay` (base mob var, default 1.36,
+      `Code/Core/SmoothMovement.dm:7`) is exactly how `EnemyNPCs.dm` already gives
+      monsters their own pace (2.8, slower than a player) — an overworld area could set
+      a player's `step_delay` higher on `Entered()`/restore it on `Exited()`, same
+      pattern. Not scoped beyond the concept: exact slowdown amount, whether it's a new
+      `area/overworld` type or a bool on the existing `area` base, and how it interacts
+      with the existing area roster (`wilderness` already exists — unclear if overworld
+      IS wilderness re-purposed, or a separate thing entirely).
+- [ ] **"Random Battles DLC" (your name for it), 2026-08-10, not scoped — Dragon
+      Warrior Mythology-style random encounters, an optional overworld feature (builds
+      on the overworld idea right above).** Reference: DWM (a same-era DWL-like game) had real-time random
+      battles — walking the overworld could trigger a small bounded battlefield
+      instance where you chase down and fight a monster that's actually moving around
+      in real time, rather than combat just happening in-place wherever you were
+      standing. Framed as "best of both worlds" (random-encounter pacing + this game's
+      already-real-time combat, not a turn-based interruption). Wanted as something
+      an overworld's creator can opt into, not a forced global mechanic. Not scoped
+      beyond the concept: encounter trigger chance/cadence while walking an overworld
+      tile, and the bounded-arena instance itself likely reuses the same dynamic
+      area-instancing pattern `GM_MakeArea` and the player-plot idea (`[[project-map-
+      persistence-idea]]` idea #1) already lean on, plus the existing per-area
+      `battleModeOn` flag (`GMbattlemode`, `Area.dm`) for "combat is allowed here" —
+      but the actual spawn-into-instance / return-to-overworld-after flow isn't
+      designed at all yet. **Scope note, same date**: explicitly a MUCH LATER item —
+      user confirmed this is one big game absorbing all these ideas over time, not
+      several separate games, so "idea pile" entries like this one are real roadmap,
+      just far out. Don't treat "logged" as "next up."
+- [ ] **"DWM DLC" (your name for it), 2026-08-10, not scoped — Dragon Warrior
+      Monsters-style taming/training.** Monster taming, training, and fighting alongside the
+      player (or having a tamed monster fight FOR the player instead) — same "one big
+      game, phased" scope as the "Random Battles DLC" above, all part of one game's
+      long roadmap rather than separate games. There's already a real seed of this
+      mechanism built and working: `mob/enemy`'s pet system (`EnemyNPCs.dm`) —
+      `owner`/`petName`/`petMode` vars, `PET_MODE_FOLLOW`/`SIT`/`WANDER`/`AGGRESSIVE`,
+      `HandlePetTick()` branching AI per mode, `ShowAssignPetMenu()`/
+      `ShowPetOwnerMenu()`. Current limitation: assigning a pet is **GM-only**
+      (double-click by a `client.canAdmin` mob), same stats/no leveling, one pet per
+      owner — nothing here lets a PLAYER tame a wild monster themselves through actual
+      gameplay (a taming mechanic, catch rate, item, or in-combat action), and there's
+      no training/leveling system for an owned pet at all. DWM-style taming/training
+      would need both of those built on top of what already exists, not from scratch.
+      Not scoped beyond the concept.
 - [x] Area types with per-area background music (`Area.dm`)
 - [x] Turf library: ground/floor/furniture/wall/water/bridge/stairs/warp (`Turfs.dm`)
 - [x] `turf/sky` falls the player 1 Z level down + plays `fall.wav` on `Entered()` —
@@ -940,6 +1241,27 @@ not gospel). New confirmed mechanics not previously in this file:
       root a mob mid-attack or on death — set the instant the fall starts, reset once
       the delayed Z-level move actually resolves. `Entered()` also now bails
       immediately if `canAct` is already `FALSE`, as a second line of defense.
+      **2026-08-13 — the "real falling animation" gap above has a name and an asset:
+      a full-screen fade.** User's own idea, not OG-derived. `UI & Effects/fade.dmi`
+      already exists in the repo but isn't wired into any code yet (`flick()` for it
+      doesn't appear anywhere) — confirmed via search, this is a genuinely unused
+      asset sitting ready, not something to create from scratch. Same fade should
+      trigger on stairs (`turf/stairs/stairsup`/`stairsdown`, `Turfs.dm`) and warp
+      turfs too, not just `turf/sky` — all three are screen transitions and should
+      feel consistent. Fits naturally in the `spawn(8)` pause already present for the
+      sky-fall case.
+      **Asset confirmed, 2026-08-13**: `fade.dmi` has 9 icon_states — 0, 12.5, 25,
+      37.5, 50, 62.5, 75, 87.5, 100 — evenly spaced 12.5%-opacity steps, not a single
+      animated state. Implementation is a discrete step-through (a `screen`-anchored
+      overlay object whose `icon_state` advances through that list with a `sleep()`
+      between each, 0→100 to fade out, 100→0 to fade back in) rather than a smooth
+      `animate()` tween. Not scoped beyond that: exact per-step delay (total fade
+      duration), whether stairs/warp get the same `spawn()` delay treatment sky
+      currently has or a shorter one. **Scope, clarified 2026-08-13: this is NOT
+      combat feedback UI** (unlike the HUD/floating-numbers carve-out elsewhere in
+      this phase) — it's a movement/transition visual, so it stays in the Big
+      Beautiful Update bucket, deferred, not in-scope for this pass. Logged here now
+      just so the spec/asset info isn't lost by the time that pass starts.
 - [x] Doors with open/close/lock; sign/pot/bookcase/chest turfs exist as placeholders
 - [x] **Per-area property scaffolding** — `Area.dm`'s base `area` type now has
       `battleModeOn`, `battleAllowsPvP`, `indestructibleMode`, and `weather` vars.
@@ -995,18 +1317,50 @@ not gospel). New confirmed mechanics not previously in this file:
       `GMroleplaymode` is active, extreme temperatures deal damage over time and passive
       HP regen is disabled entirely — this was originally logged as an untested idea but
       turned out to be real OG behavior. Only happens during roleplay mode, not globally.
-- [ ] **Shallow vs. deep water** (your own idea, 2026-07-31) — right now `turf/water`
-      (`Turfs.dm`) is a single dense type, fully impassable, no depth distinction at all.
-      Split into two behaviors:
-      - **Shallow water** — walkable (`density = 0`), presumably just a visual/movement
-        variant, no other mechanic implied
-      - **Deep water** — interact-to-dive (`OnInteract()`-style, matching the pattern
-        other interactables use, e.g. doors/signs in `Obj.dm`), entering an underwater
-        state with an oxygen mechanic (meter that depletes over time, presumably damage
-        or forced-surface on hitting zero — not detailed yet)
-      Not scoped beyond the idea itself: exact oxygen numbers, whether it's a new status-
-      effect-like system (`StatusEffects.dm` already has the framework) or its own thing,
-      and how it interacts with combat/movement while submerged.
+- [ ] **Shallow vs. deep water — confirmed real OG mechanic, live-tested 2026-08-14**
+      (originally logged 2026-07-31 as a guessed-at idea; that framing was wrong, this is
+      genuinely from the OG). Real confirmed structure, different and more specific than
+      the original guess:
+      - **`swim water`** — a distinct turf (visually water) separate from the plain
+        impassable `turf/water` already in `Turfs.dm`. Walkable/standable, and it's the
+        turf that dive/surface conditions check for.
+      - **Two AREA types involved**: `underwater` and `deepwater` (both already exist as
+        area subtypes in `Area.dm`, per the area-type list found 2026-07-31 — previously
+        unclear what distinguished them, now confirmed). Both have an overlay visible to
+        **all players**, not just the submerged one.
+      - **Key finding: oxygen only drains in `deepwater` areas, not `underwater`
+        areas** — `underwater` is a submerged zone with no breath mechanic at all. Only
+        `deepwater` ticks the oxygen meter down; rate/interval not measured yet, but
+        described as "kind of slow." Aside from the oxygen meter overlay itself, nothing
+        else about the deepwater view reads as transparent/tinted (per your testing) —
+        worth double-checking this on a repeat pass, phrasing was a little uncertain.
+      - **Dive conditions** (all three must hold): 1) standing on `swim water`, 2) current
+        area is `underwater` or `deepwater` (either qualifies — doesn't matter which for
+        the dive check itself, only for whether oxygen drains after), 3) the tile **one Z
+        level down** is also `swim water` in an `underwater`/`deepwater` area.
+      - **Surface conditions**: identical check, mirrored — same three conditions but
+        checking **one Z level up** instead of down.
+      **2026-08-14 confirmed via real drowning death log**: zero oxygen causes **instant
+      death**, not damage-over-time or a forced surface — message sequence was "You dive
+      underwater." → "You return to the surface." → "You have drowned!" → "[Name] has
+      died!" → the standard 60s-auto/Numpad-5-early respawn prompt (same as any other
+      death, see the Death & Respawn finding above — this is what confirmed that
+      Numpad-5 early-respawn is still live too). Note: the log screenshot also showed
+      "You can't see areas anymore." — that's **unrelated to water**, just the `GMseeareas`
+      debug toggle being switched off in the same window, not a real dive/drown message.
+      Still open: exact oxygen drain rate/interval, and whether any deepwater-view
+      overlay beyond the meter exists.
+      **UX flaws noted in the OG, not to be copied**:
+      - The oxygen meter overlay is hard to read in deepwater because of how the
+        deepwater screen overlay itself looks (visually competes with/obscures the
+        meter). Root cause not pinned down yet — when built for real, keep the meter
+        legible against whatever deepwater visual effect we use instead of reproducing
+        the OG's version.
+      - `swim water` is visually indistinguishable from plain `turf/water` — same
+        appearance/name, no visual tell for which tiles are actually diveable. Makes
+        exploring for dive points maze-like/guesswork in the OG. Our version should give
+        `swim water` its own distinct look (or some other clear indicator) so players can
+        actually tell diveable water from plain impassable water on sight.
       Whether specific equipment counters the damage is still unconfirmed.
 - [ ] Roleplay Mode toggle — **low priority, not a straight port**. You weren't a big
       fan of how this played in the OG, so this is a candidate for redesign/expansion
@@ -1132,6 +1486,58 @@ not gospel). New confirmed mechanics not previously in this file:
 - [ ] GM ability to designate Builder/Admin/GM status persistently (needs its own storage
       — separate from the tamper-proof hardcoded core tiers, since this is meant to be
       changeable at runtime by a Host/GM without a recompile)
+- [ ] **Idea pile, 2026-08-10, not scoped**: host-selectable "grand adventure" vs.
+      "quick campaign" server mode — grand adventure = world persists across reboot,
+      built for real long-term progression; quick campaign = closer to the OG's
+      original one-shot-D&D pace (fast leveling, short session, world reset-on-reboot
+      probably fine). Full theorycraft in the `project-map-persistence-idea` memory
+      (idea #3) — connects to the whole-world persistence idea already scoped there
+      (hook points: `GM_WorldReboot` for save, `world/New()` for load) and to this
+      same phase's exp-multiplier idea below (quick-campaign mode may want to loosen
+      the exp curve back toward OG speed rather than the longer/harder default).
+      **2026-08-10 refinement**: grand-adventure saves need to cover NPCs, respawn
+      state, and areas, not just static turf/obj — a host's placed NPCs and respawn
+      markers should survive a reboot too. Accepted tradeoff: slower/heavier save-load
+      than the turf-only version, explicitly fine for the larger-map use case. Open
+      question whether quick-campaign mode keeps the cheaper turf-only format instead,
+      making the two modes genuinely different save shapes.
+- [ ] **Idea pile, 2026-08-10, not scoped**: host-adjustable exp-gain multiplier, so a
+      GM can tailor pacing per-server rather than it being locked to whatever the
+      shipped curve/monster-reward numbers end up tuned to (see Phase 7's exp-pacing
+      discussion, [[project-dwlr-difficulty-preference]]). Not designed yet — global
+      flat multiplier applied at `Die()`'s exp award (`CombatSystem.dm`) is the obvious
+      shape, same pattern as `GMbattlemode`'s per-area/global toggle, but per-area vs.
+      global vs. per-player isn't decided, and neither is whether it persists across
+      reboot or resets each session.
+- [ ] **Idea pile, 2026-08-14, not scoped**: host-created custom content — let a
+      Host/GM define their own monster (stats, weaknesses/elemental resistances, etc.)
+      and their own turf types, rather than being limited to the shipped roster. Same
+      "eventually" bucket as the grand-adventure/quick-campaign host-mode idea right
+      above — both are about giving a host more control over their own server rather
+      than a fixed shipped experience. Not designed at all yet:
+      - Monster side: would presumably build on `MonsterRoster.dm`'s existing stat-block
+        pattern and `GMmakemob`'s placement flow (Phase 10 below), but needs some kind of
+        in-game editor UI (stat sliders/inputs, weakness picker) that doesn't exist for
+        anything monster-related right now — today's roster is all hardcoded types.
+        **Icon constraint, confirmed 2026-08-14**: a host-submitted custom monster icon
+        needs **four** required icon_states — `world` (idle default, what every existing
+        monster in `MonsterRoster.dm`/`EnemyNPCs.dm` uses today), `attack`/`weapon` (swing
+        animation — monsters call the same `PlayAttackAnimation()`/`ResolveAnimState()`
+        path players use, `EnemyNPCs.dm:195`, so this isn't optional), and `sleep` (death
+        pose — `Die()` in `CombatSystem.dm` sets this on any dying mob, player or
+        monster, universally). Missing any of the four would render blank at that moment
+        (idle/attacking/dead respectively). Whatever upload/creation flow this idea
+        eventually needs should validate all four are present on submission and tell the
+        creator up front what's required, rather than failing silently mid-game.
+      - Turf side: runs directly into the Turf/Obj Convention adopted 2026-07-21 (top of
+        this file) — visual-only variants are supposed to be map-editor instances of a
+        generic type, not new hardcoded types, which actually works in this idea's favor
+        (a host picking a custom icon for an existing turf type needs no new code at
+        all); a host wanting genuinely new *behavior* (not just a new sprite) is the hard
+        case and isn't scoped.
+      - If this ever gets built, it likely wants to be saved per-world (ties into the
+        grand-adventure persistence idea above) rather than per-character, since it's
+        server/host content, not something one player carries between servers.
 
 ## Phase 10 — Building/Map Tools (biggest net-new subsystem, do last)
 
@@ -1186,10 +1592,30 @@ not gospel). New confirmed mechanics not previously in this file:
 
 ## Open Questions (blockers worth resolving before the phase that needs them)
 
-- [x] **STR/VIT/AGI/INT/Luck vs STR/VIT/AGI/INT/Spirit** — resolved: Luck. Not a stat in
-      DW1 itself (which only has Strength/Agility/HP/MP), but introduced in Dragon Quest
-      III and carried through IV — fits the game's stated DW1-4 range. Spirit isn't a
-      Dragon Warrior/Quest stat at any point.
+- [x] **STR/VIT/AGI/INT/Luck vs STR/VIT/AGI/INT/Spirit** — originally resolved: Luck. Not
+      a stat in DW1 itself (which only has Strength/Agility/HP/MP), but introduced in
+      Dragon Quest III and carried through IV — fits the game's stated DW1-4 range.
+      Spirit isn't a Dragon Warrior/Quest stat at any point.
+      **Reversed (2026-08-09)**: testing found this stat also drives MaxMP in
+      combination with Level (see `ClassReference.md` Stat effects) — Spirit reads
+      better than Luck once it's partly a magic stat, not just crit/drop chance. Code
+      (`var/Spirit`, `TIER1_SPIRIT`..`TIER4_SPIRIT`, `capSpirit`, etc.) already renamed
+      back to match. Also decided alongside this: item-drop chance is no longer tied to
+      this stat at all — it's now a flat hidden rate per monster type instead.
+      **2026-08-10 confirmation:** live OG testing (Hero1) nailed the actual
+      coefficient — +1 Spirit gave exactly +2 MaxMP. Matches the remake's
+      `MP_PER_SPIRIT` placeholder exactly by coincidence; that `#define` in
+      `StatsDatum.dm` is now marked confirmed instead of placeholder.
+      **2026-08-23 — the Spirit/Luck ambiguity turns out to be baked into the OG
+      itself, not a remake-side naming slip.** A collaborator extracted the real string
+      table straight out of OG DWL's `.dmb` (world bin v341, 4450 strings, via the
+      Somnium13 `somdump` toolchain — see `project-dwlr-og-decompile-effort` memory).
+      Internal stat vars are confirmed `str`/`agi`/`vit`/`int`/`spr` — but the "Amulet
+      of Spirit" item's own internal keyword field reads `luck`, sitting right next to
+      it in the data. Same stat, both names, coexisting in the OG's own files — the
+      Help section's self-admitted "outdated" note (also recovered verbatim in this
+      dump, word for word) wasn't the only inconsistency; the OG devs never fully
+      settled this either.
 - [x] **Per-class spell/skill lists and their learn requirements (level + stat combo)**
       — resolved (2026-08-04): **placeholder policy**. Real OG data only ever confirmed
       2 of ~90 entries (Hero's Heal/Thornwhip) and no more is coming, so stop waiting on
@@ -1252,12 +1678,18 @@ not gospel). New confirmed mechanics not previously in this file:
       Explicit sequencing decision: get every mechanic (combat, classes, leveling,
       building tools, GM tooling, etc.) working correctly first, current placeholder
       numbers and all — UI stays bare-bones `input()`/`stat()` per the v1 Scope Note
-      throughout this whole pass. Once mechanics are solid, the next major pass adds
-      all the actual UI/visual polish: real HUD overlay (Level/HP/XP/MP along the
-      bottom, Map-overlay HUD entry above), floating damage numbers, on-screen meters,
+      throughout this whole pass, **except combat feedback UI (bottom HUD, floating
+      combat numbers, HP/MP meters above mobs) — carved out 2026-08-13, see Phase 3
+      entries, needed now since combat isn't really testable without them.**
+      Once mechanics are otherwise solid, the next major pass adds the rest of the
+      UI/visual polish: on-screen meters beyond the combat carve-out,
       character select screen polish, menu polish, the graphical build-mode picker
       (Phase 10 QoL entry below), and the splashscreen entry below. Nothing in this
-      bucket should be started before the mechanics pass is actually done.
+      remaining bucket should be started before the mechanics pass is actually done.
+      **Also clarified 2026-08-13:** once the mechanics-first pass (matching the OG as
+      closely as possible) is complete, it ships as its own standalone release in
+      honor of the OG — the Big Beautiful Update is a distinct pass that follows that
+      release, not something blended into finishing the mechanics pass.
 - [ ] Character select screen polish — part of the Big Beautiful Update, see above
 - [ ] Menu polish (creation flow, stat allocation, etc.) — part of the Big Beautiful
       Update, see above
