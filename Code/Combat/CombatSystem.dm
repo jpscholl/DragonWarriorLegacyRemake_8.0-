@@ -635,3 +635,40 @@ mob/proc
                 target.overlays += spellOverlay
                 spawn(6)
                     target.overlays -= spellOverlay
+
+// -----------------------------
+// Line (reach) melee hits
+// -----------------------------
+// Scans outward from this mob in the direction it's facing, tile by tile, and hits the
+// FIRST mob it finds — stopping there rather than piercing through. Built for Thornwhip
+// (SkillCatalog.dm), whose real behavior was confirmed twice by live OG testing:
+// a 3-tile line attack in the facing direction that hits whichever enemy is closest
+// within that line (1, 2, or 3 tiles out, not always the full 3) and stops on the first
+// one found.
+//
+// Deliberately NOT built on Projectiles.dm's pierces flag — that models a travelling
+// projectile that can pass through several targets, which is explicitly not what the OG
+// does here. This is an instant reach attack: no travel time, no visible projectile,
+// just a longer arm.
+//
+// Walls don't block it yet. Adding that means deciding what counts as blocking (dense
+// turfs only? dense objs too?), which isn't confirmed either way from the OG, and
+// guessing would be a real behavior change rather than a gap being filled.
+mob/proc
+    PerformLineHit(datum/skill/S, reach = 3)
+        var/mult = S ? S.damage_multiplier : 1
+        var/turf/T = src.loc
+
+        for(var/i = 1 to reach)
+            T = get_step(T, dir)
+            if(!T) return
+
+            for(var/mob/M in T.contents)
+                if(M == src) continue
+                if(M.HP <= 0) continue
+
+                var/damage = round((GetEffectiveStrength() + attackBonus) * mult)
+                var/isCrit = RollCrit()
+                if(isCrit) damage = round(damage * CRIT_DAMAGE_PERCENT / 100)
+                M.TakeDamage(damage, src, isMagic = FALSE, isCrit = isCrit)
+                return  // first mob found ends the scan — no pierce

@@ -177,27 +177,38 @@ datum/skill/Iceclaw
 datum/skill/Thornwhip
     parent_type = /datum/skill/GenericPhysical
     skillName = "Thornwhip"
-    damage_multiplier = 1.4  // PLACEHOLDER — WRONG DIRECTION, confirmed gate is 8 Str
-                               // (ClassReference.md). CONFIRMED 2026-08-18 (live OG
-                               // test, CombatDataSheet.md): real damage is ~80% of a
-                               // plain hit (trades power for reach), not 140% —
-                               // retune to roughly 0.8 once compiling is possible again.
-                               // CONFIRMED 2026-08-10 (live OG test): 3-tile line attack
-                               // in the direction the caster is facing, stops on the
-                               // first enemy hit — does NOT pierce through multiple
-                               // targets (user recalled it piercing previously, but
-                               // current live behavior is single-target-stop; treat the
-                               // pierce memory as outdated/superseded). CONFIRMED
-                               // 2026-08-18: hits whichever enemy is closest within
-                               // that line — 1, 2, or 3 tiles out, not always the full
-                               // 3 — stopping on the first one found, same as the
-                               // no-pierce finding above just stated more precisely.
-                               // Still plain melee (single target, no line/reach
-                               // mechanic) in this code — needs a real
-                               // 3-tile-in-facing-direction hit check built (scan tile
-                               // 1, then 2, then 3, stop at the first mob found), the
-                               // Projectiles.dm pierces flag is NOT what OG actually
-                               // does here, don't use it for Thornwhip.
+    // CONFIRMED 2026-08-18 (live OG test, CombatDataSheet.md): real damage is ~80% of a
+    // plain hit — it trades power for reach. This was 1.4, which had it hitting HARDER
+    // than a normal swing as well as further, i.e. wrong in both directions at once.
+    damage_multiplier = 0.8
+    // CONFIRMED 2026-08-10, restated more precisely 2026-08-18 (live OG tests): a 3-tile
+    // line attack in the facing direction, hitting whichever enemy is closest within that
+    // line — 1, 2, or 3 tiles out, not always the full 3 — and stopping on the first one
+    // found. It does NOT pierce; an earlier recollection that it did is superseded by
+    // current live behavior. Confirmed gate is 8 Str (ClassReference.md).
+    var/reach = 3
+
+    // Needs its own OnUse() rather than riding GenericPhysical: the reach IS the skill,
+    // and GenericPhysical hardcodes PerformMeleeHit() (the tile directly in front only).
+    OnUse(mob/user, mob/target = null)
+        if(!user.canAct) return
+        if(!user.InBattleArea()) return
+
+        user.canAct = FALSE
+
+        var/mySession = user.defendToggleSession
+        var/wasDefending = user.DropDefendForAction()
+
+        user.PlayAttackAnimation(user, src, target)
+
+        spawn(cast_time)
+            user.PerformLineHit(src, reach)
+
+        spawn(user.GetAttackDelay(src, wasDefending))
+            if(user.isDead) return
+            user.canAct = TRUE
+            user.RestoreDefendIfUntouched(wasDefending, mySession)
+
 datum/skill/Lightsword
     parent_type = /datum/skill/GenericPhysical
     skillName = "Lightsword"
