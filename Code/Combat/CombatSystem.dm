@@ -47,6 +47,12 @@
 mob/var/isDead = FALSE
 mob/var/deathTime = 0
 
+// Whoever landed the FIRST hit on this mob — the OG's first_hit. Die() credits this
+// mob's exp/gold to them rather than to whoever happened to land the killing blow, so a
+// fight can't be sniped at the last moment. Cleared nowhere: a mob only dies once, and
+// enemies are deleted shortly after (CleanUpDead()).
+mob/var/mob/firstAttacker = null
+
 // Toggled by datum/skill/Defend (SkillDatum.dm) — TRUE while a mob is holding up its
 // shield (icon_state = "defend"), reducing incoming damage. No duration/cooldown, just
 // an on/off stance the player controls directly.
@@ -95,7 +101,7 @@ mob/proc
 mob/proc
     // Returns TRUE if this mob (the one about to take a hit) dodges it.
     RollDodge()
-        var/dodgeChance = min(DODGE_MAX_PERCENT, DODGE_BASE_PERCENT + Agility * DODGE_AGILITY_SCALE)
+        var/dodgeChance = min(DODGE_MAX_PERCENT, DODGE_BASE_PERCENT + GetEffectiveAgility() * DODGE_AGILITY_SCALE)
         return prob(dodgeChance)
 
 // Defense — new, no OG numeric formula exists to confirm this against (only the OG
@@ -116,10 +122,10 @@ mob/proc
     // added here rather than to the underlying stats so a buff can never be caught by a
     // stat-cap check or accidentally persisted by a mid-buff save.
     GetDefense()
-        return round((Agility + Vitality) / PHYSICAL_DEFENSE_DIVISOR) + defenseBonus
+        return round((GetEffectiveAgility() + GetEffectiveVitality()) / PHYSICAL_DEFENSE_DIVISOR) + defenseBonus
 
     GetMagicDefense()
-        return round((Vitality + Intelligence) / MAGIC_DEFENSE_DIVISOR) + magicDefenseBonus
+        return round((GetEffectiveVitality() + GetEffectiveIntelligence()) / MAGIC_DEFENSE_DIVISOR) + magicDefenseBonus
 
 // Critical hits — new, no OG numeric formula exists either, only the help file's claim
 // that Spirit drives crit rate. Rolled by the ATTACKER (RollCrit() reads src's own
@@ -134,7 +140,7 @@ mob/proc
 
 mob/proc
     RollCrit()
-        var/critChance = min(CRIT_MAX_PERCENT, CRIT_BASE_PERCENT + Spirit * CRIT_SPIRIT_SCALE)
+        var/critChance = min(CRIT_MAX_PERCENT, CRIT_BASE_PERCENT + GetEffectiveSpirit() * CRIT_SPIRIT_SCALE)
         return prob(critChance)
 
 mob/proc
@@ -180,8 +186,23 @@ mob/proc
             damage = round(damage * (100 - DEFEND_DAMAGE_REDUCTION_PERCENT) / 100)
         damage = max(MIN_DAMAGE, damage)
 
+        // Kill credit goes to whoever struck FIRST, not whoever struck last (the OG's
+        // first_hit). Its own rules text is explicit about this: "You won't get any EXP
+        // or gold from it unless you hit it first, anyway." Without it, anyone could
+        // wait out someone else's fight and steal the reward with a finishing blow.
+        // Recorded here rather than in Die() because by then the first attacker is long
+        // gone from the call chain.
+        if(!firstAttacker && attacker && attacker != src)
+            firstAttacker = attacker
+
         HP -= damage
         view(src) << output(isCrit ? "[src] takes a critical hit for [damage] damage! (HP: [max(HP,0)])" : "[src] takes [damage] damage! (HP: [max(HP,0)])", "Info")
+
+        // Being hit wakes you up — classic Dragon Warrior behavior, and previously
+        // flagged as a known gap in datum/status_effect/sleep's own comment
+        // (StatusEffects.dm). Without this, Sleep was an unbreakable stun for its full
+        // duration, which is far stronger than intended.
+        RemoveStatusEffect(/datum/status_effect/sleep)
 
         if(HP <= 0)
             Die(attacker)
@@ -209,6 +230,14 @@ mob/proc
     // whether this was a player or an enemy.
     Die(mob/attacker)
         view(src) << output("[src] has been defeated!", "Info")
+
+        // Reward the first attacker (the OG's first_hit, recorded in TakeDamage() above)
+        // rather than whoever landed the finishing blow. Falls back to the killer when
+        // there's no recorded first hit — a death from poison, a GM_KillMonsters sweep,
+        // or any other path that skips TakeDamage() entirely. The `firstAttacker` guard
+        // also drops a stale reference if that mob has since been deleted.
+        if(firstAttacker)
+            attacker = firstAttacker
 
         // Poison etc. shouldn't keep ticking on a corpse, or survive a player's
         // respawn (Interact() clears them again there too, belt and braces).
@@ -364,7 +393,7 @@ mob/proc
             // attackBonus is the Upper buff (StatusEffects.dm) — added to Strength for
             // damage purposes only, never to the stat itself.
             var/mult = S ? S.damage_multiplier : 1
-            var/damage = round((Strength + attackBonus) * mult)
+            var/damage = round((GetEffectiveStrength() + attackBonus) * mult)
             var/isCrit = RollCrit()
             if(isCrit) damage = round(damage * CRIT_DAMAGE_PERCENT / 100)
             M.TakeDamage(damage, src, isMagic = FALSE, isCrit = isCrit)
@@ -465,13 +494,13 @@ mob/proc
             // same as a Fighter's Agility+Vitality path. Neither stat alone is enough
             // (sqrt(A*x) gets dragged down hard by whichever side is low), but which
             // *second* stat gets you there is the player's choice, not a fixed pairing.
-            var/meleeSpeedStat = sqrt(Agility * max(Vitality, Intelligence))
+            var/meleeSpeedStat = sqrt(GetEffectiveAgility() * max(GetEffectiveVitality(), GetEffectiveIntelligence()))
             delay = max(MELEE_ATK_MIN_DELAY, MELEE_ATK_BASE_DELAY - meleeSpeedStat)
         else if(S.isSpell)
             // Intelligence alone already gets a caster reasonably fast on its own;
             // Agility adds a small standalone bonus that only really grows once paired
             // with real Intelligence (see SPELL_AGI_SYNERGY_DIVISOR above).
-            var/spellSpeedStat = Intelligence + (Agility * Intelligence / SPELL_AGI_SYNERGY_DIVISOR)
+            var/spellSpeedStat = GetEffectiveIntelligence() + (GetEffectiveAgility() * GetEffectiveIntelligence() / SPELL_AGI_SYNERGY_DIVISOR)
             delay = max(SPELL_ATK_MIN_DELAY, SPELL_ATK_BASE_DELAY - spellSpeedStat)
         else
             delay = 10

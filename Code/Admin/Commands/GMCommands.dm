@@ -650,11 +650,35 @@ mob/proc/CreateMerchant()
     M.shopType = shopChoice
     M.name = "[shopChoice] Merchant"
 
-    // Only the Item shop's stock exists as real item types today; the rest open with an
-    // empty stock list, which OpenShop() already handles (they can still buy FROM
-    // players, and say so plainly rather than erroring).
-    if(shopChoice != "Item")
-        M.stock = list()
+    // Item and Amulet both have real goods now. The remaining three (Food/Drink/Weapons/
+    // Armor) open with an empty stock list, which OpenShop() already handles — they can
+    // still buy FROM players and say so plainly rather than erroring.
+    switch(shopChoice)
+        if("Item")
+            // Keeps the type's own default consumable stock.
+        if("Amulet")
+            // PLACEHOLDER prices, deliberately steep — amulets are permanent stat gear,
+            // not a consumable, and should be a real saving goal rather than an early
+            // purchase. Erdrick's is priced as a genuine endgame target.
+            M.stock = list(
+                /obj/item/amulet/strength = 300,
+                /obj/item/amulet/agility = 300,
+                /obj/item/amulet/vitality = 300,
+                /obj/item/amulet/intelligence = 300,
+                /obj/item/amulet/spirit = 300,
+                /obj/item/amulet/power = 800,
+                /obj/item/amulet/speed = 800,
+                /obj/item/amulet/health = 750,
+                /obj/item/amulet/magic = 750,
+                /obj/item/amulet/light = 900,
+                /obj/item/amulet/warrior = 850,
+                /obj/item/amulet/wizard = 850,
+                /obj/item/amulet/sky = 900,
+                /obj/item/amulet/stars = 1500,
+                /obj/item/amulet/erdrick = 5000,
+            )
+        else
+            M.stock = list()
 
     src << output("Created [M.name].", "Info")
 
