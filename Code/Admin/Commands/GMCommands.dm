@@ -699,6 +699,31 @@ mob/proc/CreateNPC()
     newNPC.icon_state = stateChoice
     newNPC.name = npcName
 
+    // Dialogue and idle behavior, matching the OG's own NPC creation fields (Day Speech,
+    // Night Speech, Action). Both speech prompts are optional — leaving them blank keeps
+    // the "..." placeholder, so a GM dressing a town quickly isn't forced to write lines
+    // for every body. Night Speech falls back to Day Speech when unset (mob/npc, NPCs.dm).
+    var/day = input(src, "Day Speech (leave blank for none):", "Day Speech") as text|null
+    if(!isnull(day) && length(trimtext(day)))
+        newNPC.daymsg = CensorText(trimtext(day))
+
+    var/night = input(src, "Night Speech (leave blank to reuse Day Speech):", "Night Speech") as text|null
+    if(!isnull(night) && length(trimtext(night)))
+        newNPC.nightmsg = CensorText(trimtext(night))
+
+    var/act = input(src, "Action", "Action") in list("Stand", "Walk")
+    newNPC.action = act
+    if(act == "Walk") newNPC.IdleLoop()  // New() already ran; start it now that the
+                                          // action is actually set
+
+    if(act == "Stand")
+        var/face = input(src, "Which way should they face?", "Face") in list("North", "South", "East", "West")
+        switch(face)
+            if("North") newNPC.dir = NORTH
+            if("South") newNPC.dir = SOUTH
+            if("East")  newNPC.dir = EAST
+            if("West")  newNPC.dir = WEST
+
     src << output("Created [npcName] the NPC.", "Info")
 
 // -----------------------------
