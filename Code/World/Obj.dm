@@ -56,7 +56,10 @@ obj/door
     proc/close()
         if(is_open)
             is_open = FALSE
-            icon_state = closed_icon_state
+            // ApplyNightSuffix() (Main.dm), not closed_icon_state directly — that stored
+            // value is fixed at creation and never updated by a later day/night toggle,
+            // which was reverting a door closed at night back to its day skin.
+            icon_state = ApplyNightSuffix(closed_icon_state)
             density = 1
             opener = null
 
