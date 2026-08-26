@@ -8,6 +8,50 @@ build pass that adds a feature set, the last number for a fix-only pass in betwe
 
 ## [Unreleased]
 
+### 0.8.0 build pass — 2026-08-25
+The first pass driven by real data from the original `.dmb` rather than inference.
+All of it is compile-verified (DM 516.1687) and **none of it is playtested**.
+
+**Corrected against confirmed OG strings**
+- Death EXP penalty 25% → 5%. The gold penalty stays but is now labelled a remake
+  addition — the 4450-string table has no gold-loss message or variable at all.
+- Respawn inverted to match the OG: automatic after 60s, numpad 5 for immediate
+  respawn with no minimum wait (previously a 10s minimum and no auto-respawn).
+- Mute is now a shadow mute — the target is never told, keeps seeing their own
+  chat, and GMs get a `(Muted)` copy.
+- WorldSay/WorldEmote gained the OG's 1-second rate limit, plus a worldsay toggle.
+- Classchange gained its level 25 gate and now resets to level 1 as the OG's own
+  confirmation prompt promises.
+
+**Combat**
+- Real per-monster stats replace the two flat placeholder tiers. Monster elements
+  now feed the previously-inert elemental system.
+- Monster spellcasting and the Healer's ally-heal AI (the OG's `HealCheck`).
+- Real buffs: Upper/Increase/Barrier were stand-ins that quietly healed HP; they
+  are timed status effects now.
+- First-hit kill credit (`first_hit`) — rewards go to whoever struck first.
+- Sleep now breaks when the sleeper is hit.
+- Passive HP/MP regeneration, driven by Vitality/Intelligence per the help file.
+
+**The missing half of the game loop**
+- Monster item drops, and consumables to drop (medical herb, herbal tea, leaf of
+  the world tree, wing of wyvern).
+- Merchants with Buy/Sell — Gold finally has somewhere to go.
+- Amulets (15 of 23, max 2 worn), and effective-stat plumbing so equipment
+  contributes without ever mutating the underlying stats.
+
+**World and interface**
+- A real day/night clock driving the existing turf-swap machinery, plus the
+  Status panel's Time line.
+- Hazard terrain (lava, swamp).
+- Whisper/Shout chat tiers, the player click menu (give gold/item/cast magic),
+  quick item (numpad `*`/`-`), and quick-cast hotkeys (F5/F6/F7).
+
+**Known gaps this pass did not close:** no item art (every consumable and amulet
+borrows `key.dmi`), no HUD (still zero `screen_loc` usage), no hunger/thirst/
+temperature/weather, no storage containers, and the monster `delay` column is
+extracted but unapplied because its units are unknown.
+
 ## 0.7.0 — 2026-08-08
 GM moderation tools and area-based spawn markers.
 - `GM_Ban`/`GM_Boot`: combined ban+unban target picker, per-character-slot bans,
