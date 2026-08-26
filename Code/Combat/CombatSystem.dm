@@ -362,6 +362,32 @@ mob/var/elementalResistance = null  // e.g. "fire" — takes reduced damage from
 #define ELEMENTAL_WEAKNESS_BONUS_PERCENT 50
 #define ELEMENTAL_RESISTANCE_REDUCTION_PERCENT 50
 
+// A mob's OWN elemental affinity, distinct from what it's weak/resistant TO. This is
+// real OG data for monsters — the .dmb type table stores an element name string per
+// monster and it extracted CERTAIN (the stored values are literally "Fire"/"Water"/
+// "Ice"/"Air"/"Iron"/"Plant"/"Darkness"/"Holy"/"Normal"/"Physical"), so every monster in
+// MonsterRoster.dm now carries its real one. Players leave this null; no creation-time
+// affinity choice exists (TODOList.md Phase 6 has that as an open question).
+//
+// The OG resolved attacker-element vs. defender-element through a single /proc/Element(off, def)
+// lookup whose actual multiplier table lives in bytecode we haven't disassembled. Until
+// that's recovered, ResolveElementalDefense() below derives the two existing
+// weakness/resistance vars from this one affinity using the one rule that's safe to
+// assume — a creature of an element resists that element — and deliberately does NOT
+// invent an opposition table (fire-beats-ice etc.), which would be pure guesswork.
+mob/var/mobElement = null
+
+mob/proc
+    // Called from New() on every mob that has an affinity. Sets elementalResistance from
+    // mobElement unless something already set it explicitly, so the real extracted data
+    // actually reaches ApplySpellDamage() instead of sitting inert on the type.
+    // PLACEHOLDER RULE, clearly flagged: self-element resistance only. Weakness stays
+    // null on purpose — see mobElement's comment above.
+    ResolveElementalDefense()
+        if(!mobElement) return
+        if(isnull(elementalResistance))
+            elementalResistance = mobElement
+
 mob/proc
     // Spell damage helper
     ApplySpellDamage(mob/target, damage, element)

@@ -120,6 +120,36 @@ mob/enemy
 	                    // once it starts skirting a wall instead of flip-flopping
 	                    // between left/right every tick as the target's angle shifts.
 
+	// -----------------------------
+	// Monster spellcasting
+	// -----------------------------
+	// The OG gave 20+ monsters their own Fight override and 33 distinct attack/spell
+	// procs; every enemy here was melee-only until this. Rather than reproduce 33 bespoke
+	// procs, a monster declares WHICH skills it can cast and the shared logic below picks
+	// one — the same "everything is a skill" model players already use, pointed at the
+	// existing datum/skill catalog (SkillCatalog.dm) instead of a parallel monster-only
+	// implementation.
+	//
+	// castableSkills: typepaths this monster may cast offensively at its target.
+	// healSkills:     typepaths it may cast to heal itself or a wounded ally.
+	// Both are instantiated once in New() and reused, same as attackSkill.
+	var/list/castableSkills = list()
+	var/list/healSkills = list()
+	var/list/datum/skill/spellInstances  // built in New() from the two lists above
+
+	var/castChance = 35      // % chance per AI tick, when in range and off cooldown, to
+	                           // cast instead of stepping/swinging. PLACEHOLDER — the OG's
+	                           // own cast frequency isn't recovered yet.
+	var/spellCooldown = 30   // deciseconds between casts. Separate from attackCooldown so
+	                           // a caster can't chain spells at melee swing rate.
+	var/lastCastTime = 0
+	var/castRange = 5        // tiles it will cast from — deliberately longer than
+	                           // attackRange, which is the whole point of a caster.
+	// Below this HP fraction (of MaxHP) a monster is considered "wounded" and becomes a
+	// valid heal target for itself or a nearby Healer. CONFIRMED the OG had a HealCheck;
+	// this threshold is a PLACEHOLDER.
+	var/healThresholdPercent = 60
+
 	// Pet state — null/PET_MODE_FOLLOW until a GM assigns this mob via
 	// ShowAssignPetMenu() below. See file header for the overall design.
 	var/mob/player/owner
@@ -129,8 +159,96 @@ mob/enemy
 	New()
 		..()
 		attackSkill = new
+		ResolveElementalDefense()  // CombatSystem.dm — turns this monster's real OG
+		                            // mobElement (MonsterRoster.dm) into an actual
+		                            // elementalResistance instead of leaving it inert
+		BuildSpellInstances()
 		AILoop()
 		MovementLoop()
+
+	// Instantiates every declared castable/heal skill once, so casting doesn't allocate a
+	// fresh datum per cast. Keyed by typepath so TryCastAt()/TryHeal() below can ask for
+	// a specific one.
+	proc/BuildSpellInstances()
+		spellInstances = list()
+		for(var/skillType in castableSkills + healSkills)
+			if(spellInstances[skillType]) continue
+			spellInstances[skillType] = new skillType
+
+	// Whether this monster casts at all — cheap guard so the overwhelming majority of the
+	// roster (pure melee) skips every casting check below entirely.
+	proc/IsCaster()
+		return castableSkills.len || healSkills.len
+
+	proc/SpellReady()
+		return world.time - lastCastTime >= spellCooldown
+
+	// Offensive cast at M. Returns TRUE if a spell actually went off, so the caller knows
+	// not to also take a melee swing this tick.
+	proc/TryCastAt(mob/M)
+		if(!castableSkills.len || !SpellReady() || !canAct) return FALSE
+		if(get_dist(src, M) > castRange) return FALSE
+		if(!prob(castChance)) return FALSE
+
+		var/datum/skill/S = spellInstances[pick(castableSkills)]
+		if(!S) return FALSE
+
+		// Monsters pay MP like players do — a Healer with an empty pool stops casting
+		// and falls back to melee, which is what makes its 20 MaxMP meaningful.
+		var/cost = S.GetManaCost()
+		if(MP < cost) return FALSE
+		MP -= cost
+
+		lastCastTime = world.time
+		dir = get_dir(src, M)
+		canAct = FALSE
+		view(src) << output("[src] casts [S.skillName]!", "Info")
+		PlayAttackAnimation(src, S, M)
+		ApplySpellDamage(M, round(Intelligence * S.damage_multiplier), S.element)
+		spawn(spellCooldown)
+			canAct = TRUE
+		return TRUE
+
+	// The OG's HealCheck: heal yourself if hurt, otherwise heal the most wounded nearby
+	// ally. Returns TRUE if a heal went off. This is what makes the Healer monster
+	// actually a healer rather than a reskinned melee enemy.
+	proc/TryHeal()
+		if(!healSkills.len || !SpellReady() || !canAct) return FALSE
+
+		// Typed as GenericSpell, not the base datum/skill, so heal_amount is a real
+		// compile-checked member rather than a runtime `:` access — a healSkills list
+		// that accidentally names a non-healing skill fails safe here instead of
+		// throwing mid-cast.
+		var/datum/skill/GenericSpell/S = spellInstances[pick(healSkills)]
+		if(!istype(S)) return FALSE
+		var/cost = S.GetManaCost()
+		if(MP < cost) return FALSE
+
+		// Prefer self when hurt, else the worst-off ally in range. Only unowned monsters
+		// count as allies — a wild Healer shouldn't patch up somebody's pet.
+		var/mob/enemy/patient = null
+		if(HP <= MaxHP * healThresholdPercent / 100)
+			patient = src
+		else
+			var/worstFraction = healThresholdPercent / 100
+			for(var/mob/enemy/E in range(castRange, src))
+				if(E == src || E.HP <= 0 || E.owner) continue
+				var/fraction = E.HP / E.MaxHP
+				if(fraction < worstFraction)
+					worstFraction = fraction
+					patient = E
+
+		if(!patient) return FALSE
+
+		MP -= cost
+		lastCastTime = world.time
+		canAct = FALSE
+		view(src) << output("[src] casts [S.skillName] on [patient == src ? "itself" : "[patient]"]!", "Info")
+		PlayAttackAnimation(src, S, patient)
+		ApplyHeal(patient, S.heal_amount)
+		spawn(spellCooldown)
+			canAct = TRUE
+		return TRUE
 
 	// Runs forever once this enemy exists in the world — same polling-loop shape as
 	// client/MoveLoop() in Code/Core/SmoothMovement.dm. Each tick: stop entirely once
@@ -197,10 +315,22 @@ mob/enemy
 			return
 
 		moveTowardAtom = target
+
+		// Casters get first refusal every tick, before the flee/melee/chase decision.
+		// A monster that can heal tries that first (patching itself up is strictly
+		// better than fleeing), which is also why the flee branch below is no longer
+		// the only escape from low HP.
+		if(IsCaster())
+			if(TryHeal()) return
+			if(TryCastAt(target))
+				moveIntent = ENEMY_MOVE_NONE
+				return
+
 		if(HP <= MaxHP * fleeHealthPercent / 100)
-			// Low HP — run instead of fighting. No healing exists yet, so the only way
-			// this ends is death or breaking sightRange (the leash check above then
-			// drops target and this falls back to wandering, i.e. successfully escaped).
+			// Low HP — run instead of fighting. For a non-caster the only way this ends
+			// is death or breaking sightRange (the leash check above then drops target
+			// and this falls back to wandering, i.e. successfully escaped); a healer
+			// will have already tried to heal itself above instead of reaching here.
 			moveIntent = ENEMY_MOVE_FLEE
 		else if(IsCardinallyAdjacent(src, target, attackRange))
 			moveIntent = ENEMY_MOVE_NONE
