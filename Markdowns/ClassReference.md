@@ -98,7 +98,10 @@ unequipped skills show up, not Zap's real default state — see corrected Hero r
 ## Hero
 
 - Level cap: 99
-- Stat caps: Strength 60, Intelligence 150, Agility ?, Vitality ?, Spirit ?
+- Stat caps: Strength 60 (confirmed), Intelligence 150 (confirmed), Agility 60
+  (placeholder), Vitality 80 (placeholder), Spirit 60 (placeholder) — real numbers
+  now in code (`PlayerTemplate.dm`), filled in 2026-08-28 per the placeholder policy
+  below
 - Default equipped slots (confirmed): Numpad 9 = Attack, Numpad 7 = Defend,
   Numpad 3 = Zap, Numpad 1 = Nothing, Numpad 0 = Nothing. Note this doesn't line up
   position-for-position with the "Attack, Defend, Nothing, Zap, Nothing" list from the
@@ -136,24 +139,27 @@ unequipped skills show up, not Zap's real default state — see corrected Hero r
 ## Soldier
 
 - Level cap: 99
-- Stat caps: Strength 100, Vitality 100, Agility ?, Intelligence ?, Spirit ?
+- Stat caps: Strength 100 (confirmed), Vitality 100 (confirmed), Agility 60
+  (placeholder), Intelligence 20 (placeholder, kept low — no Intelligence-gated
+  skill anywhere in this table), Spirit 40 (placeholder)
 - Default skills: Attack, Defend, Club
 
 | Skill | Requirement | Level |
 |---|---|---|
-| Thornwhip | Str | ? |
-| Rest | Vit | ? |
-| Chainsickle | Str | ? |
-| Morningstar | Str | ? |
-| SwordOfLethargy | Str | ? |
-| Battleaxe | Str | ? |
-| IceSaber | Str | ? |
-| DragonKiller | Str | ? |
-| Flamesword | Str | ? |
-| Falconsword | Str | ? |
-| Demonhammer | Str | ? |
+| Thornwhip | 8 Str | 4 |
+| Rest | 8 Vit | 5 |
+| Morningstar | 12 Str | 8 |
+| Battleaxe | 16 Str | 12 |
+| Flamesword | 18 Str | 15 |
+| Falconsword | 20 Str | 17 |
+| Chainsickle | 19 Str | 19 |
+| IceSaber | 23 Str | 22 |
+| SwordOfLethargy | 23 Str | 23 |
+| Demonhammer | 26 Str | 27 |
+| DragonKiller | 30 Str | 32 |
 
-All levels/exact stat thresholds unconfirmed — only the governing stat is known so far.
+All levels/exact stat thresholds are placeholder (`SkillUnlocks.dm`, filled 2026-08-28
+per the policy below) — only the governing stat was ever confirmed from the OG.
 
 ---
 
@@ -161,101 +167,118 @@ All levels/exact stat thresholds unconfirmed — only the governing stat is know
 
 - Level cap: 99
 - Stat caps: Strength 100, Agility 100, Vitality 80, Intelligence 40, Spirit 40
+  (all confirmed)
 - Default skills: Punch
 
 | Skill | Requirement | Level |
 |---|---|---|
-| Iron Claw | Str | ? |
-| Fireclaw | Str | ? |
-| Iceclaw | Str | ? |
-| Goldclaw | Str | ? |
-| Quakejump | Agi | ? |
-| Jump | Agi | ? |
-| Hide | Agi | ? |
-| Dash | Agi | ? |
-| Rest | Vit | ? |
+| Jump | 7 Agi | 3 |
+| Hide | 8 Agi | 4 |
+| Rest | 8 Vit | 5 |
+| Iron Claw | 9 Str | 7 |
+| Dash | 11 Agi | 9 |
+| Quakejump | 12 Agi | 12 |
+| Fireclaw | 13 Str | 15 |
+| Iceclaw | 13 Str | 17 |
+| Goldclaw | 19 Str | 22 |
+
+All levels/exact stat thresholds are placeholder (`SkillUnlocks.dm`, filled 2026-08-28
+per the policy below) — only the governing stat was ever confirmed from the OG.
 
 ---
 
 ## Goof-off
 
 - Level cap: 99
-- Stat caps: Strength 80, Vitality 60, Intelligence 40, Spirit 40, Agility ?
+- Stat caps: Strength 80, Vitality 60, Intelligence 40, Spirit 40 (all confirmed),
+  Agility 60 (placeholder)
 - Default skills: Attack
 
 Learning `Classchange` transforms this character into a Sage (DW3-style) — not a
 character-creation option. Goof-off is the only class that learns `Classchange` as a
 built-in leveled skill; **any other class** can reach Sage too, but needs to use a
 **Dharma Scroll** item instead of learning the skill naturally. Sage gets its own skill
-list (not yet documented).
+list — see the Sage section below.
 
 | Skill | Requirement | Level |
 |---|---|---|
-| Classchange | ? | ? |
-| Magicknife | ? | ? |
-| Boomerang | Str | ? |
-| Quakejump | Agi | ? |
-| Jump | Agi | ? |
-| Thornwhip | Str | ? |
-| Club | Str | ? |
-| Rest | Vit | ? |
+| Club | 6 Str | 3 |
+| Jump | 7 Agi | 4 |
+| Magicknife | 8 Str | 6 |
+| Thornwhip | 8 Str | 8 |
+| Boomerang | 10 Str | 10 |
+| Rest | 8 Vit | 12 |
+| Quakejump | 12 Agi | 15 |
+| Classchange | (none) | 25 (confirmed — the one real data point recovered for this class) |
+
+All levels/exact stat thresholds besides Classchange's level are placeholder
+(`SkillUnlocks.dm`, filled 2026-08-28) — Magicknife's own governing stat is itself an
+educated guess (Strength), not confirmed.
 
 ---
 
 ## Pilgrim
 
 - Level cap: 99
-- Stat caps: Strength 80, Agility 60, Intelligence 100, Vitality ?, Spirit ?
+- Stat caps: Strength 80 (confirmed), Agility 60 (confirmed), Intelligence 100
+  (confirmed), Vitality 60 (placeholder), Spirit 60 (placeholder)
 - Default skills: Attack, Heal
 
 | Skill | Requirement | Level |
 |---|---|---|
-| Sleep | Int | ? |
-| Upper | Int | ? |
-| Infernos | Int | ? |
-| Healmore | Int | ? |
-| Return | Int | ? |
-| Stopspell | Int | ? |
-| Healus | Int | ? |
-| Sleepmore | Int | ? |
-| Vivify | Int | ? |
-| Infermore | Int | ? |
-| Increase | Int | ? |
-| Healmost | Int | ? |
-| Revive | Int | ? |
-| Healusmore | Int | ? |
-| Club | Str | ? |
-| Morningstar | Str | ? |
-| SwordOfLethargy | Str | ? |
-| Lightsword | Str | ? |
-| Battleaxe | Str | ? |
-| Meditate | Spirit | ? |
+| Club | 6 Str | 3 |
+| Sleep | 9 Int | 5 |
+| Upper | 10 Int | 6 |
+| Increase | 11 Int | 7 |
+| Infernos | 12 Int | 9 |
+| Morningstar | 12 Str | 10 |
+| Meditate | 15 Spirit | 12 |
+| Lightsword | 14 Str | 13 |
+| Healmore | 14 Int | 14 |
+| Return | 14 Int | 15 |
+| Battleaxe | 16 Str | 16 |
+| Sleepmore | 16 Int | 17 |
+| Infermore | 19 Int | 18 |
+| SwordOfLethargy | 23 Str | 20 |
+| Healmost | 20 Int | 22 |
+| Stopspell | 20 Int | 24 |
+| Healus | 21 Int | 26 |
+| Vivify | 22 Int | 28 |
+| Revive | 24 Int | 32 |
+| Healusmore | 26 Int | 36 |
+
+All levels/exact stat thresholds are placeholder (`SkillUnlocks.dm`, filled 2026-08-28
+per the policy below) — only the governing stat was ever confirmed from the OG.
 
 ---
 
 ## Wizard
 
 - Level cap: 99
-- Stat caps: Strength 40, Agility 40, Vitality 60, Intelligence 100, Spirit ?
-- Default skills: Attack, Fireball, Icebolt
+- Stat caps: Strength 40, Agility 40, Vitality 60, Intelligence 100 (all confirmed),
+  Spirit 60 (placeholder)
+- Default skills: Attack, Fireball, Icebolt (Fireball/Blaze granted at creation —
+  `GetStartingKit()`, `SkillUnlocks.dm` — so neither appears as a leveled unlock below)
 
 | Skill | Requirement | Level |
 |---|---|---|
-| Blaze | Int | ? |
-| Lightning | Int | ? |
-| Icespears | Int | ? |
-| Bang | Int | ? |
-| Blazemore | Int | ? |
-| Firebane | Int | ? |
-| Thordain | Int | ? |
-| Blizzard | Int | ? |
-| Boom | Int | ? |
-| Firevolt | Int | ? |
-| Blazemost | Int | ? |
-| Snowstorm | Int | ? |
-| Barrier | Int | ? |
-| Explodet | Int | ? |
-| Meditate | Spirit | ? |
+| Lightning | 10 Int | 5 |
+| Blazemore | 14 Int | 8 |
+| Barrier | 17 Int | 10 |
+| Meditate | 15 Spirit | 12 |
+| Blizzard | 16 Int | 14 |
+| Icespears | 13 Int | 16 |
+| Boom | 18 Int | 18 |
+| Thordain | 20 Int | 20 |
+| Bang | 18 Int | 22 |
+| Firevolt | 20 Int | 24 |
+| Snowstorm | 23 Int | 27 |
+| Firebane | 21 Int | 30 |
+| Blazemost | 24 Int | 34 |
+| Explodet | 28 Int | 38 |
+
+All levels/exact stat thresholds are placeholder (`SkillUnlocks.dm`, filled 2026-08-28
+per the policy below) — only the governing stat was ever confirmed from the OG.
 
 ---
 
@@ -268,23 +291,35 @@ list (not yet documented).
   Hero + Wizard + Pilgrim's skill tables above — matches the OG help file's own
   flavor text ("A combination of Wizard and Pilgrim... learns both offensive and
   defensive magic, but is horrible in physical combat"), extended to include Hero's
-  list too per your explicit decision. Stat caps/growth: placeholder, tune later —
-  should land squarely in caster territory (low Str/Agi, high Int, since "horrible in
-  physical combat" is confirmed OG flavor text).
-- Default equipped skills: not decided yet, pick 5 from the combined pool once the
-  combined skill table actually exists in code.
+  list too per your explicit decision. Built as a real merge in code
+  (`mob/player/Sage/GetSkillUnlocks()`, `SkillUnlocks.dm`) rather than a hand-copied
+  table, so it can never drift from whichever of the three source classes a shared
+  skill (e.g. Meditate) actually comes from — ties keep the first source encountered,
+  in Hero/Wizard/Pilgrim order. Unlike Hero/Wizard, Sage doesn't start with Fireball
+  or Blaze, so both get their own added unlock entries (level 8/10 Intelligence,
+  matching Hero's own numbers for each).
+- Stat caps (all placeholder, filled 2026-08-28): Strength 40, Agility 40, Vitality
+  60, Intelligence 150, Spirit 60 — squarely caster territory (low Str/Agi, high Int)
+  per the confirmed "horrible in physical combat" flavor text; Intelligence matched
+  to Hero's own 150 since Sage's list is a superset of Hero's.
+- Default equipped skills (chosen 2026-08-28, `GetStartingKit()`): Attack (9), Blaze
+  (3), Heal (7), Meditate (1), Return (0) — a rounded caster kit (damage, heal,
+  MP-restore, escape), resolving what this doc used to leave as an open "pick 5 from
+  the combined pool" decision.
 
 ## Still needed
 
-- Every class: full Agility/Vitality/Intelligence/Spirit stat caps where marked `?` above
-  — **placeholder policy (2026-08-04)**: invent reasonable numbers now, all tunable
-  later, don't block building on these.
-- Soldier/Fighter/Goof-off/Pilgrim/Wizard/Sage: exact level + exact stat threshold per
-  skill — **same placeholder policy**: assign a sane level/stat curve now (mirroring
-  Hero's confirmed spacing/scaling where reasonable), revise once/if more OG data
-  surfaces.
+- **Resolved 2026-08-28**: every stat cap and every skill's exact level/stat threshold
+  that used to be marked `?` in this doc turned out to already be filled in with real
+  placeholder numbers in code (`PlayerTemplate.dm`'s `capStrength`/etc.,
+  `SkillUnlocks.dm`'s per-class `GetSkillUnlocks()` tables) — this doc had just never
+  been synced back up after that placeholder-policy pass actually happened. All tables
+  above now reflect the real in-code values; `SkillUnlocks.dm`'s own header comment
+  (which still claimed everything was untouched Fireball-only test data) was corrected
+  to match too. Still genuinely tunable, just not *missing* anymore.
 - Confirmation on whether Stopspell/Firebane/Vivify (Hero) are genuinely stat *ranges*
-  or a copy-paste error in the source notes — treat as a range for now (placeholder)
+  or a copy-paste error in the source notes — treated as a single value for now
+  (`SkillUnlocks.dm` picked one number from each original range)
 - "Master" class tier, Merchant/Thief classes, weapon-gated skills — **all explicitly
   deferred to a later version (2026-08-04 decision)**, not part of the current
   mechanics-first build pass. See `TODOList.md` Open Questions.

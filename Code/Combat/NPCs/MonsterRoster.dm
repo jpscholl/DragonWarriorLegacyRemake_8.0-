@@ -15,11 +15,14 @@
 // HIGH, exp/gold are MEDIUM. Nothing here is a guess of ours; where a column was too
 // uncertain to apply, it's called out below rather than used.
 //
-// The roster is deliberately trimmed to the ten monsters covered by the OG difficulty
-// ordering (CombatDataSheet.md) — cat, slime, dog, redslime, bat, fox, babble, skeleton,
-// drakee, healer — per the "5-6 monster types for training cages, not the full ~86
-// roster" call from the 2026-08-14 session. The TSV holds real stats for all 77; adding
-// one back is now just a block below with its row's numbers, no tier to pick.
+// Originally trimmed to ten monsters (cat, slime, dog, redslime, bat, fox, babble,
+// skeleton, drakee, healer) per the "5-6 monster types for training cages, not the
+// full ~86 roster" call from the 2026-08-14 session. Expanded 2026-08-28 to all 24
+// monster names actually CONFIRMED to exist in the OG (via GMglobalrespawn/
+// GMkillallmonsters's type pickers, GMCommandsReference.md) — the other 53 rows in the
+// TSV belong to icons with no confirmed real name, so they're left out rather than
+// guessed at. The TSV holds real stats for all 77; adding one more back is just a
+// block below with its row's numbers, no tier to pick.
 //
 // TWO COLUMNS DELIBERATELY NOT APPLIED:
 //   delay — real and high-confidence (inversely monotonic with Agility across the whole
@@ -234,3 +237,297 @@ mob/enemy/healer
     dropType = /obj/item/consumable/tea
     dropChance = 15
     healSkills = list(/datum/skill/Heal)
+
+// =============================================================================
+// 2026-08-28 roster expansion — same real OG data source as the ten above
+// (Markdowns/OGMonsterBaseStats.tsv), extending from the trimmed 10-monster training
+// cage out to all 24 monster names actually confirmed to exist in the OG (via the
+// GMglobalrespawn/GMkillallmonsters type pickers, GMCommandsReference.md). Same
+// confidence notes apply (element CERTAIN, level/HP/MP/stats HIGH, exp/gold MEDIUM,
+// delay/flee left out of scope — see this file's header). dropType/dropChance aren't
+// in the TSV at all (no drop data was extractable) — chosen in the same loose style as
+// the original 10's own drop fields, not sourced from anything.
+// =============================================================================
+mob/enemy/magician
+    name = "Magician"
+    icon = 'magician.dmi'
+    icon_state = "world"
+    Level = 6
+    HP = 70
+    MaxHP = 70
+    MP = 35
+    MaxMP = 35
+    Strength = 3
+    Agility = 2
+    Vitality = 3
+    Intelligence = 7
+    Spirit = 6
+    expReward = 12
+    goldReward = 12
+    fleeHealthPercent = 15
+    dropType = /obj/item/consumable/tea
+    dropChance = 12
+    // Has a real MP pool per the TSV, but no castableSkills wired — the confirmed OG
+    // caster AI (kiting, MP-drain-then-fallback-to-melee, TODOList.md Phase 6) isn't
+    // built yet, so this is melee-only for now despite the name/MP.
+
+mob/enemy/snailslime
+    name = "Snail Slime"
+    icon = 'snailslime.dmi'
+    icon_state = "world"
+    Level = 6
+    HP = 100
+    MaxHP = 100
+    Strength = 6
+    Agility = 1
+    Vitality = 9
+    Intelligence = 3
+    Spirit = 1
+    mobElement = "Plant"
+    expReward = 11
+    goldReward = 11
+    fleeHealthPercent = 10
+    dropType = /obj/item/consumable/herb
+    dropChance = 10
+
+mob/enemy/ghost
+    name = "Ghost"
+    icon = 'ghost.dmi'
+    icon_state = "world"
+    Level = 8
+    HP = 90
+    MaxHP = 90
+    Strength = 8
+    Agility = 2
+    Vitality = 1
+    Intelligence = 12
+    Spirit = 1
+    mobElement = "Darkness"
+    expReward = 20
+    goldReward = 20
+    fleeHealthPercent = 0   // never flees — real TSV value, same as Skeleton
+    dropType = /obj/item/consumable/tea
+    dropChance = 12
+
+mob/enemy/wolf
+    name = "Wolf"
+    icon = 'wolf.dmi'
+    icon_state = "world"
+    Level = 9
+    HP = 95
+    MaxHP = 95
+    Strength = 9
+    Agility = 8
+    Vitality = 8
+    Intelligence = 2
+    Spirit = 1
+    expReward = 24
+    goldReward = 24
+    fleeHealthPercent = 10
+    dropType = /obj/item/consumable/herb
+    dropChance = 10
+
+mob/enemy/magidrakee
+    name = "Magidrakee"
+    icon = 'magidrakee.dmi'
+    icon_state = "world"
+    Level = 10
+    HP = 90
+    MaxHP = 90
+    MP = 20
+    MaxMP = 20
+    Strength = 5
+    Agility = 7
+    Vitality = 6
+    Intelligence = 10
+    Spirit = 6
+    mobElement = "Fire"
+    expReward = 27
+    goldReward = 27
+    fleeHealthPercent = 15
+    dropType = /obj/item/consumable/tea
+    dropChance = 12
+    // Same "has MP, no caster AI yet" note as Magician above.
+
+mob/enemy/reptile
+    name = "Reptile"
+    icon = 'reptile.dmi'
+    icon_state = "world"
+    Level = 10
+    HP = 105
+    MaxHP = 105
+    Strength = 10
+    Agility = 1
+    Vitality = 10
+    Intelligence = 1
+    Spirit = 1
+    mobElement = "Water"
+    expReward = 30
+    goldReward = 30
+    fleeHealthPercent = 10
+    dropType = /obj/item/consumable/herb
+    dropChance = 10
+
+mob/enemy/arcticfox
+    name = "Arctic Fox"
+    icon = 'arcticfox.dmi'
+    icon_state = "world"
+    Level = 11
+    HP = 100
+    MaxHP = 100
+    Strength = 10
+    Agility = 11
+    Vitality = 4
+    Intelligence = 7
+    Spirit = 6
+    mobElement = "Ice"
+    expReward = 33
+    goldReward = 33
+    fleeHealthPercent = 20
+    dropType = /obj/item/consumable/herb
+    dropChance = 10
+
+mob/enemy/panther
+    name = "Panther"
+    icon = 'panther.dmi'
+    icon_state = "world"
+    Level = 11
+    HP = 120
+    MaxHP = 120
+    Strength = 11
+    Agility = 8
+    Vitality = 8
+    Intelligence = 4
+    Spirit = 1
+    mobElement = "Plant"
+    expReward = 36
+    goldReward = 36
+    fleeHealthPercent = 5
+    dropType = /obj/item/consumable/tea
+    dropChance = 10
+
+// CONFIRMED OG AI (TODOList.md Phase 6, live-tested 2026-08-10): Acolytes self-cast
+// Increase (physical defense buff) the instant they spot the player. Not built here —
+// EnemyNPCs.dm has no "self-buff on aggro" hook at all yet (only castableSkills/
+// healSkills, both offense/heal-shaped) — so this is melee-only for now despite the
+// real MP pool below. Worth its own AILoop() pass alongside the other confirmed-but-
+// unbuilt caster behaviors (TODOList.md), not bolted on here.
+mob/enemy/acolyte
+    name = "Acolyte"
+    icon = 'acolyte.dmi'
+    icon_state = "world"
+    Level = 12
+    HP = 110
+    MaxHP = 110
+    MP = 45
+    MaxMP = 45
+    Strength = 10
+    Agility = 1
+    Vitality = 1
+    Intelligence = 9
+    Spirit = 12
+    mobElement = "Darkness"
+    expReward = 43
+    goldReward = 43
+    fleeHealthPercent = 20
+    dropType = /obj/item/consumable/tea
+    dropChance = 14
+
+mob/enemy/gremlin
+    name = "Gremlin"
+    icon = 'gremlin.dmi'
+    icon_state = "world"
+    Level = 12
+    HP = 100
+    MaxHP = 100
+    MP = 60
+    MaxMP = 60
+    Strength = 8
+    Agility = 12
+    Vitality = 1
+    Intelligence = 12
+    Spirit = 10
+    mobElement = "Air"
+    expReward = 39
+    goldReward = 39
+    fleeHealthPercent = 25
+    dropType = /obj/item/consumable/tea
+    dropChance = 14
+    // Same "has MP, no caster AI yet" note as Magician above.
+
+mob/enemy/blazeghost
+    name = "Blazeghost"
+    icon = 'blazeghost.dmi'
+    icon_state = "world"
+    Level = 13
+    HP = 90
+    MaxHP = 90
+    MP = 40
+    MaxMP = 40
+    Strength = 1
+    Agility = 1
+    Vitality = 1
+    Intelligence = 12
+    Spirit = 18
+    mobElement = "Fire"
+    expReward = 47
+    goldReward = 47
+    fleeHealthPercent = 0   // never flees — real TSV value, same as Skeleton/Ghost
+    dropType = /obj/item/consumable/tea
+    dropChance = 16
+
+mob/enemy/tiger
+    name = "Tiger"
+    icon = 'tiger.dmi'
+    icon_state = "world"
+    Level = 13
+    HP = 135
+    MaxHP = 135
+    Strength = 11
+    Agility = 11
+    Vitality = 8
+    Intelligence = 1
+    Spirit = 1
+    expReward = 51
+    goldReward = 51
+    fleeHealthPercent = 10
+    dropType = /obj/item/consumable/herb
+    dropChance = 10
+
+mob/enemy/manowar
+    name = "Man O' War"
+    icon = 'manowar.dmi'
+    icon_state = "world"
+    Level = 14
+    HP = 135
+    MaxHP = 135
+    Strength = 12
+    Agility = 15
+    Vitality = 8
+    Intelligence = 10
+    Spirit = 1
+    mobElement = "Water"
+    expReward = 59
+    goldReward = 59
+    fleeHealthPercent = 0   // never flees — real TSV value, same as Skeleton/Ghost/Blazeghost
+    dropType = /obj/item/consumable/herb
+    dropChance = 12
+
+mob/enemy/yeti
+    name = "Yeti"
+    icon = 'yeti.dmi'
+    icon_state = "world"
+    Level = 14
+    HP = 140
+    MaxHP = 140
+    Strength = 14
+    Agility = 3
+    Vitality = 12
+    Intelligence = 4
+    Spirit = 1
+    mobElement = "Ice"
+    expReward = 55
+    goldReward = 55
+    fleeHealthPercent = 5
+    dropType = /obj/item/consumable/herb
+    dropChance = 12

@@ -118,14 +118,16 @@ mob/proc
 #define MIN_DAMAGE 1
 
 mob/proc
-    // defenseBonus/magicDefenseBonus are the Increase/Barrier buffs (StatusEffects.dm),
-    // added here rather than to the underlying stats so a buff can never be caught by a
-    // stat-cap check or accidentally persisted by a mid-buff save.
+    // defenseBonus/magicDefenseBonus are the Increase/Barrier buffs (StatusEffects.dm);
+    // equipDefenseBonus/equipMagicDefenseBonus are their amulet equivalents
+    // (obj/item/amulet/increase and /barrier, Inventory.dm). All added here rather than
+    // to the underlying stats so neither can be caught by a stat-cap check or
+    // accidentally persisted by a mid-buff/mid-equip save.
     GetDefense()
-        return round((GetEffectiveAgility() + GetEffectiveVitality()) / PHYSICAL_DEFENSE_DIVISOR) + defenseBonus
+        return round((GetEffectiveAgility() + GetEffectiveVitality()) / PHYSICAL_DEFENSE_DIVISOR) + defenseBonus + equipDefenseBonus
 
     GetMagicDefense()
-        return round((GetEffectiveVitality() + GetEffectiveIntelligence()) / MAGIC_DEFENSE_DIVISOR) + magicDefenseBonus
+        return round((GetEffectiveVitality() + GetEffectiveIntelligence()) / MAGIC_DEFENSE_DIVISOR) + magicDefenseBonus + equipMagicDefenseBonus
 
 // Critical hits — new, no OG numeric formula exists either, only the help file's claim
 // that Spirit drives crit rate. Rolled by the ATTACKER (RollCrit() reads src's own
@@ -150,8 +152,44 @@ mob/proc
     // already include the crit multiplier by the time it gets here (see
     // PerformMeleeHit()/ApplySpellDamage()), same division of labor as isDefending's
     // reduction happening in here while the crit roll happens at the source.
+    // Returns whether the hit actually landed (FALSE for already-dead, a blocked
+    // friendly-fire-on-pet hit, or a dodge) — Projectiles.dm's Launch() uses this to
+    // decide whether a spell projectile stops at this target or keeps flying past it
+    // toward whatever's beyond (a dodge shouldn't consume the shot).
     TakeDamage(damage, mob/attacker, isMagic = FALSE, isCrit = FALSE)
-        if(HP <= 0) return
+        if(HP <= 0) return FALSE
+
+        // No friendly fire on your own pet (mob/enemy/owner, EnemyNPCs.dm) — covers
+        // melee (PerformMeleeHit()/PerformLineHit()) and spells (ApplySpellDamage())
+        // both, since everything funnels through here. Other players' pets and wild
+        // monsters are still fair game; only YOUR OWN pet is protected.
+        if(istype(src, /mob/enemy))
+            var/mob/enemy/E = src
+            if(E.owner && E.owner == attacker) return FALSE
+
+        // Mirror of the above: a pet can't hurt its own owner either. RunWildAI()
+        // (EnemyNPCs.dm) already stops a pet from picking its owner as a target in
+        // the first place — this is the belt-and-braces backstop for any other path
+        // (e.g. a stray AoE) that might still route damage from a pet to its owner.
+        if(istype(attacker, /mob/enemy))
+            var/mob/enemy/A = attacker
+            if(A.owner && A.owner == src) return FALSE
+
+        // Coop mode (GM_CoopMode, GMCommands.dm) — blocks player-vs-player damage
+        // unless the target's current area allows PvP (Area.dm's battleAllowsPvP,
+        // default FALSE everywhere). Separate from GM_BattleMode's monster-aggro/
+        // skill-use gate (InBattleArea()) — the two never affect each other
+        // (GMCommandsReference.md). GM-tier targets are exempt from the protection
+        // ("players can still hurt a GM regardless of coop mode") — this only ever
+        // narrows what a GM's own mob/player can take, never what they can dish out.
+        if(istype(src, /mob/player) && istype(attacker, /mob/player))
+            var/mob/player/targetP = src
+            if(!(targetP.client && targetP.client.adminLevel >= LEVEL_GM_HOST))
+                var/turf/pvpTurf = src.loc
+                var/area/pvpArea = pvpTurf ? pvpTurf.loc : null
+                if(!pvpArea || !pvpArea.battleAllowsPvP)
+                    attacker << output("Coop mode is active here — you cannot attack other players.", "Info")
+                    return FALSE
 
         // "src" here is a /mob/enemy check because enemies and players use different
         // sound files for the same events (attack/hit/dodge) — see PlayAttackAnimation()
@@ -166,7 +204,8 @@ mob/proc
             // hit — that silently broke this exact sound for player-vs-enemy combat.
             PlaySFXAt(src, isEnemy ? 'enemydodge.wav' : 'dodge.wav')
             view(src) << output("[src] dodges the attack!", "Info")
-            return
+            ShowCombatNumber(src, "miss", "#ffffff")
+            return FALSE
 
         flick("hit", src)
         // channel = SFX_CHANNEL (defined in the .dme, see its comment), not 1 —
@@ -197,6 +236,8 @@ mob/proc
 
         HP -= damage
         view(src) << output(isCrit ? "[src] takes a critical hit for [damage] damage! (HP: [max(HP,0)])" : "[src] takes [damage] damage! (HP: [max(HP,0)])", "Info")
+        ShowCombatNumber(src, "[damage]", isCrit ? "#ffff00" : "#ff0000")
+        UpdateFloatingBars()
 
         // Being hit wakes you up — classic Dragon Warrior behavior, and previously
         // flagged as a known gap in datum/status_effect/sleep's own comment
@@ -207,6 +248,8 @@ mob/proc
         if(HP <= 0)
             Die(attacker)
             CleanUpDead()
+
+        return TRUE
 
 mob/proc
     // Spawns this mob's item drop, if it has one. Base mob drops nothing — mob/enemy
@@ -252,6 +295,10 @@ mob/proc
             // 15 * 49^2 = 36,015 exp, i.e. ~3,600 kills of ANY monster at a flat 10.
             var/reward = src.expReward
             var/goldDrop = src.goldReward
+            // What the attacker personally receives, after their own amulet bonus —
+            // tracked separately from goldDrop/reward so the message below (and the
+            // party case) reports the real credited amount, not the pre-bonus one.
+            var/attackerGoldGained = 0
             if(attacker.Party && attacker.Party.shareExp)
                 // Split evenly among the party (Code/Player/Party.dm) — no
                 // solo-vs-group penalty yet, that formula isn't confirmed (TODOList.md).
@@ -261,16 +308,23 @@ mob/proc
                 var/share = max(1, round(reward / memberCount))
                 var/goldShare = goldDrop ? max(1, round(goldDrop / memberCount)) : 0
                 for(var/mob/player/M in attacker.Party.members)
-                    M.Exp += share
-                    M.Gold += goldShare
+                    // Amulet of Experience/Wealth (obj/item/amulet/exp, /gold,
+                    // Inventory.dm) — each member's own amulet boosts only their own
+                    // share, not the shared pool before split.
+                    var/expGained = round(share * (100 + M.equipExpBonusPercent) / 100)
+                    var/goldGained = round(goldShare * (100 + M.equipGoldBonusPercent) / 100)
+                    M.Exp += expGained
+                    M.Gold += goldGained
                     M.LevelCheck()
+                    if(M == attacker) attackerGoldGained = goldGained
             else
-                attacker.Exp += reward
-                attacker.Gold += goldDrop
+                attackerGoldGained = round(goldDrop * (100 + attacker.equipGoldBonusPercent) / 100)
+                attacker.Exp += round(reward * (100 + attacker.equipExpBonusPercent) / 100)
+                attacker.Gold += attackerGoldGained
                 attacker.LevelCheck()
 
-            if(goldDrop)
-                attacker << output("You gain [goldDrop] Gold.", "Info")
+            if(attackerGoldGained)
+                attacker << output("You gain [attackerGoldGained] Gold.", "Info")
 
             // Item drops (the OG's drop_type/drop_rate). Rolled here, inside the
             // attacker branch, so an unattributed death (a GM_KillMonsters sweep with no
@@ -295,6 +349,12 @@ mob/proc
             // (SmoothMovement.dm) — same mechanism already used to root a player
             // mid-attack. Reset on respawn, see RespawnPlayer() below.
             canAct = FALSE
+            // Also clear this even though the attack's own recovery spawn() already
+            // guards on isDead before setting it — a mob killed by a SECOND hit that
+            // lands during their own swing's post-windup "moving but can't attack yet"
+            // window would otherwise still have this TRUE, letting Step() wave the
+            // death lock through (PlayerTemplate.dm's attackRecoveryOnly).
+            attackRecoveryOnly = FALSE
             src << output("You will auto-respawn in [RESPAWN_AUTO_DELAY / 10] seconds. You may press 5 on your numpad to respawn before then.", "Info")
 
             // Auto-respawn timer. Captures deathTime so a player who respawned early
@@ -358,7 +418,10 @@ mob/proc
             // Recomputed fresh off the new Level (not incremented off the old
             // threshold like the flat +10 this replaced).
             src.Nexp = BASE_EXP * src.Level * src.Level
-            src.StatPoints += 5
+            // CONFIRMED 2026-08-10: Hero1 sat on 12 unspent points after 2 level-ups
+            // (1->2->3) with none spent along the way — 6 per level, not the old
+            // placeholder 5 (TODOList.md Phase 7).
+            src.StatPoints += 6
             src.RecalculateVitals()  // Code/Player/StatsDatum.dm — Level affects MaxHP/MaxMP too
             src << output("You are now Level [src.Level]", "Info")
             src << sound('levelup.wav', channel = 2, volume = client ? client.ScaledVolume() : 100)
@@ -371,32 +434,50 @@ mob/proc
                 P.CheckSkillUnlocks()
 
 mob/proc
-    // Melee hit detection
-    PerformMeleeHit(datum/skill/S)
-        var/turf/T = get_step(src, dir)
-        if(!T) return
+    // Melee hit detection. M, when passed, is the target captured the INSTANT the
+    // swing started (UseSkillSlot(), PlayerTemplate.dm — already resolved from the
+    // tile-ahead at keypress time; RunWildAI()/HandlePetTick(), EnemyNPCs.dm, pass
+    // their locked target/huntTarget the same way, only after their own adjacency
+    // check). This proc runs after cast_time's windup though — an earlier version of
+    // this re-checked M's range AGAIN here, at resolve time, which meant a target that
+    // was legitimately adjacent when the swing started but then took one step (fleeing
+    // or just repositioning) during the windup made the swing whiff anyway. That's not
+    // a real dodge, just bad timing luck. A swing you already committed to, against a
+    // target that WAS in range, should land — RollDodge() below is the only thing that
+    // should be able to turn it into a miss. So M's range is trusted from capture time
+    // and never re-validated here; only re-check that it's still alive. Falls back to
+    // scanning the tile ahead only when no target was captured up front (defensive —
+    // every current caller passes one) — that fallback is inherently "checked right
+    // now," so it needs no separate range check either.
+    PerformMeleeHit(datum/skill/S, mob/M = null)
+        if(!M)
+            var/turf/T = get_step(src, dir)
+            if(!T) return
+            for(var/mob/X in T.contents)
+                if(X == src) continue
+                if(X.HP <= 0) continue
+                M = X
+                break
 
-        for(var/mob/M in T.contents)
-            if(M == src) continue
-            if(M.HP <= 0) continue
+        if(!M || M.HP <= 0) return
 
-            // S.damage_multiplier (base /datum/skill, SkillDatum.dm) defaults to 1, so
-            // this stays flat-Strength for Attack exactly like before — only a skill
-            // that actually sets a different multiplier (GenericPhysical subtypes,
-            // SkillCatalog.dm) changes the number.
-            //
-            // S may legitimately be null — reading .damage_multiplier off null is a
-            // hard runtime error in DM, which would abort the whole hit. Every caller
-            // in the codebase now passes a real skill (enemies pass their own
-            // attackSkill, EnemyNPCs.dm), but this stays defensive so a future
-            // "just deal a plain hit" caller can't silently break all melee again.
-            // attackBonus is the Upper buff (StatusEffects.dm) — added to Strength for
-            // damage purposes only, never to the stat itself.
-            var/mult = S ? S.damage_multiplier : 1
-            var/damage = round((GetEffectiveStrength() + attackBonus) * mult)
-            var/isCrit = RollCrit()
-            if(isCrit) damage = round(damage * CRIT_DAMAGE_PERCENT / 100)
-            M.TakeDamage(damage, src, isMagic = FALSE, isCrit = isCrit)
+        // S.damage_multiplier (base /datum/skill, SkillDatum.dm) defaults to 1, so
+        // this stays flat-Strength for Attack exactly like before — only a skill
+        // that actually sets a different multiplier (GenericPhysical subtypes,
+        // SkillCatalog.dm) changes the number.
+        //
+        // S may legitimately be null — reading .damage_multiplier off null is a
+        // hard runtime error in DM, which would abort the whole hit. Every caller
+        // in the codebase now passes a real skill (enemies pass their own
+        // attackSkill, EnemyNPCs.dm), but this stays defensive so a future
+        // "just deal a plain hit" caller can't silently break all melee again.
+        // attackBonus is the Upper buff (StatusEffects.dm) — added to Strength for
+        // damage purposes only, never to the stat itself.
+        var/mult = S ? S.damage_multiplier : 1
+        var/damage = round((GetEffectiveStrength() + attackBonus) * mult)
+        var/isCrit = RollCrit()
+        if(isCrit) damage = round(damage * CRIT_DAMAGE_PERCENT / 100)
+        M.TakeDamage(damage, src, isMagic = FALSE, isCrit = isCrit)
 
 // Elemental scaffolding — real, working code, but currently inert: nothing anywhere
 // yet actually sets elementalWeakness/elementalResistance on a player or monster, so
@@ -437,9 +518,11 @@ mob/proc
             elementalResistance = mobElement
 
 mob/proc
-    // Spell damage helper
+    // Spell damage helper. Returns TakeDamage()'s landed/dodged result (see its own
+    // note) — Projectiles.dm's Impact() passes this back up to Launch() so a dodged
+    // shot keeps flying instead of stopping.
     ApplySpellDamage(mob/target, damage, element)
-        if(!target) return
+        if(!target) return FALSE
 
         if(element)
             if(target.elementalWeakness == element)
@@ -449,7 +532,7 @@ mob/proc
 
         var/isCrit = RollCrit()
         if(isCrit) damage = round(damage * CRIT_DAMAGE_PERCENT / 100)
-        target.TakeDamage(damage, src, isMagic = TRUE, isCrit = isCrit)
+        return target.TakeDamage(damage, src, isMagic = TRUE, isCrit = isCrit)
         // Can later add AoE and more elaborate elemental effects (status ailments tied
         // to an element, etc.) — this proc just handles the damage-modifier half.
 
@@ -459,8 +542,12 @@ mob/proc
     // healed). Used by GenericSpell's healing branch (SkillCatalog.dm) and Rest.
     ApplyHeal(mob/target, amount)
         if(!target) return
+        var/oldHP = target.HP
         target.HP = min(target.MaxHP, target.HP + amount)
+        var/actualHealed = target.HP - oldHP
         target << output("You are healed for [amount] HP! (HP: [target.HP]/[target.MaxHP])", "Info")
+        if(actualHealed > 0) ShowCombatNumber(target, "[actualHealed]", "#00ff00")
+        target.UpdateFloatingBars()
 
 #define MELEE_ATK_BASE_DELAY 12
 #define MELEE_ATK_MIN_DELAY 4
@@ -578,15 +665,38 @@ mob/proc/ResolveAnimState(baseName)
     return null
 
 mob/proc
-    // Play animations for skills
-    PlayAttackAnimation(mob/user, datum/skill/S, mob/target = null)
+    // Play animations for skills. duration (deciseconds) is how long the melee weapon
+    // overlay stays visible — callers should pass their real attack-cycle length
+    // (GetAttackDelay() for players, attackCooldown for enemies) so a slow attacker's
+    // weapon visibly lingers out and a fast attacker's flashes and resets quickly,
+    // matching how often they can actually swing again. Left at the old fixed 2
+    // (0.2s) by default, which is what every caller used before this scaled — a
+    // High-Agility swing and a low-Agility swing looked identical even though one
+    // could legitimately swing 3x more often, which read as the weapon being
+    // disconnected from the character's actual attack speed.
+    PlayAttackAnimation(mob/user, datum/skill/S, mob/target = null, duration = 2)
         if(S.isMelee)
             // One flip per swing (not per state lookup) so the swing animation and its
             // weapon overlay below always agree on which hand is being used.
             user.animAlternate = !user.animAlternate
 
             var/attackState = user.ResolveAnimState("attack")
-            if(attackState) flick(attackState, user)
+            if(attackState)
+                // flick()'s own duration comes from the icon file's baked per-frame
+                // Delay — apparently too short/single-frame to actually register
+                // before it auto-reverts, same root issue the weapon overlay had
+                // before that got its own fix above. Holding the pose manually for
+                // S.cast_time (the same real windup already driving hit timing) ties
+                // it to actual game timing instead of an un-editable .dmi framerate.
+                // Only reverts if nothing else changed icon_state in the meantime
+                // (death, a second swing already started) — same "don't stomp
+                // something that happened after us" guard Attack.OnUse() uses for
+                // Defend via defendToggleSession.
+                var/priorState = user.icon_state
+                user.icon_state = attackState
+                spawn(S.cast_time)
+                    if(user.icon_state == attackState)
+                        user.icon_state = priorState
             // view(user), not "user <<" — the latter only reaches the attacker's own
             // client, so it silently never played at all for enemies (no client to
             // reach). This broadcasts to everyone nearby who can see the attack,
@@ -602,7 +712,7 @@ mob/proc
                 var/image/weaponOverlay = image(icon = user.icon, icon_state = user.ResolveAnimState(S.icon_state), dir = user.dir)
                 weaponOverlay.layer = target.layer + 0.1
                 target.overlays += weaponOverlay
-                spawn(2)
+                spawn(duration)
                     target.overlays -= weaponOverlay
             else
                 // Swinging at an empty tile (nobody in front) — fall back to the turf,
@@ -612,7 +722,7 @@ mob/proc
                     var/image/weaponOverlay = image(icon = user.icon, icon_state = user.ResolveAnimState(S.icon_state), dir = user.dir)
                     weaponOverlay.pixel_y = user.pixel_y
                     targetTile.overlays += weaponOverlay
-                    spawn(2)
+                    spawn(duration)
                         targetTile.overlays -= weaponOverlay
         else if(S.isSpell)
             // "cast" isn't a real state on ANY player icon (every one dumped is

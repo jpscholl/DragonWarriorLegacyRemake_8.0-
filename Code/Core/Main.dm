@@ -250,6 +250,16 @@ proc/ApplyNightSuffix(baseState)
 // value, disregarding each area type's own default (Code/World/Area.dm).
 var/global/battleModeGlobalOn = FALSE
 
+// Same shape as battleModeGlobalOn above, but for GM_CoopMode()'s "All Areas" option —
+// forces every area's battleAllowsPvP to the same value.
+var/global/coopModeGlobalOn = FALSE
+
+// Toggled by GM_SaveLocation() (GMCommands.dm) — when TRUE, a returning character's
+// saved (x,y,z) (CharacterSaveData's savedX/Y/Z, SaveData.dm) is used instead of
+// GetPlayerSpawnTurf() at load time (SaveSystem.dm's LoadCharacter()). World-wide, not
+// per-area or per-player, matching the confirmed OG scope (GMCommandsReference.md).
+var/global/saveLocationEnabled = FALSE
+
 world
     name      = "Dragon Warrior Legacy Remake"
     fps       = 60
@@ -265,6 +275,9 @@ world
         // a post-reboot `players` list would keep referencing mobs the reboot's own
         // object wipe just deleted.
         players = list()
+        // Persistent Builder/Admin promotions (AdminLevels.dm) — loaded once here so
+        // they're already in memory before the first client's ResolveAdminLevel() call.
+        LoadPersistentAdminLists()
         // Redirects world.log to a persistent file — BYOND auto-timestamps every
         // line and auto-logs connect/disconnect/host events into the same stream.
         // Chat verbs write into this same log via LogChat() (Code/Core/TextFilter.dm).

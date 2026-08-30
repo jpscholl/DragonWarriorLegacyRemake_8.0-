@@ -7,6 +7,10 @@ obj/StatLink
     // names directly, so there's no separate display-name-to-var-name mapping needed.
     var/attributeName
     var/mob/player/P         // Reference to owning player
+    // Padding between the "+bonus" and "points to increase" text. A plain compile-time
+    // default here, overridden per stat by the subtypes below — no runtime plumbing,
+    // just edit the literal string for whichever row needs more or less room to line up.
+    var/spacer = "    "
 
     // -----------------------------
     // Constructor
@@ -23,10 +27,12 @@ obj/StatLink
         if(!P) return
 
         var/currentStat = P.vars[attributeName]
-        // "+0" is a placeholder for a future equipment/buff stat-bonus system (no such
-        // system exists yet — see TODOList.md Phase 5) — matches the confirmed OG
-        // Battle-tab format ("Strength: 14+0") even though the bonus is always 0 for now.
-        name = "[attributeName]: [currentStat]+0    [GetCost(currentStat)] points to increase"
+        // Equipment bonus (amulets, Code/Player/Inventory.dm) — "equip" + attributeName
+        // matches its mob var exactly (equipStrength, equipAgility, ...), same naming
+        // trick already used for P.vars[attributeName] above. Matches the confirmed OG
+        // Battle-tab format ("Strength: 14+0").
+        var/equipBonus = P.vars["equip[attributeName]"]
+        name = "[attributeName]: [currentStat] +[equipBonus][spacer][GetCost(currentStat)] points to increase"
 
     // Confirmed OG cost formula (ClassReference.md): 2 base, +1 per 5 points already
     // invested. round(x) with one argument floors in DM.
@@ -63,3 +69,23 @@ obj/StatLink
         P.CheckSkillUnlocks()  // a stat-gated skill can unlock without a level-up too
                                 // (Code/Player/SkillUnlocks.dm)
         UpdateName()
+
+// -----------------------------
+// Per-stat spacing
+// -----------------------------
+// One subtype per Battle-tab row so each can carry its own literal spacer — edit these
+// directly to nudge alignment, no formula to fight with.
+obj/StatLink/strength
+    spacer = "               "
+
+obj/StatLink/agility
+    spacer = "                    "
+
+obj/StatLink/vitality
+    spacer = "                   "
+
+obj/StatLink/intelligence
+    spacer = "           "
+
+obj/StatLink/spirit
+    spacer = "                       "

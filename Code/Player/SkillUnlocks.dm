@@ -5,13 +5,14 @@
 // — EquipSkill() below is the single place any mob/player ever gains a skill, whether
 // that's its starting kit (GetStartingKit(), granted at creation/load) or something
 // learned later by leveling (GetSkillUnlocks(), checked via CheckSkillUnlocks()). Real
-// per-class data for both tables is mostly still unconfirmed for the unlock side — see
-// Markdowns/ClassReference.md, only 2 of ~90 skill-unlock entries confirmed so far.
-// GetSkillUnlocks()'s per-class lists below are PLACEHOLDER TEST DATA using a skill
-// that already exists in code (Fireball, not part of any class's starting kit) purely
-// to exercise the unlock half of this system end to end. Swap in real numbers once
-// ClassReference.md fills in — nothing else here needs to change to do that, and a
-// class can never gain a skill that isn't in its own list, by construction.
+// per-class data for the unlock side is mostly unconfirmed against the actual OG — only
+// 2 of ~90 skill-unlock entries (Hero's Heal/Thornwhip) are confirmed — but every
+// class's GetSkillUnlocks() below is a real, filled-in table now, not placeholder test
+// data: every unconfirmed level/stat threshold was invented per the 2026-08-04
+// placeholder policy, mirroring Hero's own confirmed spacing where reasonable. See
+// Markdowns/ClassReference.md (synced against these tables 2026-08-28) for the
+// human-readable version of every table below. A class can never gain a skill that
+// isn't in its own list, by construction.
 datum/skillUnlock
     var
         skillType             // typepath to instantiate, e.g. /datum/skill/Fireball
@@ -248,7 +249,6 @@ mob/player/Goofoff/GetSkillUnlocks()
 
 proc/BuildPilgrimSkillUnlocks()
     return list(
-        new /datum/skillUnlock(/datum/skill/Club, 3, "Strength", 6),
         new /datum/skillUnlock(/datum/skill/Sleep, 5, "Intelligence", 9),
         new /datum/skillUnlock(/datum/skill/Upper, 6, "Intelligence", 10),
         new /datum/skillUnlock(/datum/skill/Increase, 7, "Intelligence", 11),

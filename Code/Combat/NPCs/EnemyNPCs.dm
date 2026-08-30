@@ -165,7 +165,10 @@ mob/enemy
 	// the world and the killer has to actually walk over and pick it up (Interact(),
 	// PlayerVerbs.dm). Fires before CleanUpDead() deletes the body, so loc is still valid.
 	DropLoot(mob/killer)
-		if(!dropType || !prob(dropChance)) return
+		// Amulet of Luck (obj/item/amulet/luck, Inventory.dm) — flat percentage points
+		// added to this monster's own dropChance roll.
+		var/effectiveDropChance = dropChance + (killer ? killer.equipDropRateBonus : 0)
+		if(!dropType || !prob(min(100, effectiveDropChance))) return
 		var/turf/T = loc
 		if(!T) return
 		var/obj/item/I = new dropType(T)
@@ -328,6 +331,11 @@ mob/enemy
 		if(!target)
 			for(var/mob/player/P in range(sightRange, src))
 				if(P.HP <= 0 || P.isDead || P.isGhostform) continue
+				// This proc is shared by genuinely wild monsters AND PET_MODE_WANDER
+				// pets (see the proc's own header comment) — for a wild monster,
+				// owner is null and this never matches. For a pet, it stops it from
+				// picking its own owner up as a hostile target and attacking them.
+				if(P == owner) continue
 				target = P
 				break
 
@@ -371,7 +379,7 @@ mob/enemy
 		if(!canAct) return
 		canAct = FALSE
 		PlayAttackAnimation(src, attackSkill, M)
-		PerformMeleeHit(attackSkill)
+		PerformMeleeHit(attackSkill, M)
 		spawn(attackCooldown)
 			canAct = TRUE
 
@@ -444,8 +452,25 @@ mob/enemy
 	proc/MovementLoop()
 		set waitfor = 0
 		while(src)
+			// AILoop() also stops itself on death, but only checks once per
+			// aiTickDelay (up to a full second) — death happens asynchronously
+			// (TakeDamage()/Die(), CombatSystem.dm), not synced to that slower cadence,
+			// so a freshly-killed enemy could keep sliding for up to a second before
+			// AILoop() ever noticed and cleared moveIntent. Checking HP here too, every
+			// tick, stops the corpse immediately instead of waiting on that.
+			if(HP <= 0)
+				return
 			if(moveTowardAtom && moveIntent != ENEMY_MOVE_NONE)
-				StepRelativeTo(moveTowardAtom, away = (moveIntent == ENEMY_MOVE_FLEE))
+				// Hard leash, checked every tick rather than only on the next AI
+				// decision (RunWildAI()'s own leash check runs on aiTickDelay's much
+				// slower ~1s cadence) — a fleeing enemy steps continuously in
+				// MovementLoop() the whole second in between, so it could run well
+				// past sightRange before the slower check ever caught it. This stops
+				// it the instant it crosses the line instead.
+				if(get_dist(src, moveTowardAtom) > sightRange)
+					moveIntent = ENEMY_MOVE_NONE
+				else
+					StepRelativeTo(moveTowardAtom, away = (moveIntent == ENEMY_MOVE_FLEE))
 			sleep(world.tick_lag)
 
 	// Takes one cardinal step toward Trg (or, if away = TRUE, directly away from it —

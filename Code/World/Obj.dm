@@ -109,14 +109,42 @@ obj
 			density = 1
 // Storage behavior lives in /obj/storage at the bottom of this file (parent_type above).
 
-		// was: bookcase/bookcase — collapsed, this is now the only bookcase type
+		// was: bookcase/bookcase — collapsed, this is now the only bookcase type.
+		// CONFIRMED OG mechanic (OGGameStructure.md, string 1687): "player-writable
+		// shared book storage" — any player can add a message, and read what
+		// everyone else (not just themselves) has written to THIS bookcase. Distinct
+		// from sign's message above: a sign's text is set once by whoever placed it
+		// (GM/map editor), a bookcase's message list grows from ordinary player
+		// interaction with no placement-time content at all.
+		// Session-only, like obj/storage's contents below — no world serializer yet,
+		// so a reboot empties every bookcase.
 		bookcase
 			name = "bookcase"
 			icon = 'table.dmi'
 			icon_state = "bookcase"
 			density = 1
+			var/list/messages = list()
 
-//interaction makes this store messages and read messages
+			OnInteract(mob/user)
+				var/choice = input(user, "The bookcase is full of scribbled notes.", "Bookcase") in list("Write a message", "Read messages", "Cancel")
+				if(!choice || choice == "Cancel") return TRUE
+
+				if(choice == "Write a message")
+					var/msg = input(user, "What would you like to write?", "Bookcase") as text|null
+					if(isnull(msg) || !length(trimtext(msg))) return TRUE
+					messages += "[user.name]: [CensorText(trimtext(msg))]"
+					user << output("You add your message to the bookcase.", "Info")
+					return TRUE
+
+				// "Read messages"
+				if(!messages.len)
+					user << output("The bookcase is empty.", "Info")
+					return TRUE
+				var/pageText = "<b>[name]</b><br>"
+				for(var/line in messages)
+					pageText += "[line]<br>"
+				user << browse(pageText, "window=bookcase;size=400x300")
+				return TRUE
 
 		// was: chest/wooden — collapsed, this is now the only chest type
 		chest

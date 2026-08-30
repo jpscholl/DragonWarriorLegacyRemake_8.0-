@@ -456,6 +456,8 @@ turf/hazard
 		// Ghosted GMs pass through the world untouched (GM_GhostForm, GMCommands.dm) —
 		// they have no business taking terrain damage while observing.
 		if(M.isGhostform) return
+		// Amulet of Safe Passage (obj/item/amulet/stepguard, Inventory.dm).
+		if(M.equipHazardImmune) return
 
 		// Direct HP change rather than TakeDamage(), for the same reason poison does it
 		// (StatusEffects.dm): TakeDamage() would roll RollDodge(), and terrain isn't
@@ -465,6 +467,8 @@ turf/hazard
 		flick("hit", M)
 		PlaySFXAt(M, istype(M, /mob/enemy) ? 'enemyhit.wav' : 'hit.wav')
 		M << output("<font color='red'>[hazardMessage] (-[stepDamage] HP)</font>", "Info")
+		ShowCombatNumber(M, "[stepDamage]", "#ff0000")
+		M.UpdateFloatingBars()
 
 		if(poisonChance && prob(poisonChance))
 			M.ApplyStatusEffect(/datum/status_effect/poison)

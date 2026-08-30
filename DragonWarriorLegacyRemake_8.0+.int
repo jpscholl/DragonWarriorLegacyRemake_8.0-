@@ -2,8 +2,8 @@
 /*
 MAP_PLANE_MASTERS: 
 MAP_ZOOM: 1.500
-LAST_COMPILE_TIME: 1787777020
-DIR: Code\Admin Code\Admin\Commands Code\Admin\Debug Code\Combat Code\Combat\NPCs Code\Combat\Skills Code\Core Code\Player Code\Player\Commands Code\Player\Customization Code\Save Code\UI Code\World Mob Icons 
+LAST_COMPILE_TIME: 1788063353
+DIR: Code Code\Admin Code\Admin\Commands Code\Admin\Debug Code\Combat Code\Combat\NPCs Code\Combat\Skills Code\Core Code\Player Code\Player\Commands Code\Player\Customization Code\Save Code\UI Code\World 
 PACKAGE_RSC_NAME: C:\Users\jpsch\Desktop\DragonWarriorLegacyRemake_8.0+_rsc.zip
 AUTO_FILE_DIR: ON
 PACKAGE_DMB_INFO: 
@@ -13,6 +13,8 @@ LAST_COMPILE_VERSION: 516.1687
 PACKAGE_DME_START: 
 PACKAGE_TYPE: 0
 PACKAGE_DME_INFO: 
+WINDOW: Code\Player\ClickableStats.dm;UI & Effects\expmeter.dmi
+FILE: Code\Player\ClickableStats.dm
 MAP_INSTANCE_MODE: copy
 PACKAGE_DMB_NAME: C:\Users\jpsch\Desktop\DWLR Test alt\DWLRtest.zip
 PACKAGE_DME_DEMO: 

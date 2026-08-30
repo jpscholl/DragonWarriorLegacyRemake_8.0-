@@ -8,6 +8,114 @@ build pass that adds a feature set, the last number for a fix-only pass in betwe
 
 ## [Unreleased]
 
+### 0.9.0 build pass — 2026-08-28
+Autonomous pass closing gaps flagged in `RemakeVsOGStructure.md`/`TODOList.md`. All of
+it is compile-verified (DM 516.1687) and **none of it is playtested**.
+
+**Combat feedback HUD — the top-ranked remaining gap, now closed**
+- Bottom-of-screen Level/HP/MP/EXP display (`Code/UI/HUD.dm`, new file), built from
+  art that already existed but had zero screen-object code behind it
+  (`meter.dmi`/`magicmeter.dmi`/`expmeter.dmi`/`text.dmi`).
+- Floating combat numbers on hit/dodge/heal (`numbers.dmi`): red damage, yellow crit,
+  green heal, "miss" on a dodge.
+- Floating HP/MP bars above any mob in view, players and enemies alike.
+- Every pixel offset/glyph width is a placeholder — compiles and runs, not pixel-tuned.
+
+**Items**
+- Item stacking: consumables merge into an existing stack (cap 99, placeholder)
+  instead of eating a new inventory slot each pickup; display picks up "x[amount]".
+- Carried items (consumables, amulets — including worn state, keys — including their
+  engraved name) now survive a save/load round-trip; previously only stats/skills did.
+- 7 new utility amulets (Safe Passage, Protection, Barrier, Wakefulness, Wealth,
+  Experience, Luck) wired to real mechanics — hazard immunity, permanent defense/magic
+  defense, Sleep immunity, gold/EXP % bonus, drop-rate bonus.
+- Amulets wired to real art (`amulets.dmi`) instead of borrowing the key sprite; bonus
+  values dialed down after a design pass (stat points matter a lot in this system).
+- New GM_MakeItem command: spawns any consumable/amulet directly into inventory.
+
+**Corrected against confirmed OG data**
+- StatPoints per level-up: 6, not 5 (Hero1 test data).
+- Experience Points now shows the OG's confirmed "X/Y (Z.Z%)" format, one decimal —
+  previously no percent at all.
+- Status panel gained GM Level and CPU fields in the confirmed OG position (between
+  Magic Points and Experience Points).
+- Bookcase is now a real player-writable shared message board (OG string 1687), not
+  an inert placeholder — write or read messages left by anyone who's interacted with
+  that bookcase. Session-only, same as chest/drawer/pot contents.
+
+**Character creation**
+- Duplicate-name check across a ckey's own save slots.
+- "Lock in this character?" confirmation before the save actually commits.
+- Soldier (`dw3guard.dmi`) and Wizard (`dw3malewizard.dmi`) now have real default
+  recolor data, sampled by extracting actual pixel colors from the sprite files —
+  each only has ONE genuine customizable color in the source art (unlike Hero's
+  sprite, which encodes Hair/Eyes/Main as three distinct-but-similar shades), so only
+  "Main" is populated for these two; Hair/Eyes/Accent are honestly absent rather than
+  invented.
+
+**Monster roster — 10 → 24**
+- Added every monster name confirmed to exist in the OG (via the GM type pickers)
+  that wasn't already built: Magician, Snail Slime, Ghost, Wolf, Magidrakee, Reptile,
+  Arctic Fox, Panther, Acolyte, Gremlin, Blazeghost, Tiger, Man O' War, Yeti — all
+  real OG stat data from `OGMonsterBaseStats.tsv`, same confidence level as the
+  original 10, not placeholders. `GM_MakeMob`/`GM_KillMonsters`/`GM_GlobalRespawn`
+  all enumerate `/mob/enemy` subtypes dynamically, so no picker wiring was needed.
+- Two confirmed-but-still-unbuilt AI behaviors flagged in-line rather than faked:
+  Acolyte's self-buff-on-aggro and casters (Magician/Magidrakee/Gremlin) kiting
+  instead of closing to melee — both need a real `AILoop()` redesign, logged as
+  still open.
+- Also gated GM/Debug tools that had zero access control, fixed a `GM_LevelIncrease`
+  StatPoints mismatch (5→6, same fix as `LevelCheck()`), and confirmed the entire
+  Phase 10 GM Building System (all 7 tool modes) and the 6 night-variant areas were
+  already built in a prior pass — `TODOList.md` had gone stale on both.
+
+**Five more confirmed GM verbs built** (`GMCommandsReference.md`'s specs)
+- `GM_CoopMode` — per-area/global player-vs-player damage toggle, enforced in
+  `TakeDamage()`; GM-tier targets stay exempt from the protection.
+- `GM_PlayerStatus` — full character-sheet dump (stats with equip bonus, inventory,
+  every known skill), one player or all at once.
+- `GM_PlayMusic` — sets an area's (or every area's) background music at runtime,
+  pushed live to whoever's already standing there.
+- `GM_SaveLocation` — world-wide toggle to spawn returning characters at their exact
+  last-saved position instead of the normal spawn point.
+- `GM_SwitchIcon` — cosmetic-only icon switching from the `Mob Icons/Custom GM`
+  files that already existed with nothing pointing at them.
+- `GM_GlobalRespawn` — a full named monster-spawn management system
+  (`datum/RespawnDefinition`): Name/Area/Monster type/Z level/Count, Modify/Delete on
+  an existing definition. Both confirmed quirks preserved: one-shot spawn (never
+  replenishes), and a non-matching Area+Z level combo silently spawns nothing.
+  Session-only, same as every other piece of world-editing state — no serializer
+  exists yet to survive a reboot.
+- Also confirmed Phase 10 (the entire GM map/building tool system — all 7 placement
+  modes, mouse-driven) and the 6 night-variant areas were already fully built in an
+  earlier pass; `TODOList.md` had just never been updated to say so.
+
+**Dharma Scroll** — the confirmed non-Goof-off path to Sage
+(`obj/item/consumable/dharmaScroll`, `Inventory.dm`). Reuses the exact same
+`RunSageReclassFlow()`/`BecomeSage()` flow Goof-off's `Classchange` skill already
+calls, same level-25/unequip-everything gates. No drop source or merchant sells it
+yet — spawn via `GM_MakeItem` for testing.
+
+**Documentation sync pass** — a lot of `TODOList.md`/`ClassReference.md` had drifted
+out of date across earlier sessions (its own stated risk: "a planning aid, not a
+source of truth"). Corrected against the actual code rather than assumed:
+- `ClassReference.md`'s every stat-cap and skill-unlock `?`/"unconfirmed" turned out
+  to already be filled with real placeholder numbers in code (`PlayerTemplate.dm`,
+  `SkillUnlocks.dm`) — the doc had just never been synced back up. All 7 classes'
+  tables now show the real in-code values. `SkillUnlocks.dm`'s own header comment
+  (still claiming Fireball-only placeholder data) corrected too.
+- `TODOList.md`: ~15 checkboxes flipped from stale `[ ]` to `[x]` for features already
+  built in earlier sessions — Fighter/Pilgrim/Goof-off classes, inventory capacity
+  formula, HP/MP regeneration, Sleep status effect, level cap, per-class skill-unlock
+  tables, Quick Item slot, Give/storage interactions, skill equip UI, `ToggleWorldSay`,
+  chat logging. None of these needed new code, just an accurate checkbox.
+
+**Known gaps this pass did not close:** item art for consumables/lava (no matching
+assets exist), the `/stat` scenery kit, a world serializer, the monster `delay`
+column's unknown units, caster AI (kiting/self-buff), `GMblaze`/`GMroleplaymode`/
+`GMweather`, `Help()`'s real content, `ToggleMusic()` — all still open per
+`RemakeVsOGStructure.md`/`TODOList.md`.
+
 ### 0.8.0 build pass — 2026-08-25
 The first pass driven by real data from the original `.dmb` rather than inference.
 All of it is compile-verified (DM 516.1687) and **none of it is playtested**.

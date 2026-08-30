@@ -19,7 +19,10 @@ mob
             // by BOTH players (via client/Move() below) AND enemies (EnemyNPCs.dm's
             // StepRelativeTo()/Wander() call this same proc directly) — so an
             // attacking enemy gets rooted mid-swing too, not just players.
-            if(!canAct)
+            // attackRecoveryOnly (PlayerTemplate.dm) is the one exception: a melee
+            // swing's windup already landed and only the "can't attack again yet"
+            // half of canAct's lock is still active, so movement is let through.
+            if(!canAct && !attackRecoveryOnly)
                 return 0
 
             // Throttle stepping: only allow step if enough time has passed

@@ -44,14 +44,26 @@ datum/skill/GenericPhysical
         var/mySession = user.defendToggleSession
         var/wasDefending = user.DropDefendForAction()
 
+        // Reused below for the recovery timer — see Attack's note (SkillDatum.dm) on
+        // why the weapon-overlay duration itself does NOT also scale to this.
+        var/atkDelay = user.GetAttackDelay(src, wasDefending)
+
         user.PlayAttackAnimation(user, src, target)
 
+        // Pass the target captured at swing-start (UseSkillSlot(), PlayerTemplate.dm)
+        // rather than letting PerformMeleeHit() re-scan the tile ahead once the
+        // windup's already elapsed (CombatSystem.dm).
         spawn(cast_time)
-            user.PerformMeleeHit(src)
+            user.PerformMeleeHit(src, target)
+            // Let the player move again once the swing lands — canAct stays FALSE
+            // until the full recovery below, still gating another attack. See
+            // Attack's identical note (SkillDatum.dm).
+            if(!user.isDead) user.attackRecoveryOnly = TRUE
 
-        spawn(user.GetAttackDelay(src, wasDefending))
+        spawn(atkDelay)
             if(user.isDead) return
             user.canAct = TRUE
+            user.attackRecoveryOnly = FALSE
             user.RestoreDefendIfUntouched(wasDefending, mySession)
 
 // -----------------------------
@@ -199,14 +211,23 @@ datum/skill/Thornwhip
         var/mySession = user.defendToggleSession
         var/wasDefending = user.DropDefendForAction()
 
+        // Reused below for the recovery timer — see Attack's note (SkillDatum.dm) on
+        // why the weapon-overlay duration itself does NOT also scale to this.
+        var/atkDelay = user.GetAttackDelay(src, wasDefending)
+
         user.PlayAttackAnimation(user, src, target)
 
         spawn(cast_time)
             user.PerformLineHit(src, reach)
+            // Let the player move again once the swing lands — canAct stays FALSE
+            // until the full recovery below, still gating another attack. See
+            // Attack's identical note (SkillDatum.dm).
+            if(!user.isDead) user.attackRecoveryOnly = TRUE
 
-        spawn(user.GetAttackDelay(src, wasDefending))
+        spawn(atkDelay)
             if(user.isDead) return
             user.canAct = TRUE
+            user.attackRecoveryOnly = FALSE
             user.RestoreDefendIfUntouched(wasDefending, mySession)
 
 datum/skill/Lightsword
