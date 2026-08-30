@@ -90,6 +90,12 @@ mob/proc/HasStatusEffect(effectType)
 // Applies an effect, or refreshes its duration if it's already active. Returns the
 // effect datum either way.
 mob/proc/ApplyStatusEffect(effectType)
+	// Amulet of Wakefulness (obj/item/amulet/awake, Inventory.dm) — covers both
+	// Sleep and Sleepmore, since ispath() matches subtypes too.
+	if(ispath(effectType, /datum/status_effect/sleep) && equipSleepImmune)
+		src << output("<font color='purple'>You resist falling asleep!</font>", "Info")
+		return null
+
 	var/datum/status_effect/existing = GetStatusEffect(effectType)
 	if(existing)
 		existing.Refresh()
@@ -165,6 +171,8 @@ datum/status_effect/poison
 		PlaySFXAt(holder, isEnemy ? 'enemyhit.wav' : 'hit.wav')
 
 		holder << output("<font color='green'>The poison burns! (-[dmg] HP)</font>", "Info")
+		ShowCombatNumber(holder, "[dmg]", "#ff0000")
+		holder.UpdateFloatingBars()
 
 		if(holder.HP <= 0)
 			var/mob/dying = holder

@@ -94,6 +94,10 @@ datum/SaveManager
         // Apply saved snapshot to the mob
         D.ApplyToCharacter(newPlayer)
 
+        // Recreate carried items (Code/Save/SaveData.dm) — after stats are set above,
+        // since re-equipping a saved amulet calls RecalculateVitals().
+        D.ApplyInventory(newPlayer)
+
         // Re-sync any leveled unlocks already earned before this player last
         // disconnected — silent, since these were already learned, not just-now. MUST
         // run after ApplyToCharacter() above, not before — CheckSkillUnlocks() reads
@@ -141,7 +145,13 @@ datum/SaveManager
         // GM-only verbs like GM_ToggleLog by default) — re-sync (AdminLevels.dm) so a
         // non-GM's removal carries over from the old temp mob.
         C.SyncGMVerbs()
-        newPlayer.loc = GetPlayerSpawnTurf()
+
+        // GM_SaveLocation (GMCommands.dm) — restore the exact spot this character was
+        // last saved at instead of the usual spawn point, when the world-wide toggle
+        // is on and a real saved position exists (locate() returns null for garbage
+        // coordinates or a Z-level that no longer exists, so this falls back safely).
+        var/turf/restoreTurf = (saveLocationEnabled && D.savedX) ? locate(D.savedX, D.savedY, D.savedZ) : null
+        newPlayer.loc = restoreTurf || GetPlayerSpawnTurf()
 
         var/area/spawnArea = newPlayer.loc?.loc
         if(spawnArea && spawnArea.areaMusic)

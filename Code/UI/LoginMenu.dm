@@ -114,6 +114,14 @@ proc/NewCharacterMenu(mob/playerTemp/M)
                 step = StatAllocation(M)     // must return STEP_STATS when done
                 if(step == STEP_STATS)
                     if(M && M.client)
+                        // Confirmation before the character is actually saved
+                        // (TODOList.md Phase 1) — "No" loops back to stat allocation
+                        // rather than discarding everything back to STEP_NAME, since
+                        // stats are the thing most likely to prompt a change of mind.
+                        var/confirm = alert(M, "Lock in [M.selectedName], the [M.selectedClass]?", "Confirm Character", "Yes", "No")
+                        if(confirm != "Yes")
+                            step = STEP_STATS
+                            continue
                         FinalizePlayer(M)
                     return
 
@@ -174,6 +182,22 @@ proc/PromptForName(mob/M)
         if(IsTextFiltered(selectedName))
             prompt = "That name isn't allowed. Enter your name:"
             continue
+
+        // Duplicate-name check across this ckey's OWN save slots only (TODOList.md
+        // Phase 1) — this isn't a global uniqueness rule (two different accounts can
+        // both have a "Hero"), just a guard against a player confusing two of their
+        // own characters with matching names. Case-insensitive so "Hero"/"hero" still
+        // counts as a clash.
+        if(M.client && M.client.saveManager)
+            var/list/existingSlots = M.client.saveManager.GetCharacterSlots()
+            var/isDuplicate = FALSE
+            for(var/slot in existingSlots)
+                if(lowertext(existingSlots[slot]) == lowertext(selectedName))
+                    isDuplicate = TRUE
+                    break
+            if(isDuplicate)
+                prompt = "You already have a character named [selectedName]. Enter your name:"
+                continue
 
         return selectedName
 //Class

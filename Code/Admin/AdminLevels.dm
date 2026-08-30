@@ -34,6 +34,33 @@ var/list/aeons_crew = list("azekrai")
 // punctuation — same form as the "ckey" var described in the DM guide).
 #define AEON_CKEY "cerebella"
 
+// -----------------------------
+// Persistent Builder/Admin promotion (TODOList.md Phase 2/9) — a Host/GM can grant or
+// revoke Builder/Admin at runtime (GM_PromoteBuilder/GM_PromoteAdmin below) without a
+// recompile, unlike the hardcoded test_builders/test_admins lists above. Deliberately
+// its OWN savefile under "Server Data/", not anywhere under "Player SaveFiles/" — this
+// project has its own Save File Editor tool, so a promotion list living where a player
+// could point that tool at their own save would be a real self-promotion vector, not a
+// hypothetical one (same reasoning this file's own header already applies to
+// adminLevel never being read from a player's save).
+// -----------------------------
+var/list/persistent_builders = list()
+var/list/persistent_admins = list()
+var/savefile/adminPromotionsFile = new("Server Data/admin_promotions.sav")
+
+proc/LoadPersistentAdminLists()
+    var/list/b
+    var/list/a
+    adminPromotionsFile["builders"] >> b
+    adminPromotionsFile["admins"] >> a
+    persistent_builders = b ? b : list()
+    persistent_admins = a ? a : list()
+
+proc/SavePersistentAdminLists()
+    adminPromotionsFile["builders"] << persistent_builders
+    adminPromotionsFile["admins"] << persistent_admins
+    adminPromotionsFile.Flush()
+
 // Resolves this ckey's admin level. Called once per connection from client/New() in
 // Code/Core/Main.dm.
 proc/ResolveAdminLevel(ckey)
@@ -45,9 +72,9 @@ proc/ResolveAdminLevel(ckey)
         return LEVEL_GM_HOST
     if(ckey in test_gms)
         return LEVEL_GM_HOST
-    if(ckey in test_admins)
+    if(ckey in test_admins || ckey in persistent_admins)
         return LEVEL_ADMIN
-    if(ckey in test_builders)
+    if(ckey in test_builders || ckey in persistent_builders)
         return LEVEL_BUILDER
     return LEVEL_PLAYER
 
@@ -99,9 +126,11 @@ client
             /mob/verb/GM_MakeMob,
             /mob/verb/GM_MakeArea,
             /mob/verb/GM_MakeTool,
+            /mob/verb/GM_MakeItem,
         )
         var/list/adminVerbs = list(
             /mob/verb/GM_GhostForm,
+            /mob/verb/GM_SwitchIcon,
             /mob/verb/GM_ToggleProfanityFilter,
             /mob/verb/GM_Ban,
             /mob/verb/GM_Boot,
@@ -114,10 +143,17 @@ client
             /mob/verb/GM_ToggleLog,
             /mob/verb/GM_LevelIncrease,
             /mob/verb/GM_BattleMode,
+            /mob/verb/GM_CoopMode,
+            /mob/verb/GM_PlayMusic,
+            /mob/verb/GM_SaveLocation,
             /mob/verb/GM_KillMonsters,
+            /mob/verb/GM_GlobalRespawn,
             /mob/verb/GM_Announce,
             /mob/verb/GM_WorldReboot,
             /mob/verb/GM_NameChange,
+            /mob/verb/GM_PlayerStatus,
+            /mob/verb/GM_PromoteBuilder,
+            /mob/verb/GM_PromoteAdmin,
         )
 
         if(canBuild)

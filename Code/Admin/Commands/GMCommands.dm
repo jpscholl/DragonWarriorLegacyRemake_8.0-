@@ -36,7 +36,6 @@ mob/verb/GM_Announce()
 #define GHOST_INVISIBILITY 2
 
 mob
-    var/image/ghostIcon
     var/isGhostform = FALSE
     var/icon/ghostFormIcon   // remembers appearance while ghosted, unrelated to the character's baseIcon
 
@@ -53,9 +52,6 @@ mob/proc/ToggleGhostForm()
         isGhostform = FALSE
         invisibility = 0
         density = 1
-        overlays -= ghostIcon
-        if(client) client.images -= ghostIcon
-        ghostIcon = null
         icon = ghostFormIcon
         icon_state = "world"
         // Recompute the mundane see_invisible instead of hardcoding — matches
@@ -73,18 +69,79 @@ mob/proc/ToggleGhostForm()
         // --- Enter ghostIcon form ---
         isGhostform = TRUE
         ghostFormIcon = icon
-        icon = null
+        // Set directly on the mob (not a detached client.images overlay like before)
+        // so every existing flick()/icon_state-driven visual — attack, hit, sleep,
+        // weapon — just works off phase.dmi the same way it already does off a normal
+        // player icon, instead of silently doing nothing to an invisible detached
+        // image that never tracked those state changes.
+        icon = 'phase.dmi'
+        icon_state = "world"
         invisibility = GHOST_INVISIBILITY
         // Bumping see_invisible to match (not just invisibility) means a ghosted mob
         // can also see OTHER ghosted mobs — builders can follow each other around
         // while both are ghosted, requested alongside this fix.
         see_invisible = GHOST_INVISIBILITY
         density = 0
-        ghostIcon = image('phase.dmi', src)
-        if(client) client.images += ghostIcon
         src << output("You disappear!", "Info")
 
 // GM verb to toggle ghostIcon form — Admin-category power (Code/Admin/AdminLevels.dm)
+// -----------------------------
+// GM Switch Icon
+// -----------------------------
+// Purely cosmetic flair, no gameplay effect (GMCommandsReference.md) — the
+// "Mob Icons/Custom GM" FILE_DIR (the .dme) already existed with real files in it and
+// nothing pointing at them until now. "Revert to Normal" restores the mob's own
+// baseIcon (mob/player, RebuildIcon() — Code/Save/SaveSystem.dm) rather than just
+// clearing the override, so a GM's real class appearance (with their own recolors)
+// comes back exactly, not a blank icon.
+mob/verb/GM_SwitchIcon()
+    set category = "GM"
+    set desc = "Switch your own icon to a custom GM cosmetic, purely for flair"
+
+    if(!client || !client.canAdmin)
+        src << output("You don't have Admin access.", "Info")
+        return
+
+    var/list/icons = list(
+        "Angel Blazer" = 'angelblazer.dmi',
+        "Blazer" = 'blazer.dmi',
+        "Cristo Knucks" = 'cristoknucks.dmi',
+        "Dark Blazer" = 'darkblazer.dmi',
+        "Evil G" = 'evilg.dmi',
+        "Forest Tarq" = 'foresttarq.dmi',
+        "Ghost G" = 'ghostg.dmi',
+        "King Tarq" = 'kingtarq.dmi',
+        "Lego Tarq" = 'legotarq.dmi',
+        "Master G" = 'masterg.dmi',
+        "Robin Sivelin" = 'robinsivelin.dmi',
+        "Saro" = 'saro.dmi',
+        "Shiny Master G" = 'shinymasterg.dmi',
+        "Shiny Tarq" = 'shinytarq.dmi',
+        "Snow Blazer" = 'snowblazer.dmi',
+        "Super DW" = 'superdw.dmi',
+        "Tarq Pilly" = 'tarqpilly.dmi',
+        "Tarq Wizard" = 'tarqwizard.dmi',
+        "Water Tarq" = 'watertarq.dmi',
+        "Revert to Normal" = "REVERT",
+    )
+
+    var/choice = input(src, "Choose a custom icon:", "GM_SwitchIcon") in icons
+    if(!choice) return
+    var/picked = icons[choice]
+
+    if(picked == "REVERT")
+        if(istype(src, /mob/player))
+            var/mob/player/P = src
+            P.RebuildIcon()
+        else
+            icon = initial(icon)
+        src << output("Icon reverted to normal.", "Info")
+        return
+
+    icon = picked
+    icon_state = "world"
+    src << output("Icon switched to [choice].", "Info")
+
 mob/verb/GM_GhostForm()
     set category = "GM"
 
@@ -515,6 +572,143 @@ mob/verb/GM_NameChange()
         target << output("A GM renamed you to [newName].", "Info")
 
 // -----------------------------
+// GM Player Status
+// -----------------------------
+// Full character-sheet dump, confirmed field order/format (GMCommandsReference.md).
+// The confirmed OG example shows an empty title field ("Cere(Cerebella, )") — we have
+// no title/rank-tag concept built, so it's always blank here, not omitted, to keep the
+// same shape. EXP percent reuses FormatPercent() (StatPanels.dm) — the OG's own popup
+// doesn't show the % sign, this one does, matching the Status panel instead since
+// that's more useful for a debug dump.
+mob/proc/BuildPlayerStatusText(mob/player/P)
+    var/text = "<b>[P.name]([P.client ? P.client.ckey : "?"], )</b><br>"
+    text += "Class: [P.class] Level: [P.Level] Party: [P.Party ? "[P.Party.name][P.isPartyLeader ? " Leader" : ""]" : "None"]<br>"
+    text += "EXP: [P.Exp]/[P.Nexp] ([FormatPercent(P.Exp, P.Nexp)]%)<br>"
+    text += "Gold: [P.Gold]<br>"
+    text += "HP: [P.HP]/[P.MaxHP] MP: [P.MP]/[P.MaxMP] Stat Points: [P.StatPoints]<br>"
+    text += "Strength: [P.Strength]+[P.equipStrength] "
+    text += "Agility: [P.Agility]+[P.equipAgility] "
+    text += "Vitality: [P.Vitality]+[P.equipVitality] "
+    text += "Intelligence: [P.Intelligence]+[P.equipIntelligence] "
+    text += "Spirit: [P.Spirit]+[P.equipSpirit]<br>"
+
+    var/list/itemNames = list()
+    for(var/obj/item/I in P.contents)
+        itemNames += I.name
+    text += "Inventory: [itemNames.len ? jointext(itemNames, ", ") : "(empty)"]<br>"
+
+    // Every KNOWN skill, not just the 5 equipped to numpad slots — confirmed OG scope
+    // (GMCommandsReference.md).
+    var/list/skillNames = list()
+    for(var/datum/skill/S in P.skills)
+        skillNames += S.skillName
+    text += "Skills: [skillNames.len ? jointext(skillNames, ", ") : "(none)"]<br>"
+
+    return text
+
+mob/verb/GM_PlayerStatus()
+    set category = "GM"
+    set desc = "Dumps a full character sheet for one player, or every connected player"
+
+    if(!client || client.adminLevel < LEVEL_GM_HOST)
+        src << output("You don't have GM access.", "Info")
+        return
+
+    var/list/options = list()
+    for(var/mob/player/P in players)
+        options[P.name] = P
+    if(!options.len)
+        src << output("No players online.", "Info")
+        return
+    options["All"] = "ALL"
+    options["Cancel"] = null
+
+    var/choice = input(src, "View status for whom?", "GM_PlayerStatus") in options
+    var/picked = options[choice]
+    if(!picked) return
+
+    if(picked == "ALL")
+        var/text = ""
+        for(var/mob/player/P in players)
+            text += BuildPlayerStatusText(P) + "<hr>"
+        src << browse(text, "window=playerstatus;size=500x600")
+    else
+        var/mob/player/P = picked
+        src << browse("Status of [P.name]<br><br>[BuildPlayerStatusText(P)]", "window=playerstatus;size=500x400")
+
+// -----------------------------
+// GM Promote/Demote Builder & Admin
+// -----------------------------
+// Runtime alternative to hand-editing test_builders/test_admins + recompiling
+// (AdminLevels.dm's TEMPORARY test lists comment, TODOList.md Phase 2/9). Toggle
+// verbs, same shape as GM_Mute's combined mute/unmute: picking someone already on the
+// list revokes it, picking someone not on it grants it. Persisted to its own file
+// (AdminLevels.dm's adminPromotionsFile), deliberately not a player's own savefile.
+mob/verb/GM_PromoteBuilder()
+    set category = "GM"
+    set desc = "Grant or revoke persistent Builder access for a connected player"
+
+    if(!client || client.adminLevel < LEVEL_GM_HOST)
+        src << output("You don't have GM access.", "Info")
+        return
+
+    var/list/targets = GetModerationTargets()
+    if(!targets.len)
+        src << output("No eligible players are connected.", "Info")
+        return
+
+    var/list/options = targets.Copy()
+    options += "Cancel"
+    var/choice = input(src, "Grant/revoke Builder for whom?", "GM_PromoteBuilder") in options
+    if(!choice || choice == "Cancel") return
+
+    var/mob/player/target = targets[choice]
+    if(!target || !target.client) return
+
+    var/targetCkey = target.client.ckey
+    if(targetCkey in persistent_builders)
+        persistent_builders -= targetCkey
+        src << output("[target.name] is no longer a persistent Builder.", "Info")
+    else
+        persistent_builders += targetCkey
+        src << output("[target.name] is now a persistent Builder.", "Info")
+
+    SavePersistentAdminLists()
+    target.client.ApplyAdminLevel()   // takes effect immediately, no relog needed
+
+mob/verb/GM_PromoteAdmin()
+    set category = "GM"
+    set desc = "Grant or revoke persistent Admin access for a connected player"
+
+    if(!client || client.adminLevel < LEVEL_GM_HOST)
+        src << output("You don't have GM access.", "Info")
+        return
+
+    var/list/targets = GetModerationTargets()
+    if(!targets.len)
+        src << output("No eligible players are connected.", "Info")
+        return
+
+    var/list/options = targets.Copy()
+    options += "Cancel"
+    var/choice = input(src, "Grant/revoke Admin for whom?", "GM_PromoteAdmin") in options
+    if(!choice || choice == "Cancel") return
+
+    var/mob/player/target = targets[choice]
+    if(!target || !target.client) return
+
+    var/targetCkey = target.client.ckey
+    if(targetCkey in persistent_admins)
+        persistent_admins -= targetCkey
+        src << output("[target.name] is no longer a persistent Admin.", "Info")
+    else
+        persistent_admins += targetCkey
+        src << output("[target.name] is now a persistent Admin.", "Info")
+
+    SavePersistentAdminLists()
+    target.client.ApplyAdminLevel()
+
+// -----------------------------
 // GM Create Obj
 // -----------------------------
 // Creates any of the game's functional world objects at the GM's own location — not
@@ -676,11 +870,86 @@ mob/proc/CreateMerchant()
                 /obj/item/amulet/sky = 900,
                 /obj/item/amulet/stars = 1500,
                 /obj/item/amulet/erdrick = 5000,
+                /obj/item/amulet/stepguard = 700,
+                /obj/item/amulet/increase = 700,
+                /obj/item/amulet/barrier = 700,
+                /obj/item/amulet/awake = 600,
+                /obj/item/amulet/gold = 900,
+                /obj/item/amulet/exp = 900,
+                /obj/item/amulet/luck = 1000,
             )
         else
             M.stock = list()
 
     src << output("Created [M.name].", "Info")
+
+// -----------------------------
+// GM Make Item
+// -----------------------------
+// Spawns a carriable item (Consumable/Amulet, Code/Player/Inventory.dm) straight into
+// the GM's own inventory, for testing without walking to a merchant and paying for it.
+// Two-step menu (category, then specific item) rather than one flat list — the amulet
+// roster alone is 22 entries and only grows.
+mob/verb/GM_MakeItem()
+    set category = "GM"
+    set desc = "Spawns a consumable or amulet directly into your inventory"
+
+    if(!client || !client.canBuild)
+        src << output("You don't have Builder access.", "Info")
+        return
+
+    var/list/categories = list(
+        "Consumable" = list(
+            "Medical Herb" = /obj/item/consumable/herb,
+            "Herbal Tea" = /obj/item/consumable/tea,
+            "Leaf of the World Tree" = /obj/item/consumable/leaf,
+            "Wing of Wyvern" = /obj/item/consumable/wyvernwing,
+            "Dharma Scroll" = /obj/item/consumable/dharmaScroll,
+        ),
+        "Amulet" = list(
+            "Amulet of Strength" = /obj/item/amulet/strength,
+            "Amulet of Agility" = /obj/item/amulet/agility,
+            "Amulet of Vitality" = /obj/item/amulet/vitality,
+            "Amulet of Intelligence" = /obj/item/amulet/intelligence,
+            "Amulet of Spirit" = /obj/item/amulet/spirit,
+            "Amulet of Power" = /obj/item/amulet/power,
+            "Amulet of Speed" = /obj/item/amulet/speed,
+            "Amulet of Health" = /obj/item/amulet/health,
+            "Amulet of Magic" = /obj/item/amulet/magic,
+            "Amulet of Light" = /obj/item/amulet/light,
+            "Warrior's Amulet" = /obj/item/amulet/warrior,
+            "Wizard's Amulet" = /obj/item/amulet/wizard,
+            "Amulet of the Sky" = /obj/item/amulet/sky,
+            "Amulet of the Stars" = /obj/item/amulet/stars,
+            "Erdrick's Amulet" = /obj/item/amulet/erdrick,
+            "Amulet of Safe Passage" = /obj/item/amulet/stepguard,
+            "Amulet of Protection" = /obj/item/amulet/increase,
+            "Amulet of Barrier" = /obj/item/amulet/barrier,
+            "Amulet of Wakefulness" = /obj/item/amulet/awake,
+            "Amulet of Wealth" = /obj/item/amulet/gold,
+            "Amulet of Experience" = /obj/item/amulet/exp,
+            "Amulet of Luck" = /obj/item/amulet/luck,
+        ),
+    )
+
+    var/categoryChoice = input(src, "What kind of item?", "GM_MakeItem") in categories + "Cancel"
+    if(!categoryChoice || categoryChoice == "Cancel") return
+
+    var/list/items = categories[categoryChoice]
+    var/itemChoice = input(src, "Choose a [categoryChoice]:", "GM_MakeItem") in items + "Cancel"
+    if(!itemChoice || itemChoice == "Cancel") return
+
+    var/pickedType = items[itemChoice]
+    var/obj/item/I = new pickedType
+
+    // Falls back to dropping it at your feet rather than refusing outright (unlike
+    // CreateLockable's key, above) — a GM testing tool has no reason to punish a full
+    // inventory by destroying the very item it was asked to make.
+    if(PickUpItem(I))
+        src << output("Created [I.name] in your inventory.", "Info")
+    else
+        I.loc = loc
+        src << output("Your inventory is full — dropped [I.name] at your feet instead.", "Info")
 
 // icon_state offered here comes straight from npc.dmi's own real sprite set
 // (GetCachedIconStates(), Code/Combat/CombatSystem.dm) — merchant/guard/priest/etc. —
@@ -807,7 +1076,7 @@ mob/verb/GM_LevelIncrease()
     // so looping it is equivalent to a real level-up chain, not a single jump.
     for(var/i = 1 to amount)
         Level += 1
-        StatPoints += 5
+        StatPoints += 6   // matches LevelCheck()'s confirmed OG value (CombatSystem.dm)
         RecalculateVitals()
 
     src << output("You are now Level [Level] (+[amount])", "Info")
@@ -847,6 +1116,241 @@ mob/verb/GM_BattleMode()
         var/area/target = selection
         target.battleModeOn = !target.battleModeOn
         src << output("[target.name] is now [target.battleModeOn ? "a dangerous area" : "a peaceful area"].", "Info")
+
+// -----------------------------
+// GM Coop Mode
+// -----------------------------
+// Per-area (or global) toggle for PLAYER-vs-PLAYER damage, separate from
+// GM_BattleMode's monster-aggro/skill-use gate (GMCommandsReference.md: "coop toggling
+// PvP on/off never turns monster attacks on/off, and vice versa"). Coop ON (the
+// default everywhere, Area.dm's battleAllowsPvP = FALSE) means players can't hurt each
+// other; Coop OFF enables PvP. Enforced in TakeDamage() (CombatSystem.dm), which also
+// exempts GM-tier targets from the protection ("players can still hurt a GM regardless
+// of coop mode") — same shape as GM_BattleMode above, just toggling the other var.
+mob/verb/GM_CoopMode()
+    set category = "GM"
+    set desc = "Toggles player-vs-player damage for one area, or every area at once"
+
+    if(!client || client.adminLevel < LEVEL_GM_HOST)
+        src << output("You don't have GM access.", "Info")
+        return
+
+    var/list/areaChoices = list("None" = null, "All Areas" = "ALL")
+    for(var/area/A in world)
+        areaChoices["[A.name] ([A.type])"] = A
+
+    var/choice = input(src, "Choose an area to toggle coop mode (or All Areas):", "GM_CoopMode") in areaChoices
+    var/selection = areaChoices[choice]
+    if(!selection) return  // "None" selected, cancel
+
+    if(selection == "ALL")
+        coopModeGlobalOn = !coopModeGlobalOn
+        for(var/area/A in world)
+            A.battleAllowsPvP = !coopModeGlobalOn
+        world << output("[src] has turned coop mode [coopModeGlobalOn ? "ON" : "OFF"] everywhere.", "Info")
+    else
+        var/area/target = selection
+        target.battleAllowsPvP = !target.battleAllowsPvP
+        src << output("[target.name] is now [target.battleAllowsPvP ? "PvP-enabled" : "a coop (PvE-only) area"].", "Info")
+
+// -----------------------------
+// GM Play Music
+// -----------------------------
+// Runtime setter for areaMusic (Area.dm) — same area-picker pattern as GM_BattleMode/
+// GM_CoopMode, "All Areas" plays the same track everywhere at once
+// (GMCommandsReference.md). Setting areaMusic alone only affects whoever ENTERS the
+// area next (area/Entered() -> PlayAreaMusic(), Area.dm) — pushed immediately to
+// everyone already standing there too, so the change is heard right away.
+mob/verb/GM_PlayMusic()
+    set category = "GM"
+    set desc = "Sets or changes an area's background music, or every area at once"
+
+    if(!client || client.adminLevel < LEVEL_GM_HOST)
+        src << output("You don't have GM access.", "Info")
+        return
+
+    var/list/areaChoices = list("None" = null, "All Areas" = "ALL")
+    for(var/area/A in world)
+        areaChoices["[A.name] ([A.type])"] = A
+
+    var/choice = input(src, "Choose an area to set music for (or All Areas):", "GM_PlayMusic") in areaChoices
+    var/selection = areaChoices[choice]
+    if(!selection) return
+
+    // Every real .mid track that exists in Sound & Music/ — friendly names, not
+    // filenames, in the picker.
+    var/list/tracks = list(
+        "Silence (no music)" = null,
+        "Town (DW4)" = 'dw4town.mid',
+        "Town (DW3)" = 'dw3town.mid',
+        "Continent (DW3)" = 'dw3conti.mid',
+        "Shrine (DW3)" = 'dw3shri2.mid',
+        "Cave" = 'cave.mid',
+        "Casino (DW4)" = 'dw4casin.mid',
+        "Hero Theme (DW4)" = 'dw4hero.mid',
+        "Tower (DW4)" = 'dw4tower.mid',
+        "Battle (DQ5)" = 'dq5battle.mid',
+        "Cast/Overworld (DW4)" = 'Dw4cast.mid',
+    )
+    var/trackChoice = input(src, "Choose a track:", "GM_PlayMusic") in tracks
+    if(isnull(trackChoice)) return
+    var/trackFile = tracks[trackChoice]
+
+    var/area/target = (selection == "ALL") ? null : selection
+    if(target)
+        target.areaMusic = trackFile
+    else
+        for(var/area/A in world)
+            A.areaMusic = trackFile
+
+    // Push immediately to whoever's already standing there — areas have no built-in
+    // "members" list in DM, so this walks every client-having mob and checks its
+    // current turf's area.
+    for(var/mob/M in world)
+        if(!M.client) continue
+        var/turf/T = M.loc
+        var/area/mobArea = T ? T.loc : null
+        if(!target || mobArea == target)
+            M.PlayAreaMusic(trackFile)
+
+    if(target)
+        src << output("[target.name]'s music changed to [trackChoice].", "Info")
+    else
+        world << output("[src] changed the music everywhere to [trackChoice].", "Info")
+
+// -----------------------------
+// GM Save Location
+// -----------------------------
+// World-wide toggle (GMCommandsReference.md): ON, a returning character loads at their
+// exact last-saved (x,y,z) instead of GetPlayerSpawnTurf() (Area.dm). Position is
+// always recorded on every save (SaveData.dm's BuildFromCharacter()) regardless of
+// this flag — only the LOAD side checks it, so toggling this on doesn't need anyone to
+// re-save first, and toggling it off doesn't erase anyone's saved position.
+mob/verb/GM_SaveLocation()
+    set category = "GM"
+    set desc = "Toggles whether returning characters spawn at their last saved position"
+
+    if(!client || client.adminLevel < LEVEL_GM_HOST)
+        src << output("You don't have GM access.", "Info")
+        return
+
+    saveLocationEnabled = !saveLocationEnabled
+    world << output("[src] turned location saving [saveLocationEnabled ? "ON" : "OFF"] — returning characters now spawn at [saveLocationEnabled ? "their last saved position" : "the normal spawn point"].", "Info")
+
+// -----------------------------
+// GM Global Respawn
+// -----------------------------
+// A named monster-spawn management system (GMCommandsReference.md's confirmed 5-step
+// spec: Name, Area, Monster type, Z level, Count). Session-only, like every other
+// piece of world-editing state in this codebase (GM_BattleMode's per-area toggles,
+// etc.) — no world serializer exists yet to persist it across a reboot.
+//
+// CONFIRMED QUIRK — one-shot, not a maintained population: spawns exactly `count`
+// monsters once per Create/Modify, then does nothing further; killed monsters are
+// never replenished. CONFIRMED QUIRK — Area and Z level must actually match a real
+// turf or nothing spawns, silently, by design (not a bug to "fix" with a fallback).
+datum/RespawnDefinition
+    var/defName
+    var/area/targetArea   // null = "all areas"
+    var/monsterType
+    var/zLevel             // 0 = "all levels"
+    var/count = 1
+    var/list/mob/enemy/spawnedMobs = list()
+
+var/list/datum/RespawnDefinition/respawnDefinitions = list()
+
+// Kills whatever this definition last spawned (still alive), then spawns `count` fresh
+// ones onto turfs matching targetArea/zLevel. Called on both create and modify —
+// "Both modifying and deleting kill all currently-spawned monsters tied to that
+// definition... rather than leaving stale mobs from the old settings standing around."
+proc/ExecuteRespawnDefinition(datum/RespawnDefinition/D)
+    for(var/mob/enemy/E in D.spawnedMobs)
+        if(E) del E
+    D.spawnedMobs = list()
+
+    var/list/turf/candidates = list()
+    for(var/turf/T in world)
+        if(D.targetArea && T.loc != D.targetArea) continue
+        if(D.zLevel && T.z != D.zLevel) continue
+        if(T.density) continue
+        candidates += T
+
+    if(!candidates.len) return   // no matching turf — confirmed silent no-op, not an error
+
+    for(var/i = 1 to D.count)
+        var/turf/T = pick(candidates)
+        D.spawnedMobs += new D.monsterType(T)
+
+// Walks the confirmed 5-step creation/modify flow, writing onto D in place. Returns
+// FALSE if cancelled at any step (caller discards the half-configured D).
+mob/proc/ConfigureRespawnDefinition(datum/RespawnDefinition/D)
+    var/newName = input(src, "Name this respawn definition:", "GM_GlobalRespawn") as text|null
+    if(isnull(newName) || !length(trimtext(newName))) return FALSE
+    D.defName = CensorText(trimtext(newName))
+
+    var/list/areaChoices = list("All Areas" = "ALL", "Cancel" = "CANCEL")
+    for(var/area/A in world)
+        areaChoices["[A.name] ([A.type])"] = A
+    var/areaChoice = input(src, "Choose an area for [D.defName] (or All Areas):", "GM_GlobalRespawn") in areaChoices
+    var/areaPicked = areaChoices[areaChoice]
+    if(!areaPicked || areaPicked == "CANCEL") return FALSE
+    D.targetArea = (areaPicked == "ALL") ? null : areaPicked
+
+    var/list/monsterChoices = GetTypeChoices(/mob/enemy) - "None"
+    var/monsterChoice = input(src, "Choose a monster type for [D.defName]:", "GM_GlobalRespawn") in monsterChoices + "Cancel"
+    if(!monsterChoice || monsterChoice == "Cancel") return FALSE
+    D.monsterType = monsterChoices[monsterChoice]
+
+    var/z = input(src, "Z level for [D.defName] (0 for all levels):", "GM_GlobalRespawn", D.zLevel) as num|null
+    if(isnull(z)) return FALSE
+    D.zLevel = z
+
+    var/count = input(src, "How many [monsterChoice] to spawn?", "GM_GlobalRespawn", max(D.count, 1)) as num|null
+    if(isnull(count) || count < 1) return FALSE
+    D.count = count
+
+    return TRUE
+
+mob/verb/GM_GlobalRespawn()
+    set category = "GM"
+    set desc = "Create, modify, or delete a one-shot monster spawn definition"
+
+    if(!client || client.adminLevel < LEVEL_GM_HOST)
+        src << output("You don't have GM access.", "Info")
+        return
+
+    var/list/options = list("Create New Respawn" = "NEW")
+    for(var/datum/RespawnDefinition/D in respawnDefinitions)
+        options[D.defName] = D
+    options["Cancel"] = null
+
+    var/choice = input(src, "Manage monster spawn definitions:", "GM_GlobalRespawn") in options
+    var/picked = options[choice]
+    if(!picked) return
+
+    if(picked == "NEW")
+        var/datum/RespawnDefinition/D = new
+        if(!ConfigureRespawnDefinition(D)) return
+        respawnDefinitions += D
+        ExecuteRespawnDefinition(D)
+        src << output("Created and spawned [D.count]x [initial(D.monsterType:name)] ([D.defName]).", "Info")
+        return
+
+    var/datum/RespawnDefinition/D = picked
+    var/action = input(src, "[D.defName]: Modify, Delete, or Cancel?", "GM_GlobalRespawn") in list("Modify", "Delete", "Cancel")
+    if(!action || action == "Cancel") return
+
+    if(action == "Delete")
+        for(var/mob/enemy/E in D.spawnedMobs)
+            if(E) del E
+        respawnDefinitions -= D
+        src << output("Deleted respawn definition [D.defName].", "Info")
+        return
+
+    // Modify — re-runs the same flow onto the existing definition, then respawns.
+    if(!ConfigureRespawnDefinition(D)) return
+    ExecuteRespawnDefinition(D)
+    src << output("Updated and re-spawned [D.defName].", "Info")
 
 // -----------------------------
 // GM Kill Monsters

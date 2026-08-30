@@ -12,6 +12,16 @@ mob
     // goes through Step(), an attacking enemy is naturally rooted mid-swing too.
     var/canAct = 1
 
+    // Splits "can move" from canAct's "can start a NEW action" once a melee swing's
+    // windup has actually landed (see Attack/GenericPhysical/Thornwhip's OnUse()
+    // procs — SkillDatum.dm/SkillCatalog.dm) — canAct stays FALSE for the rest of the
+    // attack's recovery (still gates swinging again too soon), but mob/proc/Step()
+    // (SmoothMovement.dm) lets movement through anyway once this is TRUE, instead of
+    // rooting the whole recovery window like before. Left FALSE for every other
+    // canAct=FALSE case (death, sleep, hazards, spellcasting, enemies) — those are
+    // meant to fully root the mob, not just gate re-attacking.
+    var/attackRecoveryOnly = 0
+
 
     // Basic character info
     var
@@ -174,12 +184,21 @@ mob/player
             src << output("You are silenced and cannot cast!", "Info")
             return
 
+        // Only the tile directly in front — deliberately NOT the other 3 cardinal
+        // neighbors (tried that to fix a fleeing target failing to capture, but it
+        // let attacks lock onto a target beside or behind the player, which reads as
+        // wrong; a melee swing should only ever threaten what's in front of you). The
+        // fleeing-target whiff this was chasing turned out to already be fixed
+        // properly elsewhere: PerformMeleeHit() (CombatSystem.dm) no longer re-checks
+        // range at resolve time once a target IS captured here, so the remaining
+        // failure mode is just "you weren't actually facing it" — a real miss, not a
+        // bug.
         var/mob/target = null
         var/turf/stepTile = get_step(src, src.dir)
         if(stepTile)
-            // Pick the first other mob standing on the tile in front of us
             for(var/mob/M in stepTile.contents)
                 if(M == src) continue
+                if(M.HP <= 0) continue
                 target = M
                 break
 

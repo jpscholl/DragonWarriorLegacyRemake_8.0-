@@ -103,7 +103,11 @@ mob/proc
             if(isDead) continue
             if(HP <= 0) continue
 
+            var/regenerated = FALSE
             if(HP < MaxHP)
                 HP = min(MaxHP, HP + GetHPRegen())
+                regenerated = TRUE
             if(hasMana && MP < MaxMP)
                 MP = min(MaxMP, MP + GetMPRegen())
+                regenerated = TRUE
+            if(regenerated) UpdateFloatingBars()

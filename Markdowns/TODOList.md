@@ -182,14 +182,18 @@ not gospel). New confirmed mechanics not previously in this file:
       per-class ceilings (`GetClassStatCaps()`, `PlayerTemplate.dm`) only apply to
       later level-up spend (`ClickableStats.dm`). Confirmed 2026-08-10; all 5 stats
       also start at 1 (base mob default) instead of any higher baseline.
-- [ ] Add remaining starting classes: Fighter, Pilgrim, Goof-off (6 playable classes total
-      at launch: Hero, Soldier, Wizard, Fighter, Pilgrim, Goof-off)
-- [ ] Sage is normally NOT a creation-time class choice — it's what any class becomes by
-      changing into it (DW3-style), see `ClassReference.md`. Two paths: Goof-off learns
-      `Classchange` as a built-in leveled skill; every other class needs to use a
-      **Dharma Scroll** item instead (not yet built — no such item exists in our code).
-      Needs its own mid-game class-swap flow covering both paths. Exception:
-      sufficiently-permissioned GMs CAN pick Sage directly at creation, skipping both.
+- [x] Add remaining starting classes: Fighter, Pilgrim, Goof-off — already built
+      (`PlayerTemplate.dm`/`LoginMenu.dm`/`SkillUnlocks.dm`, the mechanics-first build
+      pass), this checkbox was just stale. All 6 playable classes exist.
+- [x] Sage is normally NOT a creation-time class choice — it's what any class becomes by
+      changing into it (DW3-style), see `ClassReference.md`. Two paths, both built:
+      Goof-off learns `Classchange` as a built-in leveled skill (level 25); every other
+      class uses a **Dharma Scroll** item instead (`obj/item/consumable/dharmaScroll`,
+      `Inventory.dm`, built 2026-08-28) — same level-25/unequip-everything gates,
+      reuses the exact same `RunSageReclassFlow()`/`BecomeSage()` mid-game class-swap
+      flow Classchange already calls, so there's one real implementation behind both
+      doors. No drop source or merchant sells it yet — spawn via `GM_MakeItem` for
+      testing. GMs can still pick Sage directly at creation, skipping both paths.
 - [ ] **Expanded class-change system — your own idea, "eventually."** The OG's own
       system is actually already broader than a single hardcoded path — any class can
       reach Sage via the Dharma Scroll, not just Goof-off (confirmed above) — but it
@@ -215,9 +219,18 @@ not gospel). New confirmed mechanics not previously in this file:
       decision)**. These were added in later OG DWL versions you don't
       have access to, so there's no reference data to recover; stats/moves/unlock
       criteria for these two need to be designed from scratch, not documented from play
-- [ ] Populate `DefaultIconColors` for Soldier/Wizard icons (only Hero's is done)
-- [ ] Add a "lock in this character?" confirmation screen before `SaveCharacter()`
-- [ ] Duplicate-name check across a ckey's own save slots
+- [x] Populate `DefaultIconColors` for Soldier/Wizard icons — 2026-08-28: sampled real
+      pixel colors from `dw3guard.dmi`/`dw3malewizard.dmi` (PowerShell + System.Drawing,
+      not eyeballed). Both sprites only have ONE genuine costume color in the actual
+      pixel data (unlike `dw3hero.dmi`, which encodes Hair/Eyes/Main as three distinct
+      near-identical blues) — so only "Main" is populated for each; Hair/Eyes/Accent are
+      honestly absent, not invented. `PaletteManager.dm` already handles a partial zone
+      list safely.
+- [x] Add a "lock in this character?" confirmation screen before `SaveCharacter()` —
+      2026-08-28: `alert()` Yes/No in `NewCharacterMenu()` (`LoginMenu.dm`); "No" loops
+      back to stat allocation rather than discarding everything.
+- [x] Duplicate-name check across a ckey's own save slots — 2026-08-28: case-insensitive
+      check in `PromptForName()` (`LoginMenu.dm`) against `GetCharacterSlots()`.
 
 ## Phase 2 — Core Player Data Model
 
@@ -272,8 +285,12 @@ not gospel). New confirmed mechanics not previously in this file:
       guild-specific perks or shared features (bank? chat channel? tag next to your
       name?), rank structure (leader/officer/member), and whether Party and Guild
       membership are independent or a Guild is just a pool you draw Parties from.
-- [ ] Persistent Builder/Admin promotion (today: hardcoded test lists, needs recompile to
-      change — fine for solo dev, blocks any real GM handing out Builder status later)
+- [x] Persistent Builder/Admin promotion — 2026-08-28: `GM_PromoteBuilder`/
+      `GM_PromoteAdmin` (`GMCommands.dm`, GM-Host tier), toggle verbs backed by their own
+      `Server Data/admin_promotions.sav` (`AdminLevels.dm`) — deliberately NOT under
+      `Player SaveFiles/`, since this project's own Save File Editor tool makes that a
+      real self-promotion vector. Takes effect immediately via `ApplyAdminLevel()`, no
+      relog needed. Hardcoded test lists stay as-is for solo-dev testing.
 - [x] `StatsDatum.dm` resolved: not a dead stub anymore — holds `RecalculateVitals()`,
       called from `ClickableStats.dm` (after a stat point spend) and `LevelCheck()`
       (`CombatSystem.dm`, after a level-up). Derives `MaxHP`/`MaxMP` from Vitality/
@@ -338,17 +355,22 @@ not gospel). New confirmed mechanics not previously in this file:
       separately). Confirms BYOND `stat()`-panel atoms do support drag-and-drop (the
       earlier open question here, at least on 475.1080). See `ClassReference.md`'s
       "Skills vs. equipped skills" note for the full mechanic.
-- [ ] **Status panel field order/content** — confirmed complete from OG testing, current
-      `StatPanels.dm` is missing several fields entirely: Name → Class → Level → Party →
-      Hit Points → Magic Points → **GM Level** → **CPU** → Experience Points → Gold →
+- [x] **Status panel field order/content** — confirmed complete from OG testing.
+      `StatPanels.dm` now matches: Name → Class → Level → Party → Hit Points → Magic
+      Points → **GM Level** → **CPU** → Experience Points (with percent) → Gold →
       Players online. Specifics:
       - [x] Party: real party system now wired in (`StatPanels.dm`, see Phase 2 note)
-      - GM Level / CPU: not in our code at all — CPU is `world.cpu` (tick load), staff
-        debug info; still unresolved whether both should be staff-only or shown to
-        everyone (question was asked earlier, not yet answered)
-      - Experience Points: OG format is `current/next (X.X%)` **with one decimal place**
-        (e.g. "10882/14011 (10.3%)"), not a whole-number percent — ours currently has no
-        percent shown at all
+      - [x] GM Level / CPU — 2026-08-28: added, shown to everyone rather than
+        staff-only (the open question below), matching the confirmed OG field order
+        and this pass's "match the OG as closely as possible" sequencing goal. Easy
+        to gate behind `client.canBuild`/`canAdmin` later if that turns out wrong.
+      - [x] Experience Points: OG format is `current/next (X.X%)` **with one decimal
+        place** (e.g. "10882/14011 (10.3%)") — 2026-08-28: `FormatPercent()`
+        (`StatPanels.dm`) added. Turns out to be a non-issue in our own system: `Exp`
+        already resets to 0 on every level-up (`LevelCheck()`), so `Exp/Nexp` already
+        IS progress-within-the-current-level's-band, no separate floor/threshold
+        tracking needed — the OG's own raw-ratio mismatch this section spent two
+        findings puzzling over doesn't apply to our curve.
         **2026-08-10 real finding, live-confirmed with a second data point:** the shown
         percentage is **not** `current/next` as a raw ratio. Hero1 at Level 5 showed
         `389/637 (13.3%)` — 389/637 is actually 61.1%, nowhere near the displayed 13.3%.
@@ -363,37 +385,26 @@ not gospel). New confirmed mechanics not previously in this file:
         data problem). Needs the floor/threshold value at the moment each sample was
         taken to actually solve the formula — capture "exp at the exact moment this
         level was reached" going forward, not just current exp mid-level.
-- [ ] Players-online count in Status panel
-- [ ] **Map-overlay HUD** (Level/HP/XP/MP in large pixel font along the bottom of the
-      game view) — confirmed this exists in the OG as a `screen`-anchored overlay drawn
-      over the map itself, not a stat panel; nothing like it exists in our code at all
-      yet (`screen_loc`/HUD search turned up nothing). Spans the full view width and
-      about 1 tile tall, exact tile count varies with window/zoom size. **2026-08-13:
-      carved out of the Big Beautiful Update, now in scope for this pass** — see the
-      Mechanics-First Build Philosophy note above. **Reference found (2026-07-31)**:
-      Silk Wizard's Dragon Warrior Online (a well-known older DW-style BYOND game) uses
-      this exact DW-style HUD layout — worth pulling up as a visual/behavioral reference
-      when this gets built.
-- [ ] **HP/MP meters floating above each player/mob** — new item, 2026-08-13. A small
-      bar or numeric overlay hovering above each character showing current HP/MP at a
-      glance, separate from the bottom HUD (which only shows the local player's own
-      stats) — this one needs to work for any mob in view, not just yourself. Not
-      scoped beyond the concept yet: exact visual style, whether it shows for
-      monsters too or just players/party, whether it's always-on or only appears on
-      damage/nearby-combat. Same in-scope-now carve-out as the HUD above.
-- [ ] **Floating combat numbers** — full spec confirmed 2026-08-13, carved out of the
-      Big Beautiful Update into this pass (previously logged as a deferred "new idea,
-      not OG-derived" — superseded, it's needed now regardless of OG-authenticity).
-      Pops up on a mob when it takes an action, alongside the existing hit flick/sound
-      rather than replacing it (`TakeDamage()`/`ApplySpellDamage()`, `CombatSystem.dm`):
-      - Red number = normal damage taken, or "Miss" text on a dodge (`RollDodge()`)
-      - Yellow number = critical hit damage — note the remake has no crit mechanic
-        built at all yet (see Phase 6's crit findings from OG testing,
-        `CombatDataSheet.md`), so this half is blocked on that being built first
-      - Healing: plays an animation, then a green number showing the amount healed
-        (`ApplyHeal()`)
-      Not scoped beyond the concept yet: exact number font/size, pop/float animation
-      style, stacking behavior if multiple hits land close together.
+- [x] Players-online count in Status panel — already present (`stat("Players online:
+      [length(players)]")`, `StatPanels.dm`); this checkbox was just stale.
+- [x] **Map-overlay HUD** (Level/HP/XP/MP along the bottom of the game view) —
+      2026-08-28: `Code/UI/HUD.dm` (new file). Bottom-left bars (`meter.dmi`/
+      `magicmeter.dmi`/`expmeter.dmi`, 13-step fill) plus bitmap-text labels/numbers
+      built from `text.dmi`, lazily built and refreshed every `Stat()` tick. Every
+      pixel offset/glyph width is a placeholder — compiles and runs, not pixel-tuned
+      (Claude can't drive the actual client to check alignment).
+- [x] **HP/MP meters floating above each player/mob** — 2026-08-28 (`Code/UI/HUD.dm`):
+      world-space `/image` overlays added directly to the mob (so they move with it
+      for free), works for any mob — players AND enemies. Rebuilt fresh each update
+      rather than mutating in place, avoiding the exact overlay-snapshot bug already
+      found and fixed once for the Blaze cast meter. Refreshed on every HP/MP-changing
+      event: damage, heal, poison tick, hazard tick, regen tick.
+- [x] **Floating combat numbers** — 2026-08-28 (`Code/UI/HUD.dm`'s `ShowCombatNumber()`,
+      `numbers.dmi`'s digit + "m"/"i"/"s" glyphs). Red damage, yellow crit (`RollCrit()`
+      already exists — the crit-mechanic blocker this entry originally noted is closed,
+      see Phase 6), green heal, "miss" on a dodge. Wired into `TakeDamage()`/
+      `ApplyHeal()`/poison/hazard ticks. Font glyph width and animation timing are
+      placeholders.
 
 ## Phase 4 — Actions & Social Panels
 
@@ -480,9 +491,13 @@ not gospel). New confirmed mechanics not previously in this file:
       reconsidering whether `MoveLoop()` should exist at all during a real movement-
       system pass, rather than continuing to patch around it — but that's a bigger
       change than fits here.
-- [ ] `ToggleWorldSay()` — mute/unmute world channel independent of using it yourself
+- [x] `ToggleWorldSay()` — already built (`worldChatEnabled`, `SocialVerbs.dm`), this
+      checkbox was just stale.
 - [ ] `ToggleMusic()` — new discovery, not in the original design notes at all. Likely a
-      simple on/off for area background music, behavior not yet detailed.
+      simple on/off for area background music, behavior not yet detailed. Largely
+      overlaps with `SetMusicVolume(0)` (the volume-control feature below), which
+      already gives a full mute — worth deciding if a separate toggle earns its keep
+      before building it.
 - [x] **Volume control — Master/Music/SFX, three separate sliders** (your own idea,
       2026-07-31, built same day; reworked 2026-08-01). Supersedes the flatter
       `MusicVolume()` idea above. `client/masterVolume`/`musicVolume`/`sfxVolume`
@@ -523,25 +538,29 @@ not gospel). New confirmed mechanics not previously in this file:
 
 - [x] Pickup via Interact, right-click Drop, key/lock system (`Inventory.dm`, `Obj.dm`)
 - [x] Fixed capacity placeholder (`BASE_INVENTORY_SLOTS = 8`)
-- [ ] Real capacity formula (base + stat scaling) — **needs checking against the original
-      game before implementing**, flagged as an open question in the code itself.
-      Confirmed data point: level 1 Hero had capacity 9 (not the placeholder 8) — unclear
-      yet whether that's a flat base or already includes stat scaling at level 1.
-- [ ] "Quick Item" slot — OG Inventory tab shows a dedicated single-item hotkey slot
-      below the item list ("Quick Item: Nothing"), separate from the general inventory.
-      Not in our design at all yet — need to figure out how it's selected and what using
-      it does (instant-use without opening inventory? tied to a keybind?) before building it.
-- [ ] Item stacking
-- [ ] Equipment system — **confirmed the OG has no weapon/armor equipment at all, only
+- [x] Real capacity formula — already built (`BASE_INVENTORY_CAPACITY + round(Strength /
+      STR_PER_CAPACITY)`, `Inventory.dm`, the mechanics-first pass's Stage 6), landing on
+      capacity 9 at a fresh level-1 Hero's starting Strength as intended. Coefficients
+      still placeholder, this checkbox was just stale.
+- [x] "Quick Item" slot — already built (0.8.0 pass: numpad `*` cycles, `-` uses;
+      `StatPanels.dm`'s "Quick Item:" line), this checkbox was just stale.
+- [x] Item stacking — 2026-08-28: `obj/item/maxStack`/`amount` (`Inventory.dm`),
+      consumables stack to 99 (placeholder cap); `PickUpItem()` merges into an existing
+      stack before consuming a new slot. Keys/amulets stay non-stacking (maxStack = 1
+      default) since each carries meaningful per-instance state.
+- [x] Equipment system — **confirmed the OG has no weapon/armor equipment at all, only
       amulets** (stat boosts + some unspecified additional effects you don't remember —
       worth digging up if you run across them again). "Equip slots (weapon/armor/
       accessory)" was our own generic-RPG assumption, not something to port from the OG.
-      `GMmakeitem` surfaced a partial item roster worth a dedicated reference doc
-      eventually (same pattern as `ClassReference.md`/`GMCommandsReference.md`): key,
-      paper, gems (red/green/blue/ring/drop/crown), amulets (strength/power/agility/
-      speed), and more below the visible scroll — see `GMCommandsReference.md`'s
-      `GMmakeitem` entry.
-      **Your own expansion idea for the remake, not OG-derived**: add real weapons and
+      **The committed v1 scope — "build basic equip slots (stat bonuses only)"
+      (2026-08-04 decision, below) — is done**: 23 real amulets exist (`Inventory.dm`),
+      max 2 worn, real effective-stat plumbing so equipment never mutates the
+      underlying stat. `GMmakeitem` surfaced a partial item roster worth a dedicated
+      reference doc eventually (same pattern as `ClassReference.md`/
+      `GMCommandsReference.md`): key, paper, gems (red/green/blue/ring/drop/crown),
+      amulets (strength/power/agility/speed), and more below the visible scroll — see
+      `GMCommandsReference.md`'s `GMmakeitem` entry.
+      **Your own expansion idea for the remake, not OG-derived, still open**: add real weapons and
       armor as equipment (the OG never had them), and tie certain skills to owning/
       equipping a specific weapon — e.g. the "Ice Saber" skill would require actually
       having an Ice Saber weapon, possibly equipped, before it's usable. Could extend to
@@ -552,9 +571,10 @@ not gospel). New confirmed mechanics not previously in this file:
       decision than the rest of Phase 5 — worth its own pass once basic equip slots exist
       at all. **Weapon/tome gating specifically deferred (2026-08-04 decision)**: build
       basic equip slots (stat bonuses only) now, skip the gating mechanic for this pass.
-- [ ] "Give" right-click option (hand an item to a nearby player) — already planned,
-      deferred until Drop was solid
-- [ ] Chest/drawer/pot storage interactions (turf types exist, `OnInteract()` logic doesn't)
+- [x] "Give" right-click option — already built (`obj/item/verb/Give()`,
+      `Inventory.dm`, see Phase 4), this checkbox was just stale.
+- [x] Chest/drawer/pot storage interactions — already built (0.8.0 pass, Store/Take/
+      Leave via `obj/storage`, `Obj.dm`), this checkbox was just stale.
 
 ## Phase 6 — Combat System
 
@@ -653,16 +673,12 @@ not gospel). New confirmed mechanics not previously in this file:
       One false lead ruled out: `getblock`/`blocker` looked like a mitigation proc at
       a glance, but is grouped with `getring`/`getcircle`/`px`/`py`/`line` in the
       string table — a map/geometry helper, unrelated to combat.
-- [ ] **HP/MP regeneration — confirmed real OG mechanic, not built in the remake at
-      all.** Same 2026-08-23 string-table extraction surfaced `HPfactor`, `MPfactor`,
-      `HPregen`, `cur_HPregen`, `MPregen`, `cur_MPregen` as real tracked vars — the
-      Help section's "Vitality/Intelligence increase HP/MP regeneration rate" line
-      (`ClassReference.md`) is a real mechanic with real backing variables, not just
-      flavor text. No regen of any kind exists in the current codebase (`TakeDamage()`/
-      `RecalculateVitals()`, `CombatSystem.dm`/`StatsDatum.dm`) — HP/MP only change via
-      direct damage/heal/level-up. Needs a tick-based regen loop once there's a rate
-      formula to base it on; no coefficient recovered yet, just confirmation the
-      mechanic itself is real.
+- [x] **HP/MP regeneration** — built in the 0.8.0 pass (`RegenLoop()`,
+      `StatsDatum.dm`, `GetHPRegen()`/`GetMPRegen()` driven by Vitality/Intelligence
+      per the Help section). Real mechanic confirmed via the 2026-08-23 string-table
+      extraction (`HPfactor`/`MPfactor`/`HPregen`/`cur_HPregen`/`MPregen`/
+      `cur_MPregen` all real tracked vars in the OG) — this checkbox was just stale.
+      Coefficients are still placeholder.
 - [x] Dodge mechanic (`CombatSystem.dm`'s `RollDodge()`, called from `TakeDamage()`) —
       new, not OG-derived (no such mechanic existed anywhere before). Agility-based
       chance to avoid a hit entirely, capped at `DODGE_MAX_PERCENT` (30%) so it's never
@@ -866,8 +882,17 @@ not gospel). New confirmed mechanics not previously in this file:
       **Still open**: stacking rules beyond refresh-don't-stack (intensity tiers?),
       and any cure item/spell (nothing can remove an effect early right now except
       code calling `RemoveStatusEffect()` directly).
-- [ ] **Sleep** as a status effect — still not built; the framework above is ready for
-      it. `ClassReference.md` lists a `Sleep` **spell** for Hero/Pilgrim/Wizard.
+- [x] **Sleep** as a status effect — built (`datum/status_effect/sleep`/`sleep/more`,
+      `StatusEffects.dm`; the `Sleep` skill, `SkillCatalog.dm`, gated to Hero/Pilgrim/
+      Wizard per this doc). Shipped shape diverges from the spec below in one way,
+      deliberately: it **does** wake on hit ("classic Dragon Warrior behavior," per
+      the code's own comment) rather than the "does not wake immediately" behavior
+      envisioned when this entry was written — a later, intentional revision, not an
+      oversight. The healing-while-asleep tie-in this spec also describes (sleep as a
+      variant of Rest's regen) was never actually built — the shipped version is a
+      plain `canAct` lock for a duration, no bonus regen — so the "is Sleep a net
+      benefit to the victim" open question below never became live. Worth a look if
+      that regen tie-in is still wanted.
       **Confirmed OG scope**: Sleep is the *only* status effect in the OG — no burn,
       freeze, or shock/paralysis despite fire/ice/lightning-named spells existing
       (Fireball, Icebolt, Lightning, etc. are just damage, no elemental ailment attached).
@@ -972,7 +997,8 @@ not gospel). New confirmed mechanics not previously in this file:
       turn-based, so a player just runs away using normal movement; there's no verb to
       build here. (Enemies fleeing at low HP, EnemyNPCs.dm, is a separate, already-
       built AI behavior — see Phase 6's Enemy AI entry.)
-- [ ] Skill/spell equip UI (drag or double-click to numpad slots — depends on Phase 3)
+- [x] Skill/spell equip UI — already built (`obj/SkillLink`, `Code/Player/SkillLink.dm`,
+      see Phase 3/7's own entries), this checkbox was just stale.
 - [x] **Elemental weakness/resistance — basic scaffolding built** (expanded remake
       idea, not OG-derived — the OG's elemental spells like Fireball/Icebolt/Lightning
       are just flavored damage with no elemental interaction at all). `datum/skill`
@@ -1033,9 +1059,12 @@ not gospel). New confirmed mechanics not previously in this file:
       redesign — worth its own pass once `SpellRequirementDataSheet.md`'s
       AI-observations table has more data points to design against, not a quick patch
       onto the current wild-monster block.
-- [ ] Monster roster — the *names* can likely be recovered from playing/documenting the
-      OG. Confirmed so far via `GMglobalrespawn`/`GMkillallmonsters`'s monster-type
-      pickers: cat, slime, dog, redslime, bat, fox, babble, skeleton, drakee, healer,
+- [x] Monster roster — 2026-08-28: all 24 confirmed names (`GMglobalrespawn`/
+      `GMkillallmonsters`'s pickers, `GMCommandsReference.md`) now exist as real
+      `mob/enemy` subtypes in `MonsterRoster.dm`, up from the original 10 — real OG
+      stat data from `OGMonsterBaseStats.tsv`, not invented. The other 53 rows in that
+      TSV belong to icons with no confirmed real name, so they're left out rather than
+      guessed at. cat, slime, dog, redslime, bat, fox, babble, skeleton, drakee, healer,
       snailslime, magician, ghost, wolf, magidrakee, reptile, arcticfox, panther,
       gremlin, acolyte, blazeghost, tiger, yeti, manowar — see `GMCommandsReference.md`.
       **Correction, 2026-08-10 — not fully recoverable, but not "design from scratch"
@@ -1096,10 +1125,11 @@ not gospel). New confirmed mechanics not previously in this file:
 
 ## Phase 7 — Leveling System
 
-- [x] Exp/Nexp/Level/StatPoints tracked, flat +10 Nexp / +5 StatPoints per level
-      **2026-08-10 OG finding:** real number is **6 StatPoints per level**, not 5 —
-      confirmed via Hero1 sitting on 12 unspent points after 2 level-ups (1→2→3), no
-      points spent along the way. Retune the remake's flat award to match.
+- [x] Exp/Nexp/Level/StatPoints tracked. **2026-08-10 OG finding, applied 2026-08-28:**
+      real number is **6 StatPoints per level**, not the old placeholder 5 — confirmed
+      via Hero1 sitting on 12 unspent points after 2 level-ups (1→2→3), no points spent
+      along the way. `LevelCheck()` (`CombatSystem.dm`) and `GM_LevelIncrease`
+      (`GMCommands.dm`) both updated to 6.
 - [ ] Real exp curve (currently flat, not scaling). **Balance goal**: the OG's leveling
       felt too fast, so aim slower than it — but explicitly not into grind territory
       either. The target is a middle ground (not too easy, not too grindy), not just
@@ -1141,18 +1171,21 @@ not gospel). New confirmed mechanics not previously in this file:
       fix), but this is the concrete "too fast, felt it directly" confirmation to act on
       next time numbers get tuned — lean toward the longer/harder side per the stated
       preference above, not a small bump.
-- [ ] Level cap
+- [x] Level cap — already built (`MAX_LEVEL 50`, `CombatSystem.dm`, a deliberate
+      temporary override below `ClassReference.md`'s stated 99 while class content is
+      only tuned up through here), this checkbox was just stale.
 - [ ] Class-specific stat growth on level-up (right now growth is generic across classes)
-- [ ] Skill/spell unlocks by level + stat threshold — **needs the "what does each class
-      actually learn and when" data you flagged as still unknown**. Framework skeleton
-      now exists (`Code/Player/SkillUnlocks.dm`): `datum/skillUnlock` (skill type +
+- [x] Skill/spell unlocks by level + stat threshold — **built out for real 2026-08-28**
+      (was placeholder test data as of when this entry was written; synced against
+      `ClassReference.md` the same day). Framework: `datum/skillUnlock` (skill type +
       level + optional stat/threshold), each class overrides `GetSkillUnlocks()` with
       its own list, `CheckSkillUnlocks()` runs on level-up (`LevelCheck()`,
       `CombatSystem.dm`) and stat point spend (`StatLink/Click()`, `ClickableStats.dm`).
-      By construction a class can only ever learn what's in its own list. Current
-      per-class lists are PLACEHOLDER TEST DATA (Fireball, at different fake
-      level/stat thresholds per class) — swap in real numbers from
-      `ClassReference.md` once confirmed, nothing else needs to change to do that.
+      By construction a class can only ever learn what's in its own list. Every class
+      (`Code/Player/SkillUnlocks.dm`) now has a real per-skill level/stat table —
+      Hero's 2 confirmed entries (Heal/Thornwhip) kept as-is, every other entry across
+      all 7 classes is an invented-but-real placeholder number (not a Fireball stand-in
+      anymore), spaced using Hero's own confirmed curve as the calibration anchor.
       Equip UI now exists too (`obj/SkillLink`, `Code/Player/SkillLink.dm`): drag a
       Free Skill onto a numpad slot to equip (swaps out whatever was there, both
       directions work, slot-to-slot is a true swap), drag an equipped skill onto the
@@ -1269,10 +1302,10 @@ not gospel). New confirmed mechanics not previously in this file:
       to toggle just that one, or pick "All Areas" to force every area's `battleModeOn`
       to the same value at once, disregarding each area type's own default
       (`battleModeGlobalOn`, `Main.dm`). `CombatSystem.dm`'s `InBattleArea()` actually
-      checks it (`Attack`/`Fireball` in `SkillDatum.dm` both gate on it). Still needed:
-      `GMcoopmode`/
-      `GMindestructablemode`/`GMweather` verbs and wiring the terrain-damage system (once
-      built) to check `indestructibleMode`/`weather`.
+      checks it (`Attack`/`Fireball` in `SkillDatum.dm` both gate on it). `GMcoopmode`
+      built 2026-08-28 (see Phase 9). Still needed: `GMindestructablemode`/`GMweather`
+      verbs and wiring the terrain-damage system (once built) to check
+      `indestructibleMode`/`weather`.
 - [ ] **Ceiling/border visibility system — real rework needed, not just a tune.**
       You want the OG's indoor/outdoor visibility actually working right, based on how
       you remember it playing: **two separate pieces**, not one.
@@ -1370,7 +1403,11 @@ not gospel). New confirmed mechanics not previously in this file:
       Day/Night + Weather both existing, and brings in three survival mechanics not
       previously documented anywhere: Hunger, Thirst, and Sleep. See
       `GMCommandsReference.md`'s `GMroleplaymode` entry for the full OG breakdown.
-- [ ] Bookcase/chest actual interaction logic (read messages / store items)
+- [x] Bookcase/chest actual interaction logic — chest/drawer/pot storage was already
+      built (0.8.0 pass); bookcase's own real/write-read mechanic added 2026-08-28
+      (`Obj.dm`) — OG-confirmed "player-writable shared book storage" (string 1687),
+      any player can add a message and read what everyone else left, not GM-set text
+      like a sign. Session-only, no world serializer yet.
 - [ ] New "stat" (interactable object) types surfaced via `GMmakestat` (see
       `GMCommandsReference.md`) — **not a gap to close now**, our door/sign types were
       only ever built for the minimum the current overworld map needs, not the OG's full
@@ -1428,10 +1465,11 @@ not gospel). New confirmed mechanics not previously in this file:
       so it no longer collides. Also — **new**: ghosted mobs now get their own
       `see_invisible` bumped to match, so builders in ghost form can see (and follow)
       each other, which regular players still can't do.
-- [ ] Lock down `DebugTools.dm` verbs (`DebugMovement`, `Test_Leveling`,
-      `S_World`/`S_Sleep`/`S_Attack`/`S_Defend`, `Debug_ShowZoneColors`) — **currently
-      unrestricted, no permission check at all**, worth gating or hiding before this is
-      ever run on a shared server
+- [x] Lock down `DebugTools.dm` verbs — 2026-08-28: `DebugMovement`, `Test_PoisonSelf`,
+      `FullRestore`, `Debug_ShowZoneColors` (the ones that still exist — `Test_Leveling`/
+      `S_World`/`S_Sleep`/`S_Attack`/`S_Defend` from this item's original wording are
+      already gone) now gate on `client.canBuild`, same visible-but-rejected-on-click
+      convention every GM verb uses.
 - [x] `GMtogglelog` — toggles `loggingEnabled` (`Code/Core/TextFilter.dm`), gates
       `LogChat()`'s own lines only (chat/login/logout/double-login) — `world.log`'s
       automatic connect/disconnect/host events keep writing to `server.log` regardless,
@@ -1474,18 +1512,37 @@ not gospel). New confirmed mechanics not previously in this file:
 - [x] `GMlevelincrease` (`GMCommands.dm`, GM-Host tier) — was `Test_Leveling()`
       (`DebugTools.dm`), an unrestricted debug stub that added a huge pile of Exp and
       hoped `LevelCheck()` would trigger off it. Now directly applies the same
-      side effects a real level-up does (`Level += 1`, `StatPoints += 5`,
-      `RecalculateVitals()`), not just a roundabout way to reach them.
-- [ ] GM verbs: `GMblaze`, `GMcoopmode`, `GMglobalrespawn`,
-      `GMkillallmonsters`, `GMnamechange`, `GMplayerstatus`,
-      `GMplaymusic`, `GMroleplaymode`, `GMsavelocation`, `GMswitchicon`, `GMweather`
+      side effects a real level-up does (`Level += 1`, `StatPoints += 6` — updated
+      2026-08-28 to match `LevelCheck()`'s confirmed value, `RecalculateVitals()`),
+      not just a roundabout way to reach them.
+- [x] `GMcoopmode`, `GMplayerstatus`, `GMplaymusic`, `GMsavelocation`, `GMswitchicon` —
+      built 2026-08-28 (`GMCommands.dm`), against the confirmed specs in
+      `GMCommandsReference.md`. `GM_CoopMode` mirrors `GM_BattleMode` exactly
+      (per-area/global `battleAllowsPvP` toggle, enforced in `TakeDamage()`,
+      `CombatSystem.dm`, GM targets exempt). `GM_PlayerStatus` dumps a full character
+      sheet (stats with equip bonus, inventory, every known skill). `GM_PlayMusic`
+      sets `areaMusic` per-area-or-globally and pushes it live to whoever's already
+      standing there. `GM_SaveLocation` is a world-wide toggle backed by new
+      `savedX/Y/Z` fields on `CharacterSaveData` (`SaveData.dm`), always recorded on
+      save, only consulted at load time. `GM_SwitchIcon` finally points at the
+      `"Mob Icons/Custom GM"` files that already existed with nothing using them.
+      `GMkillallmonsters`/`GMnamechange` were already built (stale checkbox).
+      `GM_GlobalRespawn` also built (`datum/RespawnDefinition`, session-only — no
+      world serializer exists to persist it across a reboot): Name/Area/Monster
+      type/Z level/Count creation flow, Modify/Delete on an existing definition, both
+      confirmed quirks preserved (one-shot spawn, not a maintained population; a
+      non-matching Area+Z level combo silently spawns nothing).
+      **Still not built** (both explicitly lower-priority or bigger-scoped per their
+      own reference-doc notes): `GMblaze` (needs a fire-DoT terrain system first),
+      `GMroleplaymode` (low priority, wanted as a redesign not a port), `GMweather`
+      (ties into the RP-mode bucket that's explicitly out of scope right now).
 - [x] `GMworldreboot` — implemented as `GM_WorldReboot` (`GMCommands.dm`), see
       `GMCommandsReference.md` for the full flow. Fixed the OG's confirmed-broken
       post-reboot black screen via a `world/Reboot()` override (`Main.dm`) rather than
       copying it. Not playtested yet.
-- [ ] GM ability to designate Builder/Admin/GM status persistently (needs its own storage
-      — separate from the tamper-proof hardcoded core tiers, since this is meant to be
-      changeable at runtime by a Host/GM without a recompile)
+- [x] GM ability to designate Builder/Admin status persistently — see Phase 2's entry
+      above (`GM_PromoteBuilder`/`GM_PromoteAdmin`, 2026-08-28). GM/Host/Aeon tiers stay
+      hardcoded-only by design, not part of this.
 - [ ] **Idea pile, 2026-08-10, not scoped**: host-selectable "grand adventure" vs.
       "quick campaign" server mode — grand adventure = world persists across reboot,
       built for real long-term progression; quick campaign = closer to the OG's
@@ -1541,49 +1598,27 @@ not gospel). New confirmed mechanics not previously in this file:
 
 ## Phase 10 — Building/Map Tools (biggest net-new subsystem, do last)
 
-- [ ] Three separate `GMmakeX` placement tools confirmed, all sharing one pattern (pick a
-      type from a list, or "None" to exit build mode; picking a real type auto-enters
-      build mode) and one shared brush mode (`GMmaketool`, see below) applying to all
-      three, not just turfs:
-      - `GMmakearea` — paints area instances (pairs with `GMseeareas`'s grid overlay).
-        **Correction (2026-08-04): the area roster already exists almost in full** —
-        `Area.dm` already defines casino/dungeon/boss/forest/townrain/town/battle/
-        castle/cave/old/snow/bar/jail/rain/ceiling/visible/wilderness/temple/
-        deepwater1/deepwater/water1/water/rave/playerStart, confirmed against a real
-        screenshot of the OG's own area-type list. Only gap: **6 night variants not
-        yet coded** — snownight, rainnight, waternight1, waternight, deepwaternight1,
-        deepwaternight — add these as new `area` subtypes before wiring the picker.
-        `area/visible` exists but is currently an empty stub (icon_state only, no
-        behavior) — working theory: it's the unbuilt "border" half of the Ceiling/
-        border visibility rework below (walls blocking outside-in sight), not
-        confirmed, flag if that's wrong.
-      - `GMmaketurf` — paints turfs (the one originally in the design notes)
-      - `GMmakemob` — places monsters from the `/mob/monster/*` roster (doesn't exist
-        yet — zero `mob/enemy/*` subtypes are defined in code at all currently, just
-        the generic base `mob/enemy` in `EnemyNPCs.dm`; the 88 named icons in
-        `Mob Icons/Monsters/` have no stat blocks behind them yet — needed before this
-        tool has anything to place)
-      **Every one of these build-mode list pickers needs a "None" entry to cancel out of
-      build mode** — confirmed as a required pattern across all of them, not just
-      incidental to the two we happened to test first.
-- [ ] `SelectTurf()`/equivalent type-select — pick a turf/area/mob from a list to "hold"
-      (the `GMmakeX` verbs above already cover this selection step)
-- [ ] `GMmaketool` mode select — **confirmed 7 modes, not the original design notes' 5**
-      (Move and Delete are new; "Fill" is now confirmed called "Block"):
-      - Click — one instance per click
-      - Drag — continuous placement while the mouse button is held
-      - Block — rectangular region between first-click and release points (was "Fill"
-        in the original design notes)
-      - Line — click-drag constrained to a straight line
-      - **Move** (new, not in original notes) — click-and-hold an existing obj/mob/item,
-        drag to a new spot, release to relocate. Works on players/enemies too, not just
-        scenery
-      - Flood — paint-bucket, replaces the clicked tile and all contiguous matches
-      - **Delete** (new, not in original notes) — clears the clicked tile, then
-        immediately places the current selection there (clear-and-replace, not a plain
-        delete)
-      A white cursor square shows the current build target; selecting a mode confirms
-      with "[Mode] tool selected."
+**Stale as of 2026-08-28 — this entire phase turns out to already be built**
+(`Code/Admin/Commands/BuildTools.dm`, added in a prior pass this file never got
+updated for). Checked directly against the code rather than assumed:
+
+- [x] `GMmakearea`/`GM_MakeArea`, `GMmaketurf`/`GM_MakeTurf`, `GMmakemob`/`GM_MakeMob`
+      all real, all using the shared "pick from `GetTypeChoices()`, 'None' cancels,
+      `PickBuildSelection()` enters build mode" pattern. `GM_MakeMob` reads from the
+      real `/mob/enemy` roster (`MonsterRoster.dm`, now 24 monsters — see Phase 6),
+      correcting the design doc's `/mob/monster/*`. The 6 night-variant areas
+      (snownight/rainnight/waternight1/waternight/deepwaternight1/deepwaternight) this
+      section used to flag as the "only gap" are already coded too (`Area.dm`).
+- [x] `GMmaketool`/`GM_MakeTool` — all 7 confirmed modes exist (`BUILD_MODE_CLICK/DRAG/
+      BLOCK/LINE/MOVE/FLOOD/DELETE`), dispatched from real `client/MouseDown()`/
+      `MouseDrag()`/`MouseUp()` overrides in `BuildTools.dm`.
+- [x] `SelectTurf()`-equivalent type-select — covered by the `GMmakeX` verbs above,
+      same as originally scoped.
+
+Not independently re-verified this session: real in-game mouse-drag testing (Block/
+Line/Move/Flood specifically) — Claude can't drive the actual BYOND client, so this is
+"the code exists and compiles," not "confirmed pixel-correct in play." Worth an actual
+playtest pass if it hasn't had one.
 - [ ] Save/upload custom maps (explicitly noted as a "maybe eventually" in your own notes
       — do not start this until the rest of Phase 10 is solid). **Reference found
       (2026-07-31)**: a "SwapMaps" demo project on the BYOND developer hub — host-side
@@ -1630,7 +1665,7 @@ not gospel). New confirmed mechanics not previously in this file:
       — only real data point is level-1 Hero = capacity 9 (not the current placeholder
       8) — tune later. Not blocking: pick a formula shape now (e.g. `base + floor(Str /
       X)`), revisit once more data points exist.
-- [ ] Whether text/chat logging is wanted, and if so where it's stored — **already
+- [x] Whether text/chat logging is wanted, and if so where it's stored — **already
       answered/built**, see Phase 2's chat+login/logout logging entry (`server.log`,
       gitignored). Leaving this line only because it was never explicitly checked off
       here — no remaining work.
@@ -1734,7 +1769,7 @@ not gospel). New confirmed mechanics not previously in this file:
 - [ ] Darken player/monster sprites at night, eventually dynamic lighting — OG's
       `GMdaynight` only re-skins world icons (turfs/objects), not mobs at all; this is a
       remake-only enhancement idea on top of that, not something to match from the OG
-- [ ] Language filter — **already done** (`TextFilter.dm`, word-boundary censoring +
+- [x] Language filter — **already done** (`TextFilter.dm`, word-boundary censoring +
       GM-toggleable strictness), can be removed from future QoL lists
 - [ ] Player-created custom icons, usable on servers they host — idea floated alongside
       `GMswitchicon` (currently GM-only cosmetic flair), not committed to, see

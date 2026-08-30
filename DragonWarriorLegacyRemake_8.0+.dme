@@ -94,6 +94,7 @@
 #include "Code\Player\Customization\PlayerIconColorPalette.dm"
 #include "Code\Save\SaveData.dm"
 #include "Code\Save\SaveSystem.dm"
+#include "Code\UI\HUD.dm"
 #include "Code\UI\LoginMenu.dm"
 #include "Code\UI\PaletteManager.dm"
 #include "Code\World\Area.dm"

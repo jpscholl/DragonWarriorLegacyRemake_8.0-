@@ -1,3 +1,15 @@
+// One-decimal percent as a string ("10.3", not "10.333333") — DM's string
+// interpolation of a raw float prints far too many decimals for the OG's confirmed
+// "X.X%" format (StatPanels.dm's Experience Points line). Integer-only math throughout
+// since DM has no format-string precision specifier: scale to tenths, round() with one
+// arg floors (see its own convention note elsewhere), then split whole/fractional.
+proc/FormatPercent(numerator, denominator)
+    if(!denominator) return "0.0"
+    var/tenths = round(numerator / denominator * 1000)
+    var/whole = round(tenths / 10)
+    var/frac = tenths - whole * 10
+    return "[whole].[frac]"
+
 mob/player
     var
         // -----------------------------
@@ -13,6 +25,10 @@ mob/player
     // Display player stats
     // -----------------------------
     Stat()
+        // Bottom-of-screen HUD (Code/UI/HUD.dm) — lazily built on first tick, then
+        // refreshed every tick after, same pattern as the Battle-tab StatLinks below.
+        UpdateHUD()
+
         // ---------------- Stats Panel ----------------
         // Header panel for general stats
         statpanel("Stats")
@@ -26,7 +42,19 @@ mob/player
         // Core stats
         stat("Hit Points: [HP]/[MaxHP]")  // Current/max HP
         stat("Magic Points: [MP]/[MaxMP]")// Current/max MP
-        stat("Experience Points: [Exp]/[Nexp]") // Current/next level XP
+        // Confirmed OG field order places these two here, between Magic Points and
+        // Experience Points — shown to everyone rather than staff-only, matching that
+        // confirmed order (TODOList.md Phase 3; "staff-only?" was an open question,
+        // going with the OG-faithful behavior since this pass targets matching the OG
+        // as closely as possible).
+        stat("GM Level: [client ? client.adminLevel : 0]")
+        stat("CPU: [world.cpu]")
+        // Percent is progress within the CURRENT level's band (Exp resets to 0 on
+        // every level-up, LevelCheck() above, so Exp/Nexp already IS that fraction —
+        // no separate floor/threshold tracking needed), one decimal place, matching
+        // the OG's own confirmed format ("10882/14011 (10.3%)"), not a whole-number
+        // percent of the raw total.
+        stat("Experience Points: [Exp]/[Nexp] ([FormatPercent(Exp, Nexp)]%)")
         stat("Gold: [Gold]")              // Currency
         // World clock (GetGameTimeString(), Code/Core/Main.dm) — the OG's Status panel
         // carried a Time line too. Now that a real day/night clock drives the world,
@@ -45,11 +73,22 @@ mob/player
 
         // ---------------- Battle Panel ----------------
         // Initialize clickable stat links once per player
-        if(!strStatPanel)  strStatPanel  = new /obj/StatLink("Strength", src)
-        if(!vitStatPanel)  vitStatPanel  = new /obj/StatLink("Vitality", src)
-        if(!agiStatPanel)  agiStatPanel  = new /obj/StatLink("Agility", src)
-        if(!intStatPanel)  intStatPanel  = new /obj/StatLink("Intelligence", src)
-        if(!spiritStatPanel) spiritStatPanel = new /obj/StatLink("Spirit", src)
+        // Each uses its own StatLink subtype (ClickableStats.dm) so its column spacing
+        // is a plain compile-time default, not a value passed around at runtime.
+        if(!strStatPanel)  strStatPanel  = new /obj/StatLink/strength("Strength", src)
+        if(!vitStatPanel)  vitStatPanel  = new /obj/StatLink/vitality("Vitality", src)
+        if(!agiStatPanel)  agiStatPanel  = new /obj/StatLink/agility("Agility", src)
+        if(!intStatPanel)  intStatPanel  = new /obj/StatLink/intelligence("Intelligence", src)
+        if(!spiritStatPanel) spiritStatPanel = new /obj/StatLink/spirit("Spirit", src)
+
+        // Refresh the +bonus shown in each label every tick, so equipping/unequipping
+        // an amulet (Inventory.dm) is reflected immediately rather than only after the
+        // next stat-point click (ClickableStats.dm's UpdateName()).
+        strStatPanel.UpdateName()
+        vitStatPanel.UpdateName()
+        agiStatPanel.UpdateName()
+        intStatPanel.UpdateName()
+        spiritStatPanel.UpdateName()
 
         // Header panel for combat-related stats
         statpanel("Battle")

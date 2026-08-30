@@ -62,14 +62,20 @@ which really does hold only `key.dmi`) was checked and the finding was extended 
 code yet, but the asset gap the "No HUD" item below describes is code, not art. The real, still-open
 art gap is scoped tighter than originally stated: consumables, amulets, and lava.
 
+**⚠️ UPDATE — 2026-08-28:** amulets now have real art (`amulets.dmi`, wired same day as this note),
+and the HUD gap (#2 below) is closed — see `CHANGELOG.md`'s 0.9.0 entry for the full list (HUD,
+item stacking, persistent Builder/Admin promotion, bookcase read/write, and several corrected-
+against-OG-data fixes). Consumable/lava art is still open — no matching assets exist for those yet.
+
 **Still open, and the highest-value remaining work:**
 
-1. **Item/amulet/lava art.** `World Icons/Items/` holds only `key.dmi`, so every consumable and
-   amulet borrows it and is visually indistinguishable from a key or from each other. Lava borrows a
-   scorched-floor state. The single most visible unfinished thing in the game right now.
-2. **HUD code.** The art for it already exists (see the correction above) — `meter.dmi` and its
-   siblings just aren't wired to any screen-object code yet. Zero `screen_loc` usage anywhere. This
-   also blocks the drag-to-slot half of quick items that the OG's help file describes.
+1. **Consumable/lava art.** `World Icons/Items/` holds only `key.dmi`, so every consumable still
+   borrows it. Lava borrows a scorched-floor state. Amulets are closed (see update above). Blocked
+   on art assets, not code.
+2. ~~**HUD code.**~~ **Closed 2026-08-28** — bottom HUD, floating combat numbers, and floating
+   per-mob HP/MP bars all built (`Code/UI/HUD.dm`). Every pixel offset is still a placeholder
+   (compiles and runs, not pixel-tuned) since Claude can't drive the actual client to check
+   alignment. Quick-item drag-to-slot (the other thing this used to block) is unaffected either way.
 3. **No survival layer** — hunger, thirst, sleepiness, temperature, weather, drowning. Per the
    day/night caveat above, this whole category is likely RP-mode-scoped too, not a standalone gap.
 4. **No `/stat` scenery kit.** Still the largest single volume gap (storage and NPC dialogue closed
@@ -95,7 +101,8 @@ recovered.** The mechanisms are the OG's; the tuning is invented and wants playt
 mob
   mob/player        — Hero, Soldier, Wizard, Fighter, Pilgrim, Goofoff, Sage
   mob/playerTemp    — pre-login shell (OG equivalent: /mob/ChoosingCharacter)
-  mob/enemy         — 10 monsters + pet behavior
+  mob/enemy         — 24 monsters (2026-08-28: expanded from 10, all confirmed OG
+                      names now built — see CHANGELOG.md 0.9.0) + pet behavior
   mob/npc           — one bare placeholder type, no behavior
 
 obj

@@ -77,21 +77,43 @@ datum/skill/Attack
                                                      // themselves while this was resolving
         var/wasDefending = user.DropDefendForAction()
 
+        // Computed once and reused below for the recovery timer (was re-computed
+        // twice, drifting only if the RNG-free math itself weren't stable — harmless
+        // either way, just cleaner one place).
+        var/atkDelay = user.GetAttackDelay(src, wasDefending)
+
         // Play melee animation & sound (src is this skill datum, matching
-        // PlayAttackAnimation's real signature: mob/user, datum/skill/S, mob/target)
+        // PlayAttackAnimation's real signature: mob/user, datum/skill/S, mob/target).
+        // Weapon-overlay duration stays at the default (CombatSystem.dm) — tried
+        // scaling it to atkDelay (the FULL windup+recovery) so a slow attacker's
+        // weapon would visibly linger, but that's wrong: the overlay is the SWING
+        // itself, not the whole recovery. At atkDelay length it visibly outlived the
+        // character's own attack pose (which reverts fast, independent of this) —
+        // "sword floating there after the player's already back to normal," plus the
+        // long canAct lock (unchanged, always been atkDelay) read as newly broken
+        // once the sword's lingering made it obvious. Movement lock timing itself is
+        // unchanged by this file — a separate tuning question if 12-4 deciseconds
+        // (MELEE_ATK_BASE_DELAY/MIN, CombatSystem.dm) feels too long at low Agility.
         user.PlayAttackAnimation(user, src, target)
 
-        // Apply damage after cast_time (PerformMeleeHit expects a skill datum, not a
-        // target mob — it already finds whoever's on the tile in front of user itself)
+        // Apply damage after cast_time — pass the target captured at swing-start
+        // (UseSkillSlot(), PlayerTemplate.dm) rather than letting PerformMeleeHit()
+        // re-scan the tile ahead once the windup's already elapsed (CombatSystem.dm).
         spawn(cast_time)
-            user.PerformMeleeHit(src)
+            user.PerformMeleeHit(src, target)
+            // The swing itself has landed — let the player move again even though
+            // they can't attack again until the full recovery below ends (canAct
+            // stays FALSE that whole time). mob/proc/Step() (SmoothMovement.dm) reads
+            // this. Guarded on isDead in case something else killed them during the
+            // windup (e.g. a counter-hit) — a dead mob should stay fully rooted, not
+            // get an exception from a swing they threw before dying.
+            if(!user.isDead) user.attackRecoveryOnly = TRUE
 
-        // Re-enable action based on stats (src is this skill datum, which is what
-        // GetAttackDelay actually needs to check isMelee/isSpell against). Passing
-        // wasDefending (captured above, before the drop) — not user.isDefending,
-        // which is already FALSE by now — so the speed penalty still applies for an
-        // attack thrown out of a defensive stance.
-        spawn(user.GetAttackDelay(src, wasDefending))
+        // Re-enable action based on stats. Passing wasDefending (captured above,
+        // before the drop) — not user.isDefending, which is already FALSE by now —
+        // so the speed penalty still applies for an attack thrown out of a defensive
+        // stance.
+        spawn(atkDelay)
             // Died while this recovery was still pending (e.g. the enemy who's about
             // to eat this hit gets a hit in first) — Die() (CombatSystem.dm) already
             // locked canAct intentionally as part of the death/respawn flow; without
@@ -100,6 +122,7 @@ datum/skill/Attack
             // gap, found while adding the Defend auto-resume logic above.
             if(user.isDead) return
             user.canAct = TRUE
+            user.attackRecoveryOnly = FALSE
             user.RestoreDefendIfUntouched(wasDefending, mySession)
 
 // -----------------------------

@@ -82,8 +82,13 @@ obj/projectile
 			// it) found in the first playtest.
 			var/mob/hitTarget = FindTarget(currentTurf)
 			if(hitTarget)
-				Impact(currentTurf, hitTarget)
-				if(!pierces)
+				// A dodge (landed == FALSE) never stops the shot, pierces or not —
+				// nothing actually hit, so there's no reason for it to stop here.
+				// Only a landed, non-piercing hit consumes the projectile; a landed
+				// piercing hit or a dodge both fall through and keep flying, giving
+				// it a real chance at whoever's standing beyond this target.
+				var/landed = Impact(currentTurf, hitTarget)
+				if(landed && !pierces)
 					del src
 					return
 
@@ -122,14 +127,19 @@ obj/projectile
 			return M
 		return null
 
+	// Returns whether the shot actually landed (see TakeDamage()'s own note,
+	// CombatSystem.dm) — Launch() uses this to decide whether to stop here or keep
+	// flying. A dodged target doesn't get an impact flash either: nothing was hit,
+	// so nothing should visibly explode on their tile while the projectile flies on
+	// past them.
 	proc/Impact(turf/T, mob/target = null)
-		FlashTurfEffect(T, icon, impactIconState)
-
 		// ApplySpellDamage() (CombatSystem.dm) already handles the elemental
 		// weakness/resistance modifier and routes into TakeDamage() (dodge, hit
 		// sound, death) — this reuses that whole pipeline rather than duplicating it.
-		if(target && caster)
-			caster.ApplySpellDamage(target, damage, element)
+		var/landed = (target && caster) ? caster.ApplySpellDamage(target, damage, element) : FALSE
+		if(landed)
+			FlashTurfEffect(T, icon, impactIconState)
+		return landed
 
 	// Blaze's own projectile — icon_state "blaze" for the traveling sprite, "blazehit"
 	// for the impact effect (both in spells.dmi, confirmed to already exist).
