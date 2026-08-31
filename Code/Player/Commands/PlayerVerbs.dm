@@ -83,8 +83,10 @@ mob/verb/UseQuickItem()
 mob/var/list/quickSpells = alist(5 = null, 6 = null, 7 = null)
 
 mob/player/verb/SetQuickCast()
-    set category = "Actions"
+    set category = "Action"
     set desc = "Assign a spell to one of the F5/F6/F7 hotkeys"
+    set hidden = 1   // stays functional (the F5/F6/F7 macros still work), just not
+                      // shown in the Action tab — user's call, 2026-08-30
 
     var/list/castable = list()
     for(var/datum/skill/S in skills)

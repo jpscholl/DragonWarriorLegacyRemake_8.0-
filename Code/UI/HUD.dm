@@ -109,7 +109,7 @@ proc/GetSolidColorIcon(colorHex, width, height)
 // result. Only the DELTA in length (e.g. HP going from 2 digits to 3) actually adds or
 // removes an object now; same-length updates (the overwhelming majority) just mutate
 // what's already on screen.
-proc/SetBitmapText(mob/player/M, list/row, text, fontIcon, glyphWidth, tileX, pixelX, tileY, pixelY)
+proc/SetBitmapText(mob/player/M, list/row, text, fontIcon, glyphWidth, tileX, pixelX, tileY, pixelY, colorHex = "#ffffff")
     if(!M.client) return
 
     text = "[text]"
@@ -126,6 +126,7 @@ proc/SetBitmapText(mob/player/M, list/row, text, fontIcon, glyphWidth, tileX, pi
             M.client.screen += G
             row += G
         G.icon_state = ch
+        G.color = colorHex
         G.screen_loc = "WEST+[tileX]:[pixelX + (i - 1) * glyphWidth],SOUTH+[tileY]:[pixelY]"
 
     // Trim any leftover glyphs from a longer previous value, from the tail backward
@@ -165,23 +166,34 @@ mob/player
         hudBackdrop.screen_loc = "WEST+0:0,SOUTH+0:0"
         client.screen += hudBackdrop
 
-        // Static labels, built once — only the values next to them change per tick.
-        SetBitmapText(src, hudHPLabel, "hp:", 'text.dmi', HUD_GLYPH_SPACING, 0, HUD_COL_LABEL, 0, HUD_ROW_TOP)
-        SetBitmapText(src, hudMPLabel, "mp:", 'text.dmi', HUD_GLYPH_SPACING, 0, HUD_COL_LABEL, 0, HUD_ROW_BOTTOM)
-
         UpdateHUD()
+
+    // CONFIRMED OG behavior (live-tested 2026-08-30): the whole HUD's text turns green
+    // at 25% HP or below, and a light red/pink once HP hits 0 — otherwise plain white.
+    proc/GetHUDHealthColor()
+        if(MaxHP <= 0) return "#ffffff"
+        if(HP <= 0) return "#ff9999"
+        if(HP <= MaxHP * 0.25) return "#00ff00"
+        return "#ffffff"
 
     proc/UpdateHUD()
         if(!client) return
         if(!hudBackdrop) BuildHUD()
 
-        SetBitmapText(src, hudLevelLine, "level:[Level]", 'text.dmi', HUD_GLYPH_SPACING, 0, HUD_COL_LEVEL, 0, HUD_ROW_TOP)
-        SetBitmapText(src, hudXPLine, "xp:[FormatPercent(Exp, Nexp)]%", 'text.dmi', HUD_GLYPH_SPACING, 0, HUD_COL_LEVEL, 0, HUD_ROW_BOTTOM)
+        var/hudColor = GetHUDHealthColor()
 
-        SetBitmapText(src, hudHPCurrent, "[HP]/", 'text.dmi', HUD_GLYPH_SPACING, 0, HUD_COL_CURRENT, 0, HUD_ROW_TOP)
-        SetBitmapText(src, hudMPCurrent, "[MP]/", 'text.dmi', HUD_GLYPH_SPACING, 0, HUD_COL_CURRENT, 0, HUD_ROW_BOTTOM)
-        SetBitmapText(src, hudHPMax, "[MaxHP]", 'text.dmi', HUD_GLYPH_SPACING, 0, HUD_COL_MAX, 0, HUD_ROW_TOP)
-        SetBitmapText(src, hudMPMax, "[MaxMP]", 'text.dmi', HUD_GLYPH_SPACING, 0, HUD_COL_MAX, 0, HUD_ROW_BOTTOM)
+        SetBitmapText(src, hudLevelLine, "Level:[Level]", 'text.dmi', HUD_GLYPH_SPACING, 0, HUD_COL_LEVEL, 0, HUD_ROW_TOP, hudColor)
+        SetBitmapText(src, hudXPLine, "XP:[FormatPercent(Exp, Nexp)]%", 'text.dmi', HUD_GLYPH_SPACING, 0, HUD_COL_LEVEL, 0, HUD_ROW_BOTTOM, hudColor)
+
+        // Labels move here from BuildHUD() (previously built once and left alone) so
+        // their color stays in sync with the rest of the HUD every tick too.
+        SetBitmapText(src, hudHPLabel, "HP:", 'text.dmi', HUD_GLYPH_SPACING, 0, HUD_COL_LABEL, 0, HUD_ROW_TOP, hudColor)
+        SetBitmapText(src, hudMPLabel, "MP:", 'text.dmi', HUD_GLYPH_SPACING, 0, HUD_COL_LABEL, 0, HUD_ROW_BOTTOM, hudColor)
+
+        SetBitmapText(src, hudHPCurrent, "[HP]/", 'text.dmi', HUD_GLYPH_SPACING, 0, HUD_COL_CURRENT, 0, HUD_ROW_TOP, hudColor)
+        SetBitmapText(src, hudMPCurrent, "[MP]/", 'text.dmi', HUD_GLYPH_SPACING, 0, HUD_COL_CURRENT, 0, HUD_ROW_BOTTOM, hudColor)
+        SetBitmapText(src, hudHPMax, "[MaxHP]", 'text.dmi', HUD_GLYPH_SPACING, 0, HUD_COL_MAX, 0, HUD_ROW_TOP, hudColor)
+        SetBitmapText(src, hudMPMax, "[MaxMP]", 'text.dmi', HUD_GLYPH_SPACING, 0, HUD_COL_MAX, 0, HUD_ROW_BOTTOM, hudColor)
 
 // -----------------------------
 // Floating combat numbers — numbers.dmi (digits "0"-"9" plus "m"/"i"/"s" for "miss").
