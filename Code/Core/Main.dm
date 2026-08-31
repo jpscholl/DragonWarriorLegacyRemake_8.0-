@@ -383,7 +383,8 @@ mob
         // Block diagonal movement
         if(dir in list(NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST))
             return
-        return ..()
+        . = ..()
+        if(.) ShowFloatingBars()  // moving counts as "not sitting still" (HUD.dm)
 
 // -------------------- Temporary Player (Login Phase) --------------------
 mob/playerTemp

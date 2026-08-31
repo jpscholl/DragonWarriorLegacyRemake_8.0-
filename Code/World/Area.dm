@@ -26,9 +26,20 @@ area
 
 	Entered(atom/movable/O)
 		..()
-		if(areaMusic && ismob(O))
+		if(ismob(O))
 			var/mob/M = O
-			M.PlayAreaMusic(areaMusic)
+			if(areaMusic) M.PlayAreaMusic(areaMusic)
+			// Being in a battle-mode area counts as "activity" for the floating HP/MP
+			// bars (HUD.dm) — shows on entry; Exited() below refreshes once more on the
+			// way out so the bar's 5s idle-hide countdown starts from the moment you
+			// actually leave, not from whatever last hit/move happened inside.
+			if(battleModeOn) M.ShowFloatingBars()
+
+	Exited(atom/movable/O)
+		..()
+		if(battleModeOn && ismob(O))
+			var/mob/M = O
+			M.ShowFloatingBars()
 
 	casino
 		icon_state = "casino"
@@ -55,12 +66,15 @@ area
 	battle
 		icon_state = "battle"
 		battleModeOn = TRUE
+		areaMusic = 'dq5battle.mid'
 
 	castle
 		icon_state = "castle"
+		areaMusic = 'Dw4cast.mid'
 
 	cave
 		icon_state = "cave"
+		areaMusic = 'cave.mid'
 
 	old
 		icon_state = "old"

@@ -1513,10 +1513,9 @@ mob/proc/RefreshAreaOverlay()
             // for them, but a future area with its own distinct icon file would
             // otherwise render as a missing/wrong sprite under this overlay.
             var/image/areaImg = image(A.icon, T, A.icon_state)
-            // Layer 3 (below mobs' default 4, above turfs' default 2) — a plain
-            // image() otherwise defaults above mobs, which meant standing on a
-            // marked tile drew the overlay ON TOP of the GM's own sprite.
-            areaImg.layer = 3
+            // Layer 5 — above mobs' default 4, per user's 2026-08-31 testing note
+            // (GM_SeeAreas overlay should sit on top of mobs, not under them).
+            areaImg.layer = 5
             newImages += areaImg
 
         // World login/respawn markers (obj/spawnMarker/playerStart, /playerSpawn —
@@ -1527,7 +1526,7 @@ mob/proc/RefreshAreaOverlay()
         // reassigning the tile's area.
         for(var/obj/spawnMarker/M in T.contents)
             var/image/markerImg = image(M.icon, T, M.icon_state)
-            markerImg.layer = 3
+            markerImg.layer = 5
             newImages += markerImg
 
     if(areaOverlayImages)

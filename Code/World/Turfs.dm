@@ -85,6 +85,13 @@ proc/RenameWarpTurf(turf/T, mob/M)
 // pendingSession (SmoothMovement.dm), and defendToggleSession (CombatSystem.dm).
 mob/var/sleepSession = 0
 
+// Guards turf/warp's Entered() against immediately re-triggering on arrival: moving
+// M.loc to the partner tile fires THAT tile's Entered() synchronously, which would
+// otherwise find its own partner (the tile you just left) and bounce you straight
+// back. Same short-lived guard shape as sleepSession above / pendingSession
+// (SmoothMovement.dm) / defendToggleSession (CombatSystem.dm).
+mob/var/warpCooldown = FALSE
+
 mob/proc/WakeUp()
 	if(isSleeping)
 		isSleeping = FALSE
@@ -111,6 +118,7 @@ mob/proc/SleepRestoreLoop(interval = BED_RESTORE_INTERVAL, amount = BED_RESTORE_
 
 		HP = min(MaxHP, HP + amount)
 		MP = min(MaxMP, MP + amount)
+		ShowFloatingBars()  // keeps the bar up for the whole rest; fades 5s after waking (HUD.dm)
 
 //grass: dis is ground...you walk on it
 //was: grass, brush, flowers, farmland, cavedirt, sand — all now instances of this type
@@ -411,9 +419,12 @@ turf/table/longtablecenter
 		Entered(atom/movable/A)
 			if(!ismob(A)) return
 			var/mob/M = A
+			if(M.warpCooldown) return
 			var/turf/partner = FindWarpPartner(src, /turf/warp)
 			if(partner)
+				M.warpCooldown = TRUE
 				M.loc = partner
+				spawn(2) M.warpCooldown = FALSE
 			else
 				M << output("This warp doesn't lead anywhere yet.", "Info")
 
@@ -468,7 +479,7 @@ turf/hazard
 		PlaySFXAt(M, istype(M, /mob/enemy) ? 'enemyhit.wav' : 'hit.wav')
 		M << output("<font color='red'>[hazardMessage] (-[stepDamage] HP)</font>", "Info")
 		ShowCombatNumber(M, "[stepDamage]", "#ff0000")
-		M.UpdateFloatingBars()
+		M.ShowFloatingBars()
 
 		if(poisonChance && prob(poisonChance))
 			M.ApplyStatusEffect(/datum/status_effect/poison)

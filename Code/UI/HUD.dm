@@ -48,8 +48,9 @@
 #define FLOATING_BAR_LAYER_OFFSET 0.5   // added to src.layer, keeps it above the mob
                                          // sprite and the weapon-swing overlay (target.layer
                                          // + 0.1, CombatSystem.dm) without hardcoding a layer
-#define FLOATING_BAR_Y_OFFSET 34        // px above the mob's own sprite origin
-#define FLOATING_BAR_SPACING 6          // vertical gap between a mob's HP and MP bar
+#define FLOATING_BAR_Y_OFFSET 32        // px above the mob's own sprite origin
+#define FLOATING_BAR_SPACING 10         // vertical gap between a mob's HP and MP bar
+#define FLOATING_BAR_IDLE_HIDE_TIME 50  // deciseconds — 5s idle before the bars fade out
 
 // -----------------------------
 // Bitmap font glyphs are drawn in plain black in the source art (both text.dmi and
@@ -245,6 +246,29 @@ mob
     var
         image/floatingHPBarImage
         image/floatingMPBarImage
+        floatingBarHideSession = 0
+
+    // Rebuilds and shows the floating bars, then (re)starts the idle-hide countdown —
+    // call this from anything that should keep the bars on screen: taking/dealing
+    // damage, moving, resting in a bed, or entering/leaving a battle-mode area. The
+    // session counter is the same one-shot-timer guard used elsewhere in this codebase
+    // (sleepSession, Turfs.dm; pendingSession, SmoothMovement.dm) — each call
+    // invalidates any hide already in flight, so only the LAST call's timer fires.
+    proc/ShowFloatingBars()
+        UpdateFloatingBars()
+        floatingBarHideSession++
+        var/mySession = floatingBarHideSession
+        spawn(FLOATING_BAR_IDLE_HIDE_TIME)
+            if(src && floatingBarHideSession == mySession)
+                HideFloatingBars()
+
+    proc/HideFloatingBars()
+        if(floatingHPBarImage)
+            overlays -= floatingHPBarImage
+            floatingHPBarImage = null
+        if(floatingMPBarImage)
+            overlays -= floatingMPBarImage
+            floatingMPBarImage = null
 
     proc/UpdateFloatingBars()
         if(isDead || HP <= 0)
@@ -277,7 +301,9 @@ mob
             floatingMPBarImage = null
 
     // Every mob (player or enemy) gets its floating bars the moment it exists, so a
-    // full-health mob shows one immediately rather than only after its first hit.
+    // full-health mob shows one immediately rather than only after its first hit —
+    // ShowFloatingBars(), not UpdateFloatingBars(), so a mob that just sits there
+    // still fades out after FLOATING_BAR_IDLE_HIDE_TIME like any other idle mob.
     New()
         . = ..()
-        UpdateFloatingBars()
+        ShowFloatingBars()
