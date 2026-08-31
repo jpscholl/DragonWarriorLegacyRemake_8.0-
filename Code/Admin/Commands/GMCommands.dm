@@ -513,7 +513,7 @@ mob/proc/PwipeCharacter(mob/player/target)
 // Confirmed persistence: this is a live mob.name change, so a renamed player's next
 // save (including a normal logout autosave) writes the new name permanently — no
 // separate "make it stick" step. GM-tier power per the original design notes.
-#define MAX_NAME_LENGTH 24
+// MAX_NAME_LENGTH is defined in the .dme (see comment there for why)
 mob/verb/GM_NameChange()
     set category = "GM"
     set desc = "Rename a connected player's character, or any NPC/monster in view"

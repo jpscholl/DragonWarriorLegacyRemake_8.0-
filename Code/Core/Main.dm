@@ -39,12 +39,10 @@ var/list/players = list()
 #define DEFAULT_MASTER_VOLUME 50
 #define DEFAULT_CHANNEL_VOLUME 100
 
-// MAX_CHARACTERS used to live here too — moved to the .dme itself (same
-// #include-order reason as PLAYER_SPAWN/SPRITE_PIXEL_Y_OFFSET/SFX_CHANNEL there)
-// once Admin/Commands/GMCommands.dm needed it before this file compiles.
-
-// Longest a character name can be.
-#define MAX_NAME_LENGTH 24
+// MAX_CHARACTERS and MAX_NAME_LENGTH used to live here too — both moved to the
+// .dme itself (same #include-order reason as PLAYER_SPAWN/SPRITE_PIXEL_Y_OFFSET/
+// SFX_CHANNEL there) once Admin/Commands/GMCommands.dm needed them before this
+// file compiles.
 
 // SPRITE_PIXEL_Y_OFFSET (shared vertical sprite offset, used by both mob/player and
 // mob/enemy) is defined in the .dme file itself, not here — Combat/NPCs/EnemyNPCs.dm

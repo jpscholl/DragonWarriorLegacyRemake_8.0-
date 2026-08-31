@@ -51,6 +51,12 @@
 // Shared across LoginMenu.dm/SaveSystem.dm/GMCommands.dm so all three stay in sync.
 #define MAX_CHARACTERS 4
 
+// Max character name length, shared by LoginMenu.dm's PromptForName() (character
+// creation) and Admin/Commands/GMCommands.dm's GM_NameChange(). Same #include-order
+// reason as the others above — GMCommands.dm compiles before Core/Main.dm (where
+// this used to live exclusively) alphabetically.
+#define MAX_NAME_LENGTH 24
+
 // Character-creation step constants (originally only in Code\UI\LoginMenu.dm, which
 // still owns the real creation flow). Same #include-order reason as the others above —
 // Code\Player\PlayerTemplate.dm's RunSageReclassFlow() needs these too (it reuses
