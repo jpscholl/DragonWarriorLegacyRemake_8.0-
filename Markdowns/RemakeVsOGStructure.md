@@ -219,8 +219,8 @@ Legend: **✅ Built** · **🟡 Partial / scaffolded** · **❌ Missing**
 | Numpad slots 9/7/3/1/0 | Yes | Yes | ✅ exact match |
 | Drag-to-assign | Yes | Yes (`SkillLink`) | ✅ |
 | Free Skills pool | Yes | Yes | ✅ |
-| **Quick-cast F5/F6/F7** | `quick_5/6/7`, `QuickSpellSet` | none | ❌ |
-| **Quick item (numpad `-` / `*`)** | `quickitem`, `ScrollItem` | none | ❌ |
+| **Quick-cast F5/F6/F7** | `quick_5/6/7`, `QuickSpellSet` | Built (`SetQuickCast()`/`UseQuickSpell()`, `PlayerVerbs.dm`) — **caveat added 2026-08-30**: real data in the compiled `.dmb`'s string table, but live testing found no evidence the keys did anything in the actual played version. Possibly added in a later OG version than the one played, same situation as the unused horse/wagon icons (Phase 8 note, `TODOList.md`'s Mounts entry) — present in the files, never active in play. Mechanism kept, but the setup verb (`SetQuickCast()`) is now hidden from the Action tab rather than removed. | ⚠️ |
+| **Quick item (numpad `-` / `*`)** | `quickitem`, `ScrollItem` | Built (`PlayerVerbs.dm`) | ✅ |
 | Per-spell MP cost table | `/proc/SpellCost` | `mana_cost` per skill — **but `TESTING_CHEAP_SPELLS` is `TRUE`, forcing every spell to 1 MP** | ⚠️ see Part 5 |
 | Per-spell cast time table | `/proc/SpellTime` | `cast_time` per skill | ✅ |
 | Skill unlock levels per class | `/playerlearn/<class>/<skill>` | `GetSkillUnlocks()` — **flagged PLACEHOLDER TEST DATA** | 🟡 |
