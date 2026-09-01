@@ -2,21 +2,21 @@
 /*
 MAP_PLANE_MASTERS: 
 MAP_ZOOM: 1.500
-LAST_COMPILE_TIME: 1788113246
-PACKAGE_RSC_NAME: C:\Users\jpsch\Desktop\DragonWarriorLegacyRemake_8.0+_rsc.zip
+LAST_COMPILE_TIME: 1788228144
 DIR: Code Code\Admin Code\Admin\Commands Code\Admin\Debug Code\Combat Code\Combat\NPCs Code\Combat\Skills Code\Core Code\Player Code\Player\Commands Code\Player\Customization Code\Save Code\UI Code\World UI & Effects 
+PACKAGE_RSC_NAME: C:\Users\jpsch\Desktop\DragonWarriorLegacyRemake_8.0+_rsc.zip
 AUTO_FILE_DIR: ON
 PACKAGE_DMB_INFO: 
 MAP_ICON_TYPE: 0
 PACKAGE_DME_NAME: C:\Users\jpsch\Desktop\DWLR Test\DragonWarriorLegacyRemake_8.0+_src.zip
 LAST_COMPILE_VERSION: 516.1687
-PACKAGE_TYPE: 0
 PACKAGE_DME_START: 
-WINDOW: UI & Effects\expmeter.dmi;Code\UI\HUD.dm;Code\World\Turfs.dm;Code\Admin\Commands\GMCommands.dm;Code\Combat\CombatSystem.dm;Code\Combat\NPCs\EnemyNPCs.dm;Code\Player\StatPanels.dm;Code\Player\Commands\PlayerVerbs.dm
+PACKAGE_TYPE: 0
 PACKAGE_DME_INFO: 
+WINDOW: UI & Effects\expmeter.dmi;Code\UI\HUD.dm;Code\World\Turfs.dm;Code\Admin\Commands\GMCommands.dm;Code\Combat\CombatSystem.dm;Code\Combat\NPCs\EnemyNPCs.dm;Code\Player\StatPanels.dm;Code\Player\Commands\PlayerVerbs.dm
 FILE: Code\Player\Commands\PlayerVerbs.dm
 MAP_INSTANCE_MODE: copy
-PACKAGE_DME_DEMO: 
 PACKAGE_DMB_NAME: C:\Users\jpsch\Desktop\DWLR Test alt\DWLRtest.zip
+PACKAGE_DME_DEMO: 
 */
 // END_INTERNALS
