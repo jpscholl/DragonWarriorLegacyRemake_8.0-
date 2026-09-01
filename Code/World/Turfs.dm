@@ -40,6 +40,24 @@ turf/var/warpName = null
 // different area, without needing to guess which overlay in turf/overlays was it.
 turf/var/image/areaVisualOverlay = null
 
+// Areas are always meant to render on top of turfs (mobs/objs sit at their default
+// layers in between — see AREA_OVERLAY_LAYER, .dme) -- but that guarantee only holds if
+// EVERY new turf actually gets its owning area's decoration (re)applied the instant it
+// exists, not just when a GM repaints an existing tile's area (PlaceBuildSelection()'s
+// "area" branch, BuildTools.dm, still handles THAT case). Placing a brand new turf on
+// top of an existing tile (GM_MakeTurf, or `new turf_type(oldTurf)` anywhere else in the
+// codebase) replaces the turf object at that cell outright -- the freshly created
+// instance starts with empty overlays regardless of what area already owns that cell,
+// so without this it would silently render as if the area decoration wasn't there at
+// all until the next time someone happened to repaint that specific tile's area.
+// `loc` is a turf's owning area at the moment New() runs (BYOND resolves area
+// membership before New() fires, even for a turf replacing another in place), so this
+// single choke point covers every turf creation path there is, not just the build tool.
+turf/New()
+	. = ..()
+	var/area/A = loc
+	if(A) A.AddedTurf(src)
+
 turf/proc/EnsureWarpName()
 	if(!warpName) warpName = "[x],[y],[z]"
 
