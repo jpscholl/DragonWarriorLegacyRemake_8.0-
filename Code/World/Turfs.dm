@@ -66,6 +66,12 @@ proc/RenameWarpTurf(turf/T, mob/M)
 #define BED_RESTORE_INTERVAL 5  // deciseconds — 0.5s
 #define BED_RESTORE_AMOUNT 1    // HP and MP each, per interval
 
+// Measured straight from the actual warp.wav file (44100Hz mono 8-bit PCM,
+// 551235-byte data chunk / 44100 = ~12.502s) — turf/warp/Entered() below doesn't
+// actually teleport the mob until the sound finishes, so this has to match the
+// real clip length, not an arbitrary guess. Re-measure if warp.wav is ever replaced.
+#define WARP_SOUND_DURATION 125  // deciseconds, ~12.5s
+
 // The confirmed-planned **Rest** skill (sleep in place, anywhere) should recover
 // SLOWER than a bed — it's sleeping on the ground, not in an actual bed. That's why
 // SleepRestoreLoop() below takes its rate as arguments instead of reading the defines
@@ -437,12 +443,32 @@ turf/table/longtablecenter
 			var/mob/M = A
 			if(M.warpCooldown) return
 			var/turf/partner = FindWarpPartner(src, /turf/warp)
-			if(partner)
-				M.warpCooldown = TRUE
-				M.loc = partner
-				spawn(2) M.warpCooldown = FALSE
-			else
+			if(!partner)
 				M << output("This warp doesn't lead anywhere yet.", "Info")
+				return
+
+			M.warpCooldown = TRUE
+			M.canAct = FALSE
+			// Passable for the whole transition (fade-out through fade-back-in) so
+			// other players can walk straight over/through a mob mid-warp instead of
+			// queuing up behind them on the tile.
+			var/oldDensity = M.density
+			M.density = 0
+			spawn(0)
+				M.PlayScreenFade(TRUE)
+				M << sound('warp.wav', repeat = 0, channel = SFX_CHANNEL, volume = M.client ? M.client.ScaledVolume() : 100)
+				sleep(WARP_SOUND_DURATION)  // the actual teleport waits for the sound to finish
+				M.loc = partner
+				M.warpCooldown = FALSE  // safe the instant we've arrived — see warpCooldown's own comment (top of file) for what this guards against
+				// Same explicit area-music re-check as the stairs paths (TakeStairs()/
+				// the stairs' own named-pair branch, above) — a warp landing in a
+				// same-area-instance spot wouldn't otherwise re-trigger Entered()'s music.
+				var/area/newArea = partner.loc
+				if(istype(newArea) && newArea.areaMusic)
+					M.PlayAreaMusic(newArea.areaMusic)
+				M.PlayScreenFade(FALSE)
+				M.density = oldDensity
+				M.canAct = TRUE
 
 		DblClick()
 			if(usr) RenameWarpTurf(src, usr)
