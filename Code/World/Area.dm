@@ -143,6 +143,7 @@ area
 
 	rave
 		icon_state = "rave"
+		areaMusic = 'jellyfish jam.mid'
 
 
 // -----------------------------
