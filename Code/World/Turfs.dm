@@ -26,12 +26,6 @@
 // automatically — see Step() in Code/Core/SmoothMovement.dm.
 mob/var/isSleeping = FALSE
 
-// GM-only stair travel toggles — independent per direction (see turf/stairs/
-// ToggleStairJump() below), so a GM can e.g. jump 2 levels going up while still
-// stepping 1 at a time going down. Everyone else always moves 1 level per stairway
-// regardless of these (TakeStairs() only reads them for mobs with canBuild).
-mob/var/stairJumpLevelsUp = 1
-mob/var/stairJumpLevelsDown = 1
 
 // Named-pair teleport link — shared by turf/warp (its whole purpose) and any turf/stairs
 // instance whose icon_state has no inferable up/down direction (castle/icecastle/black —
@@ -217,6 +211,13 @@ turf/table/longtablecenter
 		icon = 'stairs.dmi'
 		density = 0
 
+		// GM-only per-TILE jump toggle (ToggleStairJump() below) — each stairs instance
+		// remembers its own setting independently, so double-clicking one tile doesn't
+		// affect any other stairs tile of the same direction. Everyone else always
+		// moves 1 level regardless (TakeStairs() only reads this for mobs with
+		// canBuild).
+		var/jumpLevels = 1
+
 		New()
 			..()
 			EnsureWarpName()
@@ -241,14 +242,14 @@ turf/table/longtablecenter
 		proc/PlayStairSound(mob/M)
 			M << sound('stairs.wav', repeat = 0, channel = SFX_CHANNEL, volume = M.client ? M.client.ScaledVolume() : 100)  // SFX_CHANNEL: .dme — not channel 1 (area music), so this doesn't interrupt it
 
-		// direction levels defaults to a plain walk-over (1); GMs can toggle their own
-		// stairJumpLevelsUp/Down between 1 and 2 via DblClick() below, which then
-		// applies to every future walk-over of that direction until toggled back.
+		// Levels defaults to a plain walk-over (1); GMs can toggle THIS tile's own
+		// jumpLevels between 1 and 2 via DblClick() below, which then applies to
+		// every future walk-over of THIS tile specifically until toggled back.
 		proc/TakeStairs(mob/M, direction)
 			if(!M) return
 			var/levels = 1
 			if(M.client && M.client.canBuild)
-				levels = (direction > 0) ? M.stairJumpLevelsUp : M.stairJumpLevelsDown
+				levels = jumpLevels
 			PlayStairSound(M)  // has to fire BEFORE M.loc changes below, same reasoning as the comment above
 			var/turf/new_loc = locate(M.x, M.y, M.z + (direction * levels))
 			if(!new_loc) return
@@ -276,14 +277,14 @@ turf/table/longtablecenter
 				M.PlayScreenFade(FALSE)
 				M.canAct = TRUE
 
-		// GM-only toggle: double-clicking ANY directional stairs tile (no need to stand
-		// on it) flips stairJumpLevelsUp between 1 (normal) and 2 for EVERY stairs-up
-		// tile in the world at once — stairs-down has its own independent toggle the
-		// same way, so a GM can e.g. climb 2 levels at a time while still descending 1
-		// at a time. Handy for quickly crossing several Z-levels while building/testing
-		// without switching tools. Silent no-op for anyone without Builder access — this
-		// fires on every double-click of a completely ordinary, everyone-can-see world
-		// object, so no rejection message either.
+		// GM-only toggle: double-clicking a directional stairs tile (no need to stand
+		// on it) flips THIS SPECIFIC TILE's jumpLevels between 1 (normal) and 2 — every
+		// other stairs tile, including other instances of the same up/down skin, keeps
+		// its own independent setting. Handy for marking one particular staircase for
+		// quick multi-floor travel while building/testing without affecting any other.
+		// Silent no-op for anyone without Builder access — this fires on every
+		// double-click of a completely ordinary, everyone-can-see world object, so no
+		// rejection message either.
 		//
 		// Reached two ways: DblClick() below (clicking a stairs tile from anywhere —
 		// atom click dispatch resolves normally there), and mob/DblClick() (Code/Player/
@@ -291,14 +292,11 @@ turf/table/longtablecenter
 		// where your own mob sprite is the topmost atom at that screen position and the
 		// click hits yourself instead of the turf underneath — this proc is what that
 		// self-click path calls into as well.
-		proc/ToggleStairJump(mob/M, direction)
+		proc/ToggleStairJump(mob/M)
 			if(!M || !M.client || !M.client.canBuild) return
-			if(direction > 0)
-				M.stairJumpLevelsUp = (M.stairJumpLevelsUp == 1) ? 2 : 1
-				M << output("Stairs up will now move you [M.stairJumpLevelsUp] level[M.stairJumpLevelsUp == 1 ? "" : "s"] at a time.", "Info")
-			else
-				M.stairJumpLevelsDown = (M.stairJumpLevelsDown == 1) ? 2 : 1
-				M << output("Stairs down will now move you [M.stairJumpLevelsDown] level[M.stairJumpLevelsDown == 1 ? "" : "s"] at a time.", "Info")
+			jumpLevels = (jumpLevels == 1) ? 2 : 1
+			var/dirWord = (GetStairDirection() > 0) ? "up" : "down"
+			M << output("This staircase will now move you [jumpLevels] level[jumpLevels == 1 ? "" : "s"] [dirWord] at a time.", "Info")
 
 		Entered(atom/movable/A)
 			if(!ismob(A)) return
@@ -337,7 +335,7 @@ turf/table/longtablecenter
 			if(!usr) return
 			var/direction = GetStairDirection()
 			if(direction)
-				ToggleStairJump(usr, direction)
+				ToggleStairJump(usr)
 			else
 				RenameWarpTurf(src, usr)
 
