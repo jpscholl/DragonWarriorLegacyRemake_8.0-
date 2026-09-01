@@ -43,10 +43,10 @@ area
 		if(!showAreaVisual || !T || !icon_state) return
 		if(T.areaVisualOverlay) T.overlays -= T.areaVisualOverlay
 		var/image/I = image(icon, icon_state = icon_state)
-		// Just above the bare floor but below mobs/objs (turf's own layer 2 is
-		// implicit; ordinary movables default to layer 4) -- decoration, not something
-		// that should ever cover a player standing on the tile.
-		I.layer = 2.1
+		// Layer 5 — above mobs' default 4, same top layer GM_SeeAreas' own overlay uses
+		// (GMCommands.dm) — this should look identical whether or not that debug
+		// toggle happens to be on.
+		I.layer = 5
 		T.overlays += I
 		T.areaVisualOverlay = I
 
