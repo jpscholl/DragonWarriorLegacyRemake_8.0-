@@ -262,6 +262,17 @@ turf/table/longtablecenter
 			spawn(0)
 				M.PlayScreenFade(TRUE)
 				M.loc = new_loc
+				// Area/Entered() (Area.dm) already fires on this loc change and plays
+				// the new area's music if it's actually a DIFFERENT area instance — but
+				// stairs commonly land on a new z-level that's still the SAME area
+				// instance (e.g. one dungeon area spanning every floor), which never
+				// re-fires Entered(). Explicit re-check here so a floor transition
+				// always reflects whatever area you actually land in, regardless of
+				// whether BYOND considered it a "new" area. PlayAreaMusic() itself
+				// already no-ops if that track is already playing.
+				var/area/newArea = new_loc.loc
+				if(istype(newArea) && newArea.areaMusic)
+					M.PlayAreaMusic(newArea.areaMusic)
 				M.PlayScreenFade(FALSE)
 				M.canAct = TRUE
 
@@ -306,6 +317,11 @@ turf/table/longtablecenter
 					spawn(0)
 						M.PlayScreenFade(TRUE)
 						M.loc = partner
+						// Same explicit re-check as TakeStairs() above — a same-area
+						// floor transition wouldn't otherwise re-fire Entered()/music.
+						var/area/newArea = partner.loc
+						if(istype(newArea) && newArea.areaMusic)
+							M.PlayAreaMusic(newArea.areaMusic)
 						M.PlayScreenFade(FALSE)
 						M.canAct = TRUE
 				else
