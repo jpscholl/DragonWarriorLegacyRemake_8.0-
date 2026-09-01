@@ -466,13 +466,14 @@ turf/table/longtablecenter
 				sleep(WARP_SOUND_DURATION)  // the actual teleport waits for the sound to finish
 				M.loc = partner
 				M.warpCooldown = FALSE  // safe the instant we've arrived — see warpCooldown's own comment (top of file) for what this guards against
-				// Same explicit area-music re-check as the stairs paths (TakeStairs()/
+				M.PlayScreenFade(FALSE)
+				// Music starts AFTER the fade back in, not during the black screen —
+				// same explicit area-music re-check as the stairs paths (TakeStairs()/
 				// the stairs' own named-pair branch, above) — a warp landing in a
 				// same-area-instance spot wouldn't otherwise re-trigger Entered()'s music.
 				var/area/newArea = partner.loc
 				if(istype(newArea) && newArea.areaMusic)
 					M.PlayAreaMusic(newArea.areaMusic)
-				M.PlayScreenFade(FALSE)
 				M.density = oldDensity
 				M.canAct = TRUE
 
