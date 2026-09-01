@@ -43,10 +43,7 @@ area
 		if(!showAreaVisual || !T || !icon_state) return
 		if(T.areaVisualOverlay) T.overlays -= T.areaVisualOverlay
 		var/image/I = image(icon, icon_state = icon_state)
-		// Layer 5 — above mobs' default 4, same top layer GM_SeeAreas' own overlay uses
-		// (GMCommands.dm) — this should look identical whether or not that debug
-		// toggle happens to be on.
-		I.layer = 5
+		I.layer = AREA_OVERLAY_LAYER
 		T.overlays += I
 		T.areaVisualOverlay = I
 

@@ -57,6 +57,15 @@
 // this used to live exclusively) alphabetically.
 #define MAX_NAME_LENGTH 24
 
+// Layer used for any area's icon/icon_state rendered as a real overlay — shared by
+// GM_SeeAreas' debug overlay (RefreshAreaOverlay(), Admin/Commands/GMCommands.dm) and
+// area/AddedTurf()'s always-on decoration (Code/World/Area.dm), both above mobs'
+// default layer 4. Lives here rather than in Area.dm itself for the same #include-order
+// reason as the others above — GMCommands.dm compiles before World/Area.dm
+// alphabetically, and a single shared define means the two overlay systems can never
+// drift apart from each other.
+#define AREA_OVERLAY_LAYER 5
+
 // Character-creation step constants (originally only in Code\UI\LoginMenu.dm, which
 // still owns the real creation flow). Same #include-order reason as the others above —
 // Code\Player\PlayerTemplate.dm's RunSageReclassFlow() needs these too (it reuses
