@@ -223,6 +223,7 @@ mob/enemy
 		var/cost = S.GetManaCost()
 		if(MP < cost) return FALSE
 		MP -= cost
+		ShowFloatingMPBar()
 
 		lastCastTime = world.time
 		dir = get_dir(src, M)
@@ -266,6 +267,7 @@ mob/enemy
 		if(!patient) return FALSE
 
 		MP -= cost
+		ShowFloatingMPBar()
 		lastCastTime = world.time
 		canAct = FALSE
 		view(src) << output("[src] casts [S.skillName] on [patient == src ? "itself" : "[patient]"]!", "Info")

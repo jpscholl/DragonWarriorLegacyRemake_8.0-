@@ -103,16 +103,14 @@ mob/proc
             if(isDead) continue
             if(HP <= 0) continue
 
-            var/regenerated = FALSE
-            if(HP < MaxHP)
-                HP = min(MaxHP, HP + GetHPRegen())
-                regenerated = TRUE
-            if(hasMana && MP < MaxMP)
-                MP = min(MaxMP, MP + GetMPRegen())
-                regenerated = TRUE
             // Passive regen alone shouldn't count as "activity" (it ticks constantly
             // whenever below max HP/MP, which would otherwise keep the bar shown
-            // forever) — only refresh the numbers if the bar is already visible from
-            // a real activity trigger (ShowFloatingBars(), HUD.dm); never resurrect a
-            // hidden one just because a regen tick landed.
-            if(regenerated && (floatingHPBarImage || floatingMPBarImage)) UpdateFloatingBars()
+            // forever) — only refresh a bar's numbers if it's already visible from a
+            // real activity trigger (ShowFloatingHPBar()/ShowFloatingMPBar(), HUD.dm);
+            // never resurrect a hidden one just because a regen tick landed.
+            if(HP < MaxHP)
+                HP = min(MaxHP, HP + GetHPRegen())
+                if(floatingHPBarImage) UpdateFloatingHPBar()
+            if(hasMana && MP < MaxMP)
+                MP = min(MaxMP, MP + GetMPRegen())
+                if(floatingMPBarImage) UpdateFloatingMPBar()

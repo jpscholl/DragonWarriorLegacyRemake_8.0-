@@ -118,7 +118,9 @@ mob/proc/SleepRestoreLoop(interval = BED_RESTORE_INTERVAL, amount = BED_RESTORE_
 
 		HP = min(MaxHP, HP + amount)
 		MP = min(MaxMP, MP + amount)
-		ShowFloatingBars()  // keeps the bar up for the whole rest; fades 5s after waking (HUD.dm)
+		// Both bars stay up for the whole rest (it's healing); fade 5s after waking (HUD.dm)
+		ShowFloatingHPBar()
+		ShowFloatingMPBar()
 
 //grass: dis is ground...you walk on it
 //was: grass, brush, flowers, farmland, cavedirt, sand — all now instances of this type
@@ -479,7 +481,7 @@ turf/hazard
 		PlaySFXAt(M, istype(M, /mob/enemy) ? 'enemyhit.wav' : 'hit.wav')
 		M << output("<font color='red'>[hazardMessage] (-[stepDamage] HP)</font>", "Info")
 		ShowCombatNumber(M, "[stepDamage]", "#ff0000")
-		M.ShowFloatingBars()
+		M.ShowFloatingHPBar()
 
 		if(poisonChance && prob(poisonChance))
 			M.ApplyStatusEffect(/datum/status_effect/poison)

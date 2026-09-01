@@ -172,7 +172,7 @@ datum/status_effect/poison
 
 		holder << output("<font color='green'>The poison burns! (-[dmg] HP)</font>", "Info")
 		ShowCombatNumber(holder, "[dmg]", "#ff0000")
-		holder.ShowFloatingBars()
+		holder.ShowFloatingHPBar()
 
 		if(holder.HP <= 0)
 			var/mob/dying = holder
