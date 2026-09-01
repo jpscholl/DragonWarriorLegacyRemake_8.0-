@@ -34,6 +34,12 @@ mob/var/isSleeping = FALSE
 // other; a GM renames one (or both) via DblClick() to link them — same name = same pair.
 turf/var/warpName = null
 
+// Tracks whichever visible-to-everyone area decoration (area/AddedTurf(), Area.dm) is
+// currently applied to this specific tile, if any — lets PlaceBuildSelection()
+// (BuildTools.dm) cleanly remove the old one before a GM repaints the tile into a
+// different area, without needing to guess which overlay in turf/overlays was it.
+turf/var/image/areaVisualOverlay = null
+
 turf/proc/EnsureWarpName()
 	if(!warpName) warpName = "[x],[y],[z]"
 

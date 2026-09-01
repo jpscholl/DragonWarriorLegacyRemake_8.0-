@@ -132,10 +132,18 @@ client
                     // type into existence rather than being limited to ones the
                     // original map already used somewhere.
                     target = new buildSelection()
+                // Clear whatever visible-to-everyone decoration the OLD area may have
+                // applied (area/AddedTurf(), Area.dm) before repainting — otherwise a
+                // tile repainted away from e.g. Rave would keep showing its old area's
+                // decoration forever.
+                if(T.areaVisualOverlay)
+                    T.overlays -= T.areaVisualOverlay
+                    T.areaVisualOverlay = null
                 // turf/loc isn't directly assignable (unlike a movable atom's) —
                 // adding the turf to the area's own contents is the real mechanism
                 // for reparenting it to a different area.
                 target.contents += T
+                target.AddedTurf(T)
 
     // Areas are placed by reassigning a turf to a single REAL instance per type — the
     // first one found (same enumeration style GM_BattleMode already uses), or a freshly
