@@ -24,6 +24,38 @@ area
 	var/indestructibleMode = TRUE  // FALSE = fire/ice attacks damage terrain here
 	var/weather = null             // GM-set weather state, outside areas only
 
+	// For most areas, icon/icon_state exist purely as debug data for GM_SeeAreas'
+	// overlay (GMCommands.dm) -- normal players never see them, since ordinary
+	// floor/wall turfs already carry their own real art. A subtype (rave, below) that
+	// sets this TRUE is different: its icon_state IS real decoration meant to render
+	// for everyone, all the time, with no GM tool required.
+	var/showAreaVisual = FALSE
+
+	// Applies (or reapplies) this area's own icon/icon_state as a real, visible-to-
+	// everyone overlay on one of its turfs -- called for every turf already present
+	// when this area instance is created (New() below, covers a compiled map that
+	// starts with tiles already assigned) and again whenever a GM paints a new tile
+	// into this area at runtime (PlaceBuildSelection()'s "area" branch, BuildTools.dm).
+	// No-op unless showAreaVisual is set. A plain turf.overlays entry, not a
+	// client.images one like GM_SeeAreas uses -- overlays render to every client
+	// normally, which is the whole point here.
+	proc/AddedTurf(turf/T)
+		if(!showAreaVisual || !T || !icon_state) return
+		if(T.areaVisualOverlay) T.overlays -= T.areaVisualOverlay
+		var/image/I = image(icon, icon_state = icon_state)
+		// Just above the bare floor but below mobs/objs (turf's own layer 2 is
+		// implicit; ordinary movables default to layer 4) -- decoration, not something
+		// that should ever cover a player standing on the tile.
+		I.layer = 2.1
+		T.overlays += I
+		T.areaVisualOverlay = I
+
+	New()
+		. = ..()
+		if(showAreaVisual)
+			for(var/turf/T in contents)
+				AddedTurf(T)
+
 	Entered(atom/movable/O)
 		..()
 		if(areaMusic && ismob(O))
@@ -144,6 +176,7 @@ area
 	rave
 		icon_state = "rave"
 		areaMusic = 'jellyfish jam.mid'
+		showAreaVisual = TRUE  // the rave decoration itself, not debug data — visible to everyone, no GM_SeeAreas needed
 
 
 // -----------------------------
