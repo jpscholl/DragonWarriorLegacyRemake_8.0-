@@ -456,6 +456,12 @@ turf/table/longtablecenter
 			M.density = 0
 			spawn(0)
 				M.PlayScreenFade(TRUE)
+				// Cut the current area music so warp.wav plays alone, not layered
+				// over it — current_music cleared too so PlayAreaMusic() below
+				// actually restarts music on arrival even if it happens to be the
+				// same track that was playing before the warp.
+				if(M.client) M.client << sound(null, channel = 1)
+				M.current_music = null
 				M << sound('warp.wav', repeat = 0, channel = SFX_CHANNEL, volume = M.client ? M.client.ScaledVolume() : 100)
 				sleep(WARP_SOUND_DURATION)  // the actual teleport waits for the sound to finish
 				M.loc = partner
