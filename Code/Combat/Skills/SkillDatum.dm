@@ -211,6 +211,7 @@ datum/skill/Blaze
             return
 
         user.MP -= cost
+        user.ShowFloatingMPBar()
         user.canAct = FALSE
 
         // Facing locks the instant the cast starts (confirmed default, may change

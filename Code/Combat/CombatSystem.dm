@@ -237,7 +237,7 @@ mob/proc
         HP -= damage
         view(src) << output(isCrit ? "[src] takes a critical hit for [damage] damage! (HP: [max(HP,0)])" : "[src] takes [damage] damage! (HP: [max(HP,0)])", "Info")
         ShowCombatNumber(src, "[damage]", isCrit ? "#ffff00" : "#ff0000")
-        ShowFloatingBars()
+        ShowFloatingHPBar()
 
         // Being hit wakes you up — classic Dragon Warrior behavior, and previously
         // flagged as a known gap in datum/status_effect/sleep's own comment
@@ -547,7 +547,7 @@ mob/proc
         var/actualHealed = target.HP - oldHP
         target << output("You are healed for [amount] HP! (HP: [target.HP]/[target.MaxHP])", "Info")
         if(actualHealed > 0) ShowCombatNumber(target, "[actualHealed]", "#00ff00")
-        target.ShowFloatingBars()
+        target.ShowFloatingHPBar()
 
 #define MELEE_ATK_BASE_DELAY 12
 #define MELEE_ATK_MIN_DELAY 4

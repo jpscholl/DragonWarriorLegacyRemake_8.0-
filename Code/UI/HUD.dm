@@ -49,7 +49,7 @@
                                          // sprite and the weapon-swing overlay (target.layer
                                          // + 0.1, CombatSystem.dm) without hardcoding a layer
 #define FLOATING_BAR_Y_OFFSET 32        // px above the mob's own sprite origin
-#define FLOATING_BAR_SPACING 10         // vertical gap between a mob's HP and MP bar
+#define FLOATING_BAR_SPACING 9           // vertical gap between a mob's HP and MP bar
 #define FLOATING_BAR_IDLE_HIDE_TIME 50  // deciseconds — 5s idle before the bars fade out
 
 // -----------------------------
@@ -246,40 +246,47 @@ mob
     var
         image/floatingHPBarImage
         image/floatingMPBarImage
-        floatingBarHideSession = 0
+        floatingHPHideSession = 0
+        floatingMPHideSession = 0
 
-    // Rebuilds and shows the floating bars, then (re)starts the idle-hide countdown —
-    // call this from anything that should keep the bars on screen: taking/dealing
-    // damage, moving, resting in a bed, or entering/leaving a battle-mode area. The
-    // session counter is the same one-shot-timer guard used elsewhere in this codebase
-    // (sleepSession, Turfs.dm; pendingSession, SmoothMovement.dm) — each call
-    // invalidates any hide already in flight, so only the LAST call's timer fires.
-    proc/ShowFloatingBars()
-        UpdateFloatingBars()
-        floatingBarHideSession++
-        var/mySession = floatingBarHideSession
+    // HP and MP bars fade independently — HP shows on damage/healing, MP shows on
+    // spell cast, and both show while resting in bed (SleepRestoreLoop, Turfs.dm).
+    // Each pair below rebuilds+shows one bar and (re)starts ITS OWN idle-hide
+    // countdown. Session-counter guard, same one-shot-timer pattern used elsewhere in
+    // this codebase (sleepSession, Turfs.dm; pendingSession, SmoothMovement.dm) — each
+    // call invalidates any hide already in flight for that bar, so only the last call
+    // wins.
+    proc/ShowFloatingHPBar()
+        UpdateFloatingHPBar()
+        floatingHPHideSession++
+        var/mySession = floatingHPHideSession
         spawn(FLOATING_BAR_IDLE_HIDE_TIME)
-            if(src && floatingBarHideSession == mySession)
-                HideFloatingBars()
+            if(src && floatingHPHideSession == mySession)
+                HideFloatingHPBar()
 
-    proc/HideFloatingBars()
+    proc/ShowFloatingMPBar()
+        if(!hasMana || MaxMP <= 0) return
+        UpdateFloatingMPBar()
+        floatingMPHideSession++
+        var/mySession = floatingMPHideSession
+        spawn(FLOATING_BAR_IDLE_HIDE_TIME)
+            if(src && floatingMPHideSession == mySession)
+                HideFloatingMPBar()
+
+    proc/HideFloatingHPBar()
         if(floatingHPBarImage)
             overlays -= floatingHPBarImage
             floatingHPBarImage = null
+
+    proc/HideFloatingMPBar()
         if(floatingMPBarImage)
             overlays -= floatingMPBarImage
             floatingMPBarImage = null
 
-    proc/UpdateFloatingBars()
+    proc/UpdateFloatingHPBar()
         if(isDead || HP <= 0)
-            if(floatingHPBarImage)
-                overlays -= floatingHPBarImage
-                floatingHPBarImage = null
-            if(floatingMPBarImage)
-                overlays -= floatingMPBarImage
-                floatingMPBarImage = null
+            HideFloatingHPBar()
             return
-
         var/hpStep = MaxHP > 0 ? round(HP / MaxHP * METER_MAX_STEP) : 0
         var/image/newHP = image('meter.dmi', src, "[hpStep]")
         newHP.pixel_y = FLOATING_BAR_Y_OFFSET
@@ -288,22 +295,23 @@ mob
         overlays += newHP
         floatingHPBarImage = newHP
 
-        if(hasMana && MaxMP > 0)
-            var/mpStep = round(MP / MaxMP * METER_MAX_STEP)
-            var/image/newMP = image('magicmeter.dmi', src, "[mpStep]")
-            newMP.pixel_y = FLOATING_BAR_Y_OFFSET - FLOATING_BAR_SPACING
-            newMP.layer = src.layer + FLOATING_BAR_LAYER_OFFSET
-            if(floatingMPBarImage) overlays -= floatingMPBarImage
-            overlays += newMP
-            floatingMPBarImage = newMP
-        else if(floatingMPBarImage)
-            overlays -= floatingMPBarImage
-            floatingMPBarImage = null
+    proc/UpdateFloatingMPBar()
+        if(isDead || HP <= 0 || !hasMana || MaxMP <= 0)
+            HideFloatingMPBar()
+            return
+        var/mpStep = round(MP / MaxMP * METER_MAX_STEP)
+        var/image/newMP = image('magicmeter.dmi', src, "[mpStep]")
+        newMP.pixel_y = FLOATING_BAR_Y_OFFSET - FLOATING_BAR_SPACING
+        newMP.layer = src.layer + FLOATING_BAR_LAYER_OFFSET
+        if(floatingMPBarImage) overlays -= floatingMPBarImage
+        overlays += newMP
+        floatingMPBarImage = newMP
 
     // Every mob (player or enemy) gets its floating bars the moment it exists, so a
-    // full-health mob shows one immediately rather than only after its first hit —
-    // ShowFloatingBars(), not UpdateFloatingBars(), so a mob that just sits there
-    // still fades out after FLOATING_BAR_IDLE_HIDE_TIME like any other idle mob.
+    // full-health mob shows them immediately rather than only after its first hit —
+    // ShowFloatingHPBar()/ShowFloatingMPBar(), not the Update procs directly, so a mob
+    // that just sits there still fades out after FLOATING_BAR_IDLE_HIDE_TIME.
     New()
         . = ..()
-        ShowFloatingBars()
+        ShowFloatingHPBar()
+        ShowFloatingMPBar()

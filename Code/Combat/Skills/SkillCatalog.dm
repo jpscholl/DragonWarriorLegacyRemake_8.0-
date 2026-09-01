@@ -101,6 +101,7 @@ datum/skill/GenericSpell
             return
 
         user.MP -= cost
+        user.ShowFloatingMPBar()
         user.canAct = FALSE
         user << output("You cast [skillName]!", "Info")
 
@@ -463,6 +464,7 @@ datum/skill/BuffSpell
         var/mob/actualTarget = target || user
 
         user.MP -= cost
+        user.ShowFloatingMPBar()
         user.canAct = FALSE
         user << output("You cast [skillName]!", "Info")
 
@@ -523,6 +525,7 @@ datum/skill/StatusSpell
             return
 
         user.MP -= cost
+        user.ShowFloatingMPBar()
         user.canAct = FALSE
         user << output("You cast [skillName]!", "Info")
 
@@ -629,6 +632,7 @@ datum/skill/Return
             return
 
         user.MP -= cost
+        user.ShowFloatingMPBar()
         user.canAct = FALSE
         user << output("You cast Return!", "Info")
 
@@ -671,6 +675,7 @@ datum/skill/Revive
             return
 
         user.MP -= cost
+        user.ShowFloatingMPBar()
         user.canAct = FALSE
         user << output("You cast Revive!", "Info")
 

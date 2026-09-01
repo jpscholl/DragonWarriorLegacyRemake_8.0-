@@ -26,20 +26,9 @@ area
 
 	Entered(atom/movable/O)
 		..()
-		if(ismob(O))
+		if(areaMusic && ismob(O))
 			var/mob/M = O
-			if(areaMusic) M.PlayAreaMusic(areaMusic)
-			// Being in a battle-mode area counts as "activity" for the floating HP/MP
-			// bars (HUD.dm) — shows on entry; Exited() below refreshes once more on the
-			// way out so the bar's 5s idle-hide countdown starts from the moment you
-			// actually leave, not from whatever last hit/move happened inside.
-			if(battleModeOn) M.ShowFloatingBars()
-
-	Exited(atom/movable/O)
-		..()
-		if(battleModeOn && ismob(O))
-			var/mob/M = O
-			M.ShowFloatingBars()
+			M.PlayAreaMusic(areaMusic)
 
 	casino
 		icon_state = "casino"
