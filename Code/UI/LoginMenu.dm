@@ -50,7 +50,7 @@ proc/ShowLoginMenu(mob/playerTemp/M)
     if(findtext(choice, "Load "))
         var/slot = text2num(copytext(choice, findtext(choice, "Slot ") + 5))
         if(M.client.saveManager.IsCharacterBanned(slot))
-            M << output("This character has been banned and can't be loaded.", "Info")
+            M.ShowInfo("This character has been banned and can't be loaded.")
             ShowLoginMenu(M)
             return
         if(!M.client.saveManager.LoadCharacter(M, slot))
@@ -61,7 +61,7 @@ proc/ShowLoginMenu(mob/playerTemp/M)
             // Main.dm, with no loc override). Previously this failed completely
             // silently, leaving the player stuck controlling that temp mob at (1,1,1)
             // forever with no menu and no explanation.
-            M << output("Something went wrong loading that character.", "Info")
+            M.ShowInfo("Something went wrong loading that character.")
             ShowLoginMenu(M)
         return
 
@@ -87,7 +87,7 @@ proc/NewCharacterMenu(mob/playerTemp/M)
                 // Prompt for name
                 M.selectedName = PromptForName(M)
                 if(!M.selectedName) return
-                M << output("[M.selectedName] is your chosen name", "Info")
+                M.ShowInfo("[M.selectedName] is your chosen name")
                 step = STEP_CLASS
 
             if(STEP_CLASS)
@@ -95,7 +95,7 @@ proc/NewCharacterMenu(mob/playerTemp/M)
                 var/selectedClass = PromptForClass(M)
                 M.selectedClass = ApplyClassSelection(M, selectedClass)
                 if(!M.selectedClass) { step = STEP_NAME; continue }
-                M << output("[M.selectedClass] is your chosen class", "Info")
+                M.ShowInfo("[M.selectedClass] is your chosen class")
                 step = STEP_ICON
 
             if(STEP_ICON)
@@ -110,7 +110,7 @@ proc/NewCharacterMenu(mob/playerTemp/M)
 
             if(STEP_STATS)
                 // Stat allocation
-                M << output("Allocate Stats","Info")
+                M.ShowInfo("Allocate Stats")
                 step = StatAllocation(M)     // must return STEP_STATS when done
                 if(step == STEP_STATS)
                     if(M && M.client)
@@ -275,7 +275,7 @@ proc/IconSelect(mob/M)
     M.selectedIcon = iconChoices[iconChoice]
     M.selectedIconName = GetIconFilename(M.selectedIcon)
 
-    M << output("You've selected [M.selectedIconName]", "Info")
+    M.ShowInfo("You've selected [M.selectedIconName]")
     return STEP_CUSTOM
 
 //---------------------------------
@@ -325,7 +325,7 @@ mob/proc/CustomizeColors()
                 src.accentColor = palette.GetZoneColor("Accent")
 
                 client.eye = src
-                src << output("Icon colors applied!", "Info")
+                src.ShowInfo("Icon colors applied!")
 
                 return STEP_STATS
 
@@ -396,7 +396,7 @@ proc/FinalizePlayer(mob/playerTemp/M)
     // -----------------------------
     // Transfer control
     // -----------------------------
-    M << output("Player finalized", "Info")
+    M.ShowInfo("Player finalized")
     M << sound(null, channel = 1)
 
     C.mob = newPlayer
@@ -531,7 +531,7 @@ proc/StatAllocation(mob/M)
 
             if("Finish")
                 if(remainingStatPoints > 0)
-                    M << output("You must spend all points before finishing.", "Info")
+                    M.ShowInfo("You must spend all points before finishing.")
                 else
                     // Commit changes (dynamic lookup: "Strength" etc. match mob var names directly)
                     for(var/stat in tempStatPoints)
@@ -541,10 +541,10 @@ proc/StatAllocation(mob/M)
             else
                 lastStat = choice   // keep this stat highlighted next time regardless of outcome
                 if(remainingStatPoints <= 0)
-                    M << output("You have no points left.", "Info")
+                    M.ShowInfo("You have no points left.")
                 else if(tempStatPoints[choice] >= statCaps[choice])
-                    M << output("[choice] is capped at [statCaps[choice]] for this class!", "Info")
+                    M.ShowInfo("[choice] is capped at [statCaps[choice]] for this class!")
                 else
                     tempStatPoints[choice]++
                     remainingStatPoints--
-                    M << output("You increased [choice] by 1", "Info")
+                    M.ShowInfo("You increased [choice] by 1")

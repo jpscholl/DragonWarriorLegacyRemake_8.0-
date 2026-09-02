@@ -113,11 +113,11 @@ mob/npc/merchant
         switch(choice)
             if("Buy")  DoBuy(P)
             if("Sell") DoSell(P)
-            else       P << output("Come again.", "Info")
+            else       P.ShowInfo("Come again.")
 
     proc/DoBuy(mob/player/P)
         if(!stock.len)
-            P << output("I have nothing to sell you. Sorry.", "Info")
+            P.ShowInfo("I have nothing to sell you. Sorry.")
             return
 
         // Labels carry the price so the player can compare without a second prompt —
@@ -129,14 +129,14 @@ mob/npc/merchant
 
         var/choice = input(P, "What would you like to buy? (You have [P.Gold] gold.)", "Buy") in options + "Cancel"
         if(!choice || choice == "Cancel")
-            P << output("Come again.", "Info")
+            P.ShowInfo("Come again.")
             return
 
         var/pickedType = options[choice]
         var/price = stock[pickedType]
 
         if(P.Gold < price)
-            P << output("You don't have enough money to buy [initial(pickedType:name)]!", "Info")
+            P.ShowInfo("You don't have enough money to buy [initial(pickedType:name)]!")
             return
 
         // Create the item first and hand it over through PickUpItem() so the inventory
@@ -148,7 +148,7 @@ mob/npc/merchant
             return
 
         P.Gold -= price
-        P << output("Thank you for shopping. Please come again soon!", "Info")
+        P.ShowInfo("Thank you for shopping. Please come again soon!")
 
     proc/DoSell(mob/player/P)
         var/list/sellable = list()
@@ -160,12 +160,12 @@ mob/npc/merchant
             sellable["[I.name] ([round(stock[I.type] * buybackPercent / 100)] gold)"] = I
 
         if(!sellable.len)
-            P << output("You have nothing to sell me. Sorry.", "Info")
+            P.ShowInfo("You have nothing to sell me. Sorry.")
             return
 
         var/choice = input(P, "What would you like to sell? (You have [P.Gold] gold.)", "Sell") in sellable + "Cancel"
         if(!choice || choice == "Cancel")
-            P << output("Come again.", "Info")
+            P.ShowInfo("Come again.")
             return
 
         var/obj/item/I = sellable[choice]
@@ -173,4 +173,4 @@ mob/npc/merchant
 
         P.Gold += round(stock[I.type] * buybackPercent / 100)
         del I
-        P << output("Thank you for shopping. Please come again soon!", "Info")
+        P.ShowInfo("Thank you for shopping. Please come again soon!")

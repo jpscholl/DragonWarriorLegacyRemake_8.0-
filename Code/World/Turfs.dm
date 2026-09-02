@@ -81,7 +81,7 @@ proc/RenameWarpTurf(turf/T, mob/M)
 	var/newName = input(M, "Name this warp point (give the other end the SAME name to link them):", "Name Warp", T.warpName) as text|null
 	if(isnull(newName) || !length(trimtext(newName))) return
 	T.warpName = trimtext(newName)
-	M << output("This is now named \"[T.warpName]\".", "Info")
+	M.ShowInfo("This is now named \"[T.warpName]\".")
 
 // TEMPORARY VALUES — confirmed as "restore 1 of each per half second" for a BED,
 // explicitly expected to be retuned later. Real resting balance (rate, whether it
@@ -326,7 +326,7 @@ turf/table/longtablecenter
 			if(!M || !M.client || !M.client.canBuild) return
 			jumpLevels = (jumpLevels == 1) ? 2 : 1
 			var/dirWord = (GetStairDirection() > 0) ? "up" : "down"
-			M << output("This staircase will now move you [jumpLevels] level[jumpLevels == 1 ? "" : "s"] [dirWord] at a time.", "Info")
+			M.ShowInfo("This staircase will now move you [jumpLevels] level[jumpLevels == 1 ? "" : "s"] [dirWord] at a time.")
 
 		Entered(atom/movable/A)
 			if(!ismob(A)) return
@@ -353,7 +353,7 @@ turf/table/longtablecenter
 						M.PlayScreenFade(FALSE)
 						M.canAct = TRUE
 				else
-					M << output("This staircase doesn't lead anywhere yet.", "Info")
+					M.ShowInfo("This staircase doesn't lead anywhere yet.")
 //walking over causes player to warp levels (directional skins) or teleport to a
 //matching-named partner (castle/icecastle/black — see GetStairDirection() above)
 
@@ -468,7 +468,7 @@ turf/table/longtablecenter
 			if(M.warpCooldown) return
 			var/turf/partner = FindWarpPartner(src, /turf/warp)
 			if(!partner)
-				M << output("This warp doesn't lead anywhere yet.", "Info")
+				M.ShowInfo("This warp doesn't lead anywhere yet.")
 				return
 
 			M.warpCooldown = TRUE
@@ -550,7 +550,7 @@ turf/hazard
 		M.HP -= stepDamage
 		flick("hit", M)
 		PlaySFXAt(M, istype(M, /mob/enemy) ? 'enemyhit.wav' : 'hit.wav')
-		M << output("<font color='red'>[hazardMessage] (-[stepDamage] HP)</font>", "Info")
+		M.ShowInfo("<font color='red'>[hazardMessage] (-[stepDamage] HP)</font>")
 		ShowCombatNumber(M, "[stepDamage]", DAMAGE_NUMBER_COLOR)
 		M.ShowFloatingHPBar()
 

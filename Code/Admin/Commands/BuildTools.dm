@@ -202,7 +202,7 @@ client
         for(var/xx = x1 to x2)
             for(var/yy = y1 to y2)
                 if(placed >= MAX_BUILD_FILL_TILES)
-                    if(mob) mob << output("Block hit the [MAX_BUILD_FILL_TILES]-tile safety cap — stopped early.", "Info")
+                    if(mob) mob.ShowInfo("Block hit the [MAX_BUILD_FILL_TILES]-tile safety cap — stopped early.")
                     return
                 var/turf/T = locate(xx, yy, T1.z)
                 if(T)
@@ -241,7 +241,7 @@ client
     proc/FloodFillBuild(turf/start)
         if(!start) return
         if(!buildKind)
-            if(mob) mob << output("Pick something to place first (GM_MakeTurf/GM_MakeMob/GM_MakeArea).", "Info")
+            if(mob) mob.ShowInfo("Pick something to place first (GM_MakeTurf/GM_MakeMob/GM_MakeArea).")
             return
 
         var/matchIcon = start.icon
@@ -265,7 +265,7 @@ client
             queueIndex++
 
             if(filled >= MAX_BUILD_FILL_TILES)
-                if(mob) mob << output("Flood hit the [MAX_BUILD_FILL_TILES]-tile safety cap — stopped early.", "Info")
+                if(mob) mob.ShowInfo("Flood hit the [MAX_BUILD_FILL_TILES]-tile safety cap — stopped early.")
                 return
 
             PlaceBuildSelection(T)
@@ -315,7 +315,7 @@ client
             if(BUILD_MODE_MOVE)
                 buildGrabbedAtom = FindMovableAtom(T)
                 if(!buildGrabbedAtom)
-                    mob << output("Nothing to move here.", "Info")
+                    mob.ShowInfo("Nothing to move here.")
             if(BUILD_MODE_FLOOD)
                 FloodFillBuild(T)
             if(BUILD_MODE_DELETE)
@@ -374,7 +374,7 @@ client
 // -----------------------------
 mob/proc/PickBuildSelection(list/choices, prompt, title, kind)
     if(!client || !client.canBuild)
-        src << output("You don't have Builder access.", "Info")
+        src.ShowInfo("You don't have Builder access.")
         return
 
     var/choice = input(src, prompt, title) in choices
@@ -382,12 +382,12 @@ mob/proc/PickBuildSelection(list/choices, prompt, title, kind)
 
     if(!picked)
         client.StopBuildSelection()
-        src << output("Build selection cleared.", "Info")
+        src.ShowInfo("Build selection cleared.")
         return
 
     client.buildSelection = picked
     client.buildKind = kind
-    src << output("[choice] selected. Use GM_MakeTool to pick a placement mode, then click the map.", "Info")
+    src.ShowInfo("[choice] selected. Use GM_MakeTool to pick a placement mode, then click the map.")
 
 // -----------------------------
 // GM_MakeTurf — see Code/World/Turfs.dm's own header comment: most visual turf variants
@@ -408,7 +408,7 @@ mob/verb/GM_MakeTurf()
     set desc = "Pick a turf type and sprite variant for the build tool to place"
 
     if(!client || !client.canBuild)
-        src << output("You don't have Builder access.", "Info")
+        src.ShowInfo("You don't have Builder access.")
         return
 
     var/list/choices = GetTypeChoices(/turf, list(/turf/furniture/bedhead))
@@ -417,12 +417,12 @@ mob/verb/GM_MakeTurf()
 
     if(!picked)
         client.StopBuildSelection()
-        src << output("Build selection cleared.", "Info")
+        src.ShowInfo("Build selection cleared.")
         return
 
     var/list/states = GetCachedIconStates(initial(picked:icon))
     if(!states.len)
-        src << output("[choice] has no readable sprite variants — can't place it.", "Info")
+        src.ShowInfo("[choice] has no readable sprite variants — can't place it.")
         return
 
     // Night variants (GM_DayNight auto-toggles these in place, GMCommands.dm) get their
@@ -440,7 +440,7 @@ mob/verb/GM_MakeTurf()
         finalStates = (period == "Night") ? nightStates : dayStates
 
     if(!finalStates.len)
-        src << output("[choice] has no variants in that set.", "Info")
+        src.ShowInfo("[choice] has no variants in that set.")
         return
 
     var/stateChoice = input(src, "Choose a [choice] variant to place:", "GM_MakeTurf") in finalStates
@@ -448,7 +448,7 @@ mob/verb/GM_MakeTurf()
     client.buildSelection = picked
     client.buildIconState = stateChoice
     client.buildKind = "turf"
-    src << output("[choice] ([stateChoice]) selected. Use GM_MakeTool to pick a placement mode, then click the map.", "Info")
+    src.ShowInfo("[choice] ([stateChoice]) selected. Use GM_MakeTool to pick a placement mode, then click the map.")
 
 // -----------------------------
 // Shared type-list builder — every picker below wants the same thing: every real
@@ -496,7 +496,7 @@ mob/verb/GM_MakeArea()
     set desc = "Pick an area type for the build tool to assign"
 
     if(!client || !client.canBuild)
-        src << output("You don't have Builder access.", "Info")
+        src.ShowInfo("You don't have Builder access.")
         return
 
     var/list/choices = GetTypeChoices(/area)
@@ -529,7 +529,7 @@ mob/verb/GM_MakeTool()
     set desc = "Pick how the build tool places things (Click/Drag/Block/Line/Move/Flood/Delete)"
 
     if(!client || !client.canBuild)
-        src << output("You don't have Builder access.", "Info")
+        src.ShowInfo("You don't have Builder access.")
         return
 
     var/list/modes = list(
@@ -548,4 +548,4 @@ mob/verb/GM_MakeTool()
                                    // (defaults to Click), nothing to "cancel" to
 
     client.buildMode = choice
-    src << output("[choice] tool selected.", "Info")
+    src.ShowInfo("[choice] tool selected.")

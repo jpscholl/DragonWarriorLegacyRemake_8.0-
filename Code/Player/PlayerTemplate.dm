@@ -181,7 +181,7 @@ mob/player
         // check — SkillCatalog.dm) — every skill funnels through this one proc, so
         // this is the single place silence actually needs to be enforced.
         if(S.isSpell && isSilenced)
-            src << output("You are silenced and cannot cast!", "Info")
+            src.ShowInfo("You are silenced and cannot cast!")
             return
 
         // Only the tile directly in front — deliberately NOT the other 3 cardinal
@@ -543,6 +543,6 @@ mob/player/proc/BecomeSage()
     players -= src
     players += newMob
 
-    newMob << output("You feel your form shift... you have become a Sage!", "Info")
+    newMob.ShowInfo("You feel your form shift... you have become a Sage!")
 
     del src

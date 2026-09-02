@@ -76,7 +76,7 @@ obj/door
         // Checked fresh every interaction — the key just needs to be in your inventory
         // right now, it doesn't auto-unlock the door for anyone else afterward.
         if(is_locked && !user.HasMatchingKey(name))
-            user << output("This is locked.", "Info")
+            user.ShowInfo("This is locked.")
             return TRUE
 
         if(is_open)
@@ -133,12 +133,12 @@ obj
 					var/msg = input(user, "What would you like to write?", "Bookcase") as text|null
 					if(isnull(msg) || !length(trimtext(msg))) return TRUE
 					messages += "[user.name]: [CensorText(trimtext(msg))]"
-					user << output("You add your message to the bookcase.", "Info")
+					user.ShowInfo("You add your message to the bookcase.")
 					return TRUE
 
 				// "Read messages"
 				if(!messages.len)
-					user << output("The bookcase is empty.", "Info")
+					user.ShowInfo("The bookcase is empty.")
 					return TRUE
 				var/pageText = "<b>[name]</b><br>"
 				for(var/line in messages)
@@ -223,7 +223,7 @@ obj/storage
 
     OnInteract(mob/user)
         if(lockName && !user.HasMatchingKey(lockName))
-            user << output("[name] is locked.", "Info")
+            user.ShowInfo("[name] is locked.")
             return TRUE
 
         var/choice = input(user, "What would you like to do?", "[name]") in list("Store", "Take", "Leave")
@@ -238,11 +238,11 @@ obj/storage
             items[I.name] = I
 
         if(!items.len)
-            user << output("You have nothing to store.", "Info")
+            user.ShowInfo("You have nothing to store.")
             return
 
         if(GetCount() >= capacity)
-            user << output("[name] is full.", "Info")
+            user.ShowInfo("[name] is full.")
             return
 
         var/choice = input(user, "Store which item?", "[name]") in items + "Cancel"
@@ -258,7 +258,7 @@ obj/storage
             if(A.worn) A.Unequip(user)
 
         I.loc = src
-        user << output("You put [I.name] in [name].", "Info")
+        user.ShowInfo("You put [I.name] in [name].")
 
     proc/TakeItem(mob/user)
         var/list/items = list()
@@ -266,7 +266,7 @@ obj/storage
             items[I.name] = I
 
         if(!items.len)
-            user << output("[name] is empty.", "Info")
+            user.ShowInfo("[name] is empty.")
             return
 
         var/choice = input(user, "Take which item?", "[name]") in items + "Cancel"
@@ -278,4 +278,4 @@ obj/storage
         if(!user.PickUpItem(I))
             return  // PickUpItem() already explained why (inventory full)
 
-        user << output("You take [I.name] from [name].", "Info")
+        user.ShowInfo("You take [I.name] from [name].")

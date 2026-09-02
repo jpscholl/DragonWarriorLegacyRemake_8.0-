@@ -64,7 +64,7 @@ mob/verb/ToggleWorldSay()
     set desc = "Turn world say and world emote on or off for yourself"
 
     worldChatEnabled = !worldChatEnabled
-    src << output("You turn [worldChatEnabled ? "on" : "off"] worldsay and worldemote.", "Info")
+    src.ShowInfo("You turn [worldChatEnabled ? "on" : "off"] worldsay and worldemote.")
     players << output("<font color='purple'>[src.name]([src.key]) [worldChatEnabled ? "activates" : "deactivates"] worldsay.</font>", "Messages")
 
 // Everyone who currently wants world chat. Opting out silences both directions — a
@@ -81,7 +81,7 @@ mob
     // rate limit, not a moderation action, and the OG shows the message too.
     proc/WorldChatThrottled(what)
         if(world.time - wsayLimit < WORLD_CHAT_COOLDOWN)
-            src << output("You must wait 1 second between each world [what]", "Info")
+            src.ShowInfo("You must wait 1 second between each world [what]")
             return TRUE
         wsayLimit = world.time
         return FALSE
@@ -180,11 +180,11 @@ mob
             set desc = "Shows all players logged in and basic info"
 
             // Header
-            src << output("<b>Players currently online:</b>", "Info")
+            src.ShowInfo("<b>Players currently online:</b>")
 
             // List each player in the global players list
             for(var/mob/player/M in players)
-                src << output("<font color='blue'> \icon[M] [M.name]([M.key]) <b>Class:</b> [M.class] <b>Level:</b> [M.Level] <b>Party:</b> [M.Party ? M.Party.name : "None"]</font>", "Info")
+                src.ShowInfo("<font color='blue'> \icon[M] [M.name]([M.key]) <b>Class:</b> [M.class] <b>Level:</b> [M.Level] <b>Party:</b> [M.Party ? M.Party.name : "None"]</font>")
 
 
         // -----------------------------
@@ -196,7 +196,7 @@ mob
 
             if(trimtext(msg) == "") return  // ignore empty messages
             if(!worldChatEnabled)
-                src << output("You have worldsay turned off.", "Info")
+                src.ShowInfo("You have worldsay turned off.")
                 return
             if(WorldChatThrottled("emote")) return
             LogChat("<[src.name]([src.key]) [msg] to the world>", src)
@@ -216,7 +216,7 @@ mob
 
             if(trimtext(msg) == "") return  // ignore empty messages
             if(!worldChatEnabled)
-                src << output("You have worldsay turned off.", "Info")
+                src.ShowInfo("You have worldsay turned off.")
                 return
             if(WorldChatThrottled("say")) return
             LogChat("<[src.name]([src.key]) wsays:> [msg]", src)

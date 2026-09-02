@@ -116,18 +116,18 @@ datum/skill/GenericSpell
         // (ApplyHeal(), CombatSystem.dm), so there's no "wasted overheal" case where
         // casting anyway would show anything meaningful — it just can't be cast.
         if(isHealing && actualTarget && actualTarget.HP >= actualTarget.MaxHP)
-            user << output("[actualTarget == user ? "You are" : "[actualTarget] is"] already at full HP.", "Info")
+            user.ShowInfo("[actualTarget == user ? "You are" : "[actualTarget] is"] already at full HP.")
             return
 
         var/cost = GetManaCost()
         if(user.MP < cost)
-            user << output("Not enough MP to cast [skillName]! (need [cost])", "Info")
+            user.ShowInfo("Not enough MP to cast [skillName]! (need [cost])")
             return
 
         user.MP -= cost
         user.ShowFloatingMPBar()
         user.canAct = FALSE
-        user << output("You cast [skillName]!", "Info")
+        user.ShowInfo("You cast [skillName]!")
 
         var/mySession = user.defendToggleSession
         var/wasDefending = user.DropDefendForAction()
@@ -494,7 +494,7 @@ datum/skill/BuffSpell
 
         var/cost = GetManaCost()
         if(user.MP < cost)
-            user << output("Not enough MP to cast [skillName]! (need [cost])", "Info")
+            user.ShowInfo("Not enough MP to cast [skillName]! (need [cost])")
             return
 
         var/mob/actualTarget = target || user
@@ -502,7 +502,7 @@ datum/skill/BuffSpell
         user.MP -= cost
         user.ShowFloatingMPBar()
         user.canAct = FALSE
-        user << output("You cast [skillName]!", "Info")
+        user.ShowInfo("You cast [skillName]!")
 
         user.PlayAttackAnimation(user, src, actualTarget)
 
@@ -552,18 +552,18 @@ datum/skill/StatusSpell
         if(!user.InBattleArea()) return
         // Silence is enforced centrally now (UseSkillSlot(), PlayerTemplate.dm).
         if(!target)
-            user << output(noTargetMessage, "Info")
+            user.ShowInfo(noTargetMessage)
             return
 
         var/cost = GetManaCost()
         if(user.MP < cost)
-            user << output("Not enough MP to cast [skillName]! (need [cost])", "Info")
+            user.ShowInfo("Not enough MP to cast [skillName]! (need [cost])")
             return
 
         user.MP -= cost
         user.ShowFloatingMPBar()
         user.canAct = FALSE
-        user << output("You cast [skillName]!", "Info")
+        user.ShowInfo("You cast [skillName]!")
 
         spawn(cast_time)
             target.ApplyStatusEffect(statusEffectType)
@@ -612,7 +612,7 @@ datum/skill/Rest
         if(!user.InBattleArea()) return
 
         user.canAct = FALSE
-        user << output("You sit down to rest...", "Info")
+        user.ShowInfo("You sit down to rest...")
 
         spawn(cast_time)
             var/amount = max(1, round(user.MaxHP * heal_percent / 100))
@@ -636,12 +636,12 @@ datum/skill/Meditate
         if(!user.InBattleArea()) return
 
         user.canAct = FALSE
-        user << output("You begin to meditate...", "Info")
+        user.ShowInfo("You begin to meditate...")
 
         spawn(cast_time)
             var/amount = max(1, round(user.MaxMP * restore_percent / 100))
             user.MP = min(user.MaxMP, user.MP + amount)
-            user << output("You restore [amount] MP! (MP: [user.MP]/[user.MaxMP])", "Info")
+            user.ShowInfo("You restore [amount] MP! (MP: [user.MP]/[user.MaxMP])")
 
         spawn(user.GetAttackDelay(src, FALSE))
             if(user.isDead) return
@@ -664,18 +664,18 @@ datum/skill/Return
 
         var/cost = GetManaCost()
         if(user.MP < cost)
-            user << output("Not enough MP to cast Return! (need [cost])", "Info")
+            user.ShowInfo("Not enough MP to cast Return! (need [cost])")
             return
 
         user.MP -= cost
         user.ShowFloatingMPBar()
         user.canAct = FALSE
-        user << output("You cast Return!", "Info")
+        user.ShowInfo("You cast Return!")
 
         spawn(cast_time)
             if(!user.isDead)
                 user.loc = GetPlayerSpawnTurf()
-                user << output("You return to town!", "Info")
+                user.ShowInfo("You return to town!")
 
         spawn(user.GetAttackDelay(src, FALSE))
             if(user.isDead) return
@@ -697,23 +697,23 @@ datum/skill/Revive
         if(!user.canAct) return
         // Silence is enforced centrally now (UseSkillSlot(), PlayerTemplate.dm).
         if(!target || !istype(target, /mob/player))
-            user << output("Revive only works on a fallen ally.", "Info")
+            user.ShowInfo("Revive only works on a fallen ally.")
             return
 
         var/mob/player/P = target
         if(!P.isDead)
-            user << output("[P.name] isn't in need of reviving.", "Info")
+            user.ShowInfo("[P.name] isn't in need of reviving.")
             return
 
         var/cost = GetManaCost()
         if(user.MP < cost)
-            user << output("Not enough MP to cast Revive! (need [cost])", "Info")
+            user.ShowInfo("Not enough MP to cast Revive! (need [cost])")
             return
 
         user.MP -= cost
         user.ShowFloatingMPBar()
         user.canAct = FALSE
-        user << output("You cast Revive!", "Info")
+        user.ShowInfo("You cast Revive!")
 
         spawn(cast_time)
             if(P.isDead)  // still dead when the cast finishes
@@ -722,7 +722,7 @@ datum/skill/Revive
                 P.icon_state = "world"
                 P.canAct = TRUE
                 P.HP = max(1, round(P.MaxHP * 0.5))  // PLACEHOLDER: revives at 50% HP
-                P << output("You have been revived by [user.name]!", "Info")
+                P.ShowInfo("You have been revived by [user.name]!")
 
         spawn(user.GetAttackDelay(src, FALSE))
             if(user.isDead) return
@@ -744,7 +744,7 @@ datum/skill/Classchange
         var/mob/player/P = user
         if(!P.canAct) return
         if(istype(P, /mob/player/Sage))
-            P << output("You are already a Sage.", "Info")
+            P.ShowInfo("You are already a Sage.")
             return
 
         // CONFIRMED level gate (OG help file: Goof Off "at level 25 they can turn into
@@ -753,7 +753,7 @@ datum/skill/Classchange
         // LEARNED — a GM_LevelIncrease down, a future respec, or any other path that
         // moves Level after the fact would otherwise let it fire under-level.
         if(P.Level < CLASSCHANGE_MIN_LEVEL)
-            P << output("You must be at least level [CLASSCHANGE_MIN_LEVEL] to change your class.", "Info")
+            P.ShowInfo("You must be at least level [CLASSCHANGE_MIN_LEVEL] to change your class.")
             return
 
         // CONFIRMED OG requirement (string: "You must unequip everything before you can
@@ -761,7 +761,7 @@ datum/skill/Classchange
         // Inventory.dm) are the remake's only equippable slot as of 2026-08-25.
         for(var/obj/item/amulet/A in P.contents)
             if(A.worn)
-                P << output("You must unequip everything before you can change your class.", "Info")
+                P.ShowInfo("You must unequip everything before you can change your class.")
                 return
 
         var/confirm = alert(P, "Are you sure you want to change your class to Sage? (You will keep all your items and gold, but you will be set back to level 1.)", "Classchange", "Yes", "No")

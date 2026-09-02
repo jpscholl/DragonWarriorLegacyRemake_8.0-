@@ -93,7 +93,7 @@ mob/proc/ApplyStatusEffect(effectType)
 	// Amulet of Wakefulness (obj/item/amulet/awake, Inventory.dm) — covers both
 	// Sleep and Sleepmore, since ispath() matches subtypes too.
 	if(ispath(effectType, /datum/status_effect/sleep) && equipSleepImmune)
-		src << output("<font color='purple'>You resist falling asleep!</font>", "Info")
+		src.ShowInfo("<font color='purple'>You resist falling asleep!</font>")
 		return null
 
 	var/datum/status_effect/existing = GetStatusEffect(effectType)
@@ -143,7 +143,7 @@ datum/status_effect/poison
 
 	OnApply()
 		if(holder)
-			holder << output("<font color='green'>You've been poisoned!</font>", "Info")
+			holder.ShowInfo("<font color='green'>You've been poisoned!</font>")
 
 	OnTick()
 		if(!holder) return
@@ -170,7 +170,7 @@ datum/status_effect/poison
 		var/isEnemy = istype(holder, /mob/enemy)
 		PlaySFXAt(holder, isEnemy ? 'enemyhit.wav' : 'hit.wav')
 
-		holder << output("<font color='green'>The poison burns! (-[dmg] HP)</font>", "Info")
+		holder.ShowInfo("<font color='green'>The poison burns! (-[dmg] HP)</font>")
 		ShowCombatNumber(holder, "[dmg]", DAMAGE_NUMBER_COLOR)
 		holder.ShowFloatingHPBar()
 
@@ -181,7 +181,7 @@ datum/status_effect/poison
 
 	OnExpire()
 		if(holder && !holder.isDead)
-			holder << output("<font color='green'>The poison wears off.</font>", "Info")
+			holder.ShowInfo("<font color='green'>The poison wears off.</font>")
 
 // -----------------------------
 // Sleep — locks canAct until it expires. PLACEHOLDER: no wake-on-hit yet (classic
@@ -203,7 +203,7 @@ datum/status_effect/sleep
 	OnApply()
 		if(holder)
 			holder.canAct = FALSE
-			holder << output("<font color='purple'>You fall asleep!</font>", "Info")
+			holder.ShowInfo("<font color='purple'>You fall asleep!</font>")
 
 	OnExpire()
 		if(holder)
@@ -214,7 +214,7 @@ datum/status_effect/sleep
 			// recovery spawns already use for the identical reason.
 			if(!holder.isDead)
 				holder.canAct = TRUE
-				holder << output("<font color='purple'>You wake up.</font>", "Info")
+				holder.ShowInfo("<font color='purple'>You wake up.</font>")
 
 datum/status_effect/sleep/more
 	New()
@@ -267,13 +267,13 @@ datum/status_effect/buff/upper
 	OnApply()
 		if(holder)
 			holder.attackBonus += UPPER_ATTACK_BONUS
-			holder << output("<font color='orange'>Your attack power rises!</font>", "Info")
+			holder.ShowInfo("<font color='orange'>Your attack power rises!</font>")
 
 	OnExpire()
 		if(holder)
 			holder.attackBonus = max(0, holder.attackBonus - UPPER_ATTACK_BONUS)
 			if(!holder.isDead)
-				holder << output("<font color='orange'>Your attack power returns to normal.</font>", "Info")
+				holder.ShowInfo("<font color='orange'>Your attack power returns to normal.</font>")
 
 datum/status_effect/buff/increase
 	New()
@@ -283,13 +283,13 @@ datum/status_effect/buff/increase
 	OnApply()
 		if(holder)
 			holder.defenseBonus += INCREASE_DEFENSE_BONUS
-			holder << output("<font color='orange'>Your defense rises!</font>", "Info")
+			holder.ShowInfo("<font color='orange'>Your defense rises!</font>")
 
 	OnExpire()
 		if(holder)
 			holder.defenseBonus = max(0, holder.defenseBonus - INCREASE_DEFENSE_BONUS)
 			if(!holder.isDead)
-				holder << output("<font color='orange'>Your defense returns to normal.</font>", "Info")
+				holder.ShowInfo("<font color='orange'>Your defense returns to normal.</font>")
 
 datum/status_effect/buff/barrier
 	New()
@@ -299,13 +299,13 @@ datum/status_effect/buff/barrier
 	OnApply()
 		if(holder)
 			holder.magicDefenseBonus += BARRIER_MAGIC_DEFENSE_BONUS
-			holder << output("<font color='cyan'>A magical barrier surrounds you!</font>", "Info")
+			holder.ShowInfo("<font color='cyan'>A magical barrier surrounds you!</font>")
 
 	OnExpire()
 		if(holder)
 			holder.magicDefenseBonus = max(0, holder.magicDefenseBonus - BARRIER_MAGIC_DEFENSE_BONUS)
 			if(!holder.isDead)
-				holder << output("<font color='cyan'>Your barrier fades.</font>", "Info")
+				holder.ShowInfo("<font color='cyan'>Your barrier fades.</font>")
 
 // -----------------------------
 // Silence — blocks spell casting. Enforced centrally in UseSkillSlot()
@@ -329,10 +329,10 @@ datum/status_effect/silence
 	OnApply()
 		if(holder)
 			holder.isSilenced = TRUE
-			holder << output("<font color='gray'>You've been silenced!</font>", "Info")
+			holder.ShowInfo("<font color='gray'>You've been silenced!</font>")
 
 	OnExpire()
 		if(holder)
 			holder.isSilenced = FALSE
 			if(!holder.isDead)
-				holder << output("<font color='gray'>The silence fades.</font>", "Info")
+				holder.ShowInfo("<font color='gray'>The silence fades.</font>")

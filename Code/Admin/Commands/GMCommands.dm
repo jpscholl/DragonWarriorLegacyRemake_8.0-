@@ -11,7 +11,7 @@ mob/verb/GM_Announce()
     set desc = "Broadcasts a big red announcement to every connected player"
 
     if(!client || client.adminLevel < LEVEL_GM_HOST)
-        src << output("You don't have GM access.", "Info")
+        src.ShowInfo("You don't have GM access.")
         return
 
     var/msg = input(src, "Announcement:", "GM_Announce") as text|null
@@ -64,7 +64,7 @@ mob/proc/ToggleGhostForm()
         var/turf/T = loc
         var/area/A = T ? T.loc : null
         see_invisible = istype(A, /area/ceiling) ? 0 : 1
-        src << output("You reappear!", "Info")
+        src.ShowInfo("You reappear!")
     else
         // --- Enter ghostIcon form ---
         isGhostform = TRUE
@@ -82,7 +82,7 @@ mob/proc/ToggleGhostForm()
         // while both are ghosted, requested alongside this fix.
         see_invisible = GHOST_INVISIBILITY
         density = 0
-        src << output("You disappear!", "Info")
+        src.ShowInfo("You disappear!")
 
 // GM verb to toggle ghostIcon form — Admin-category power (Code/Admin/AdminLevels.dm)
 // -----------------------------
@@ -99,7 +99,7 @@ mob/verb/GM_SwitchIcon()
     set desc = "Switch your own icon to a custom GM cosmetic, purely for flair"
 
     if(!client || !client.canAdmin)
-        src << output("You don't have Admin access.", "Info")
+        src.ShowInfo("You don't have Admin access.")
         return
 
     var/list/icons = list(
@@ -135,18 +135,18 @@ mob/verb/GM_SwitchIcon()
             P.RebuildIcon()
         else
             icon = initial(icon)
-        src << output("Icon reverted to normal.", "Info")
+        src.ShowInfo("Icon reverted to normal.")
         return
 
     icon = picked
     icon_state = "world"
-    src << output("Icon switched to [choice].", "Info")
+    src.ShowInfo("Icon switched to [choice].")
 
 mob/verb/GM_GhostForm()
     set category = "GM"
 
     if(!client || !client.canAdmin)
-        src << output("You don't have Admin access.", "Info")
+        src.ShowInfo("You don't have Admin access.")
         return
 
     ToggleGhostForm()
@@ -161,11 +161,11 @@ mob/verb/GM_ToggleProfanityFilter()
     set desc = "Turns the general-profanity filter (names/chat) on or off"
 
     if(!client || !client.canAdmin)
-        src << output("You don't have Admin access.", "Info")
+        src.ShowInfo("You don't have Admin access.")
         return
 
     adultServer = !adultServer
-    src << output("Profanity filter is now [adultServer ? "OFF" : "ON"] (adultServer = [adultServer]).", "Info")
+    src.ShowInfo("Profanity filter is now [adultServer ? "OFF" : "ON"] (adultServer = [adultServer]).")
 
 // -----------------------------
 // GM Multi-Login Toggle
@@ -181,11 +181,11 @@ mob/verb/GM_ToggleMultiLogin()
     set desc = "Turns the same-IP double-login block on or off (for testing with two clients)"
 
     if(!client || !client.canAdmin)
-        src << output("You don't have Admin access.", "Info")
+        src.ShowInfo("You don't have Admin access.")
         return
 
     allowMultiLogin = !allowMultiLogin
-    src << output("Multi-login is now [allowMultiLogin ? "ALLOWED" : "BLOCKED"] (allowMultiLogin = [allowMultiLogin]).", "Info")
+    src.ShowInfo("Multi-login is now [allowMultiLogin ? "ALLOWED" : "BLOCKED"] (allowMultiLogin = [allowMultiLogin]).")
 
 // -----------------------------
 // GM Ban / Unban
@@ -206,7 +206,7 @@ mob/verb/GM_Ban()
     set desc = "Ban a connected player's character, or unban one from the ban list"
 
     if(!client || !client.canAdmin)
-        src << output("You don't have Admin access.", "Info")
+        src.ShowInfo("You don't have Admin access.")
         return
 
     var/list/targets = GetModerationTargets()
@@ -236,7 +236,7 @@ mob/verb/GM_Ban()
     if(confirm != "Yes") return
 
     BanCharacter(target, reason)
-    src << output("Banned [target.name] ([target.key]).", "Info")
+    src.ShowInfo("Banned [target.name] ([target.key]).")
 
 // Shared "pick another connected player, respecting GM hierarchy" target list for
 // GM_Ban/GM_Boot — confirmed OG rule: a lower (or equal) tier GM can't target
@@ -277,7 +277,7 @@ mob/proc/ShowBanList()
         F = null
 
     if(!labelToTarget.len)
-        src << output("Nobody is currently banned.", "Info")
+        src.ShowInfo("Nobody is currently banned.")
         return
 
     var/list/options = labelToTarget.Copy()
@@ -292,7 +292,7 @@ mob/proc/ShowBanList()
     // Same reasoning as the scan loop's F = null above — release this handle right
     // away instead of leaving it for GC to eventually get to.
     SM.Close()
-    src << output("Unbanned [choice].", "Info")
+    src.ShowInfo("Unbanned [choice].")
 
 // Flags the target's current save slot as banned and forces their client to
 // disconnect right now. skipSaveOnLogout (PlayerTemplate.dm) stops that disconnect's
@@ -306,7 +306,7 @@ mob/proc/BanCharacter(mob/player/target, reason)
 
     var/client/C = target.client
     if(C)
-        target << output("You have been banned by a GM. Reason: [reason]", "Info")
+        target.ShowInfo("You have been banned by a GM. Reason: [reason]")
         del(C)
 
 // -----------------------------
@@ -321,12 +321,12 @@ mob/verb/GM_Boot()
     set desc = "Disconnects a connected player without saving their progress"
 
     if(!client || !client.canAdmin)
-        src << output("You don't have Admin access.", "Info")
+        src.ShowInfo("You don't have Admin access.")
         return
 
     var/list/targets = GetModerationTargets()
     if(!targets.len)
-        src << output("No one eligible to boot is connected.", "Info")
+        src.ShowInfo("No one eligible to boot is connected.")
         return
 
     var/list/options = targets.Copy()
@@ -342,7 +342,7 @@ mob/verb/GM_Boot()
     if(confirm != "Yes") return
 
     BootCharacter(target)
-    src << output("Booted [target.name] ([target.key]).", "Info")
+    src.ShowInfo("Booted [target.name] ([target.key]).")
 
 mob/proc/BootCharacter(mob/player/target)
     if(!target) return
@@ -350,7 +350,7 @@ mob/proc/BootCharacter(mob/player/target)
     target.skipSaveOnLogout = TRUE
     var/client/C = target.client
     if(C)
-        target << output("You have been booted by a GM.", "Info")
+        target.ShowInfo("You have been booted by a GM.")
         del(C)
 
 // -----------------------------
@@ -370,7 +370,7 @@ mob/verb/GM_Mute()
     set desc = "Mute a connected player's chat, or unmute one from the mute list"
 
     if(!client || !client.canAdmin)
-        src << output("You don't have Admin access.", "Info")
+        src.ShowInfo("You don't have Admin access.")
         return
 
     var/list/targets = GetModerationTargets()
@@ -401,7 +401,7 @@ mob/verb/GM_Mute()
     // secretly muted X"), and DeliverChat() (SocialVerbs.dm) keeps echoing their own
     // chat back to them so nothing looks broken from their side. Telling them here
     // would defeat the entire mechanism.
-    src << output("You have secretly muted [target.name] ([target.key]).", "Info")
+    src.ShowInfo("You have secretly muted [target.name] ([target.key]).")
 
 // isMuted is session-only (no savefile field), so unlike ShowBanList this just
 // scans the live `players` list instead of every savefile on disk.
@@ -412,7 +412,7 @@ mob/proc/ShowMuteList()
         labelToTarget["[P.name] ([P.key])"] = P
 
     if(!labelToTarget.len)
-        src << output("Nobody is currently muted.", "Info")
+        src.ShowInfo("Nobody is currently muted.")
         return
 
     var/list/options = labelToTarget.Copy()
@@ -427,7 +427,7 @@ mob/proc/ShowMuteList()
     target.isMuted = FALSE
     // Silent on the target's side too, same reasoning as muting above — they were never
     // told it started, so telling them it ended would reveal it retroactively.
-    src << output("You have secretly unmuted [choice].", "Info")
+    src.ShowInfo("You have secretly unmuted [choice].")
 
 // -----------------------------
 // GM Pwipe
@@ -445,12 +445,12 @@ mob/verb/GM_Pwipe()
     set desc = "Permanently erase a connected player's character from their savefile"
 
     if(!client || !client.canAdmin)
-        src << output("You don't have Admin access.", "Info")
+        src.ShowInfo("You don't have Admin access.")
         return
 
     var/list/targets = GetModerationTargets()
     if(!targets.len)
-        src << output("No one eligible to pwipe is connected.", "Info")
+        src.ShowInfo("No one eligible to pwipe is connected.")
         return
 
     var/list/options = targets.Copy()
@@ -471,7 +471,7 @@ mob/verb/GM_Pwipe()
 
         for(var/label in targets)
             PwipeCharacter(targets[label])
-        src << output("Pwiped all [targets.len] connected player(s).", "Info")
+        src.ShowInfo("Pwiped all [targets.len] connected player(s).")
         return
 
     var/mob/player/target = targets[choice]
@@ -481,7 +481,7 @@ mob/verb/GM_Pwipe()
     if(confirm != "Yes") return
 
     PwipeCharacter(target)
-    src << output("Pwiped [target.name] ([target.key]).", "Info")
+    src.ShowInfo("Pwiped [target.name] ([target.key]).")
 
 // Deletes the target's current save slot outright (DeleteCharacter(), SaveSystem.dm
 // — same slot-prefix wipe GM_CreateObj/LoginMenu's own Delete Character option uses)
@@ -495,7 +495,7 @@ mob/proc/PwipeCharacter(mob/player/target)
 
     var/client/C = target.client
     if(C)
-        target << output("Your character has been permanently wiped by a GM.", "Info")
+        target.ShowInfo("Your character has been permanently wiped by a GM.")
         del(C)
 
 // -----------------------------
@@ -519,7 +519,7 @@ mob/verb/GM_NameChange()
     set desc = "Rename a connected player's character, or any NPC/monster in view"
 
     if(!client || client.adminLevel < LEVEL_GM_HOST)
-        src << output("You don't have GM access.", "Info")
+        src.ShowInfo("You don't have GM access.")
         return
 
     var/list/targets = GetModerationTargets()
@@ -528,7 +528,7 @@ mob/verb/GM_NameChange()
         targets["[M.name] ([M.type])"] = M
 
     if(!targets.len)
-        src << output("No one eligible to rename is connected or in view.", "Info")
+        src.ShowInfo("No one eligible to rename is connected or in view.")
         return
 
     var/list/options = targets.Copy()
@@ -567,9 +567,9 @@ mob/verb/GM_NameChange()
 
     var/oldName = target.name
     target.name = newName
-    src << output("Renamed [oldName] to [newName].", "Info")
+    src.ShowInfo("Renamed [oldName] to [newName].")
     if(target.client)
-        target << output("A GM renamed you to [newName].", "Info")
+        target.ShowInfo("A GM renamed you to [newName].")
 
 // -----------------------------
 // GM Player Status
@@ -611,14 +611,14 @@ mob/verb/GM_PlayerStatus()
     set desc = "Dumps a full character sheet for one player, or every connected player"
 
     if(!client || client.adminLevel < LEVEL_GM_HOST)
-        src << output("You don't have GM access.", "Info")
+        src.ShowInfo("You don't have GM access.")
         return
 
     var/list/options = list()
     for(var/mob/player/P in players)
         options[P.name] = P
     if(!options.len)
-        src << output("No players online.", "Info")
+        src.ShowInfo("No players online.")
         return
     options["All"] = "ALL"
     options["Cancel"] = null
@@ -649,12 +649,12 @@ mob/verb/GM_PromoteBuilder()
     set desc = "Grant or revoke persistent Builder access for a connected player"
 
     if(!client || client.adminLevel < LEVEL_GM_HOST)
-        src << output("You don't have GM access.", "Info")
+        src.ShowInfo("You don't have GM access.")
         return
 
     var/list/targets = GetModerationTargets()
     if(!targets.len)
-        src << output("No eligible players are connected.", "Info")
+        src.ShowInfo("No eligible players are connected.")
         return
 
     var/list/options = targets.Copy()
@@ -668,10 +668,10 @@ mob/verb/GM_PromoteBuilder()
     var/targetCkey = target.client.ckey
     if(targetCkey in persistent_builders)
         persistent_builders -= targetCkey
-        src << output("[target.name] is no longer a persistent Builder.", "Info")
+        src.ShowInfo("[target.name] is no longer a persistent Builder.")
     else
         persistent_builders += targetCkey
-        src << output("[target.name] is now a persistent Builder.", "Info")
+        src.ShowInfo("[target.name] is now a persistent Builder.")
 
     SavePersistentAdminLists()
     target.client.ApplyAdminLevel()   // takes effect immediately, no relog needed
@@ -681,12 +681,12 @@ mob/verb/GM_PromoteAdmin()
     set desc = "Grant or revoke persistent Admin access for a connected player"
 
     if(!client || client.adminLevel < LEVEL_GM_HOST)
-        src << output("You don't have GM access.", "Info")
+        src.ShowInfo("You don't have GM access.")
         return
 
     var/list/targets = GetModerationTargets()
     if(!targets.len)
-        src << output("No eligible players are connected.", "Info")
+        src.ShowInfo("No eligible players are connected.")
         return
 
     var/list/options = targets.Copy()
@@ -700,10 +700,10 @@ mob/verb/GM_PromoteAdmin()
     var/targetCkey = target.client.ckey
     if(targetCkey in persistent_admins)
         persistent_admins -= targetCkey
-        src << output("[target.name] is no longer a persistent Admin.", "Info")
+        src.ShowInfo("[target.name] is no longer a persistent Admin.")
     else
         persistent_admins += targetCkey
-        src << output("[target.name] is now a persistent Admin.", "Info")
+        src.ShowInfo("[target.name] is now a persistent Admin.")
 
     SavePersistentAdminLists()
     target.client.ApplyAdminLevel()
@@ -725,7 +725,7 @@ mob/verb/GM_CreateObj()
     set desc = "Creates a functional obj (or a placeholder NPC) at your location"
 
     if(!client || !client.canBuild)
-        src << output("You don't have Builder access.", "Info")
+        src.ShowInfo("You don't have Builder access.")
         return
 
     var/list/choices = list(
@@ -757,7 +757,7 @@ mob/verb/GM_CreateObj()
         CreateSign()
     else
         new pickedType(loc)
-        src << output("Created [choice].", "Info")
+        src.ShowInfo("Created [choice].")
 
 // Door skins (wooden/jail/dw1/silver/gold/snow/ice, each with a night variant) are all
 // one real type (obj/door, Code/World/Obj.dm) painted as different icon_state
@@ -794,7 +794,7 @@ mob/proc/CreateDoor(doorType, choiceLabel)
 mob/proc/CreateLockable(lockableType, choiceLabel, skin = null)
     var/lockName = input(src, "Name this [choiceLabel] (a matching key will be created too):", "Name It") as text|null
     if(isnull(lockName) || !length(trimtext(lockName)))
-        src << output("Cancelled — no name given.", "Info")
+        src.ShowInfo("Cancelled — no name given.")
         return
     lockName = CensorText(trimtext(lockName))
 
@@ -814,10 +814,10 @@ mob/proc/CreateLockable(lockableType, choiceLabel, skin = null)
 
     if(!PickUpItem(newKey))
         del newKey
-        src << output("Created [lockName], but your inventory was full — no key was given!", "Info")
+        src.ShowInfo("Created [lockName], but your inventory was full — no key was given!")
         return
 
-    src << output("Created a locked [lockName] and put its key in your inventory.", "Info")
+    src.ShowInfo("Created a locked [lockName] and put its key in your inventory.")
 
 // Signs are otherwise plain (Code/World/Obj.dm) except for their per-instance message
 // var — set it right at creation instead of leaving it at the default "..." (its own
@@ -829,7 +829,7 @@ mob/proc/CreateSign()
 
     var/obj/stat/sign/newSign = new(loc)
     newSign.message = message
-    src << output("Created a sign.", "Info")
+    src.ShowInfo("Created a sign.")
 
 // Merchants (mob/npc/merchant, Code/World/NPCs.dm) get their own creation flow rather
 // than riding CreateNPC(): a shop needs its type chosen at placement, since that's what
@@ -881,7 +881,7 @@ mob/proc/CreateMerchant()
         else
             M.stock = list()
 
-    src << output("Created [M.name].", "Info")
+    src.ShowInfo("Created [M.name].")
 
 // -----------------------------
 // GM Make Item
@@ -895,7 +895,7 @@ mob/verb/GM_MakeItem()
     set desc = "Spawns a consumable or amulet directly into your inventory"
 
     if(!client || !client.canBuild)
-        src << output("You don't have Builder access.", "Info")
+        src.ShowInfo("You don't have Builder access.")
         return
 
     var/list/categories = list(
@@ -946,10 +946,10 @@ mob/verb/GM_MakeItem()
     // CreateLockable's key, above) — a GM testing tool has no reason to punish a full
     // inventory by destroying the very item it was asked to make.
     if(PickUpItem(I))
-        src << output("Created [I.name] in your inventory.", "Info")
+        src.ShowInfo("Created [I.name] in your inventory.")
     else
         I.loc = loc
-        src << output("Your inventory is full — dropped [I.name] at your feet instead.", "Info")
+        src.ShowInfo("Your inventory is full — dropped [I.name] at your feet instead.")
 
 // icon_state offered here comes straight from npc.dmi's own real sprite set
 // (GetCachedIconStates(), Code/Combat/CombatSystem.dm) — merchant/guard/priest/etc. —
@@ -957,7 +957,7 @@ mob/verb/GM_MakeItem()
 mob/proc/CreateNPC()
     var/list/states = GetCachedIconStates('npc.dmi')
     if(!states.len)
-        src << output("No NPC sprites found.", "Info")
+        src.ShowInfo("No NPC sprites found.")
         return
     var/stateChoice = input(src, "Choose an NPC appearance:", "GM_CreateObj") in states
 
@@ -993,7 +993,7 @@ mob/proc/CreateNPC()
             if("East")  newNPC.dir = EAST
             if("West")  newNPC.dir = WEST
 
-    src << output("Created [npcName] the NPC.", "Info")
+    src.ShowInfo("Created [npcName] the NPC.")
 
 // -----------------------------
 // GM Day/Night Toggle
@@ -1019,7 +1019,7 @@ mob/verb/GM_DayNight()
     set desc = "Toggles day/night for every turf and obj in the world"
 
     if(!client || client.adminLevel < LEVEL_GM_HOST)
-        src << output("You don't have GM access.", "Info")
+        src.ShowInfo("You don't have GM access.")
         return
 
     isNight = !isNight
@@ -1045,11 +1045,11 @@ mob/verb/GM_ToggleLog()
     set desc = "Turns chat/login logging (server.log) on or off"
 
     if(!client || client.adminLevel < LEVEL_GM_HOST)
-        src << output("You don't have GM access.", "Info")
+        src.ShowInfo("You don't have GM access.")
         return
 
     loggingEnabled = !loggingEnabled
-    src << output("Chat/login logging is now [loggingEnabled ? "ON" : "OFF"].", "Info")
+    src.ShowInfo("Chat/login logging is now [loggingEnabled ? "ON" : "OFF"].")
 
 // -----------------------------
 // GM Level Increase
@@ -1064,7 +1064,7 @@ mob/verb/GM_LevelIncrease()
     set desc = "Increases your level by a chosen amount, same as leveling up normally"
 
     if(!client || client.adminLevel < LEVEL_GM_HOST)
-        src << output("You don't have GM access.", "Info")
+        src.ShowInfo("You don't have GM access.")
         return
 
     var/amount = input(src, "How many levels to add?", "GM_LevelIncrease", 1) as num
@@ -1079,7 +1079,7 @@ mob/verb/GM_LevelIncrease()
         StatPoints += 6   // matches LevelCheck()'s confirmed OG value (CombatSystem.dm)
         RecalculateVitals()
 
-    src << output("You are now Level [Level] (+[amount])", "Info")
+    src.ShowInfo("You are now Level [Level] (+[amount])")
     src << sound('levelup.wav', channel = 2, volume = client.ScaledVolume())
 
 // -----------------------------
@@ -1094,7 +1094,7 @@ mob/verb/GM_BattleMode()
     set desc = "Toggles battle mode for one area, or every area at once"
 
     if(!client || client.adminLevel < LEVEL_GM_HOST)
-        src << output("You don't have GM access.", "Info")
+        src.ShowInfo("You don't have GM access.")
         return
 
     var/list/areaChoices = list("None" = null, "All Areas" = "ALL")
@@ -1115,7 +1115,7 @@ mob/verb/GM_BattleMode()
     else
         var/area/target = selection
         target.battleModeOn = !target.battleModeOn
-        src << output("[target.name] is now [target.battleModeOn ? "a dangerous area" : "a peaceful area"].", "Info")
+        src.ShowInfo("[target.name] is now [target.battleModeOn ? "a dangerous area" : "a peaceful area"].")
 
 // -----------------------------
 // GM Coop Mode
@@ -1132,7 +1132,7 @@ mob/verb/GM_CoopMode()
     set desc = "Toggles player-vs-player damage for one area, or every area at once"
 
     if(!client || client.adminLevel < LEVEL_GM_HOST)
-        src << output("You don't have GM access.", "Info")
+        src.ShowInfo("You don't have GM access.")
         return
 
     var/list/areaChoices = list("None" = null, "All Areas" = "ALL")
@@ -1151,7 +1151,7 @@ mob/verb/GM_CoopMode()
     else
         var/area/target = selection
         target.battleAllowsPvP = !target.battleAllowsPvP
-        src << output("[target.name] is now [target.battleAllowsPvP ? "PvP-enabled" : "a coop (PvE-only) area"].", "Info")
+        src.ShowInfo("[target.name] is now [target.battleAllowsPvP ? "PvP-enabled" : "a coop (PvE-only) area"].")
 
 // -----------------------------
 // GM Play Music
@@ -1166,7 +1166,7 @@ mob/verb/GM_PlayMusic()
     set desc = "Sets or changes an area's background music, or every area at once"
 
     if(!client || client.adminLevel < LEVEL_GM_HOST)
-        src << output("You don't have GM access.", "Info")
+        src.ShowInfo("You don't have GM access.")
         return
 
     var/list/areaChoices = list("None" = null, "All Areas" = "ALL")
@@ -1214,7 +1214,7 @@ mob/verb/GM_PlayMusic()
             M.PlayAreaMusic(trackFile)
 
     if(target)
-        src << output("[target.name]'s music changed to [trackChoice].", "Info")
+        src.ShowInfo("[target.name]'s music changed to [trackChoice].")
     else
         world << output("[src] changed the music everywhere to [trackChoice].", "Info")
 
@@ -1231,7 +1231,7 @@ mob/verb/GM_SaveLocation()
     set desc = "Toggles whether returning characters spawn at their last saved position"
 
     if(!client || client.adminLevel < LEVEL_GM_HOST)
-        src << output("You don't have GM access.", "Info")
+        src.ShowInfo("You don't have GM access.")
         return
 
     saveLocationEnabled = !saveLocationEnabled
@@ -1316,7 +1316,7 @@ mob/verb/GM_GlobalRespawn()
     set desc = "Create, modify, or delete a one-shot monster spawn definition"
 
     if(!client || client.adminLevel < LEVEL_GM_HOST)
-        src << output("You don't have GM access.", "Info")
+        src.ShowInfo("You don't have GM access.")
         return
 
     var/list/options = list("Create New Respawn" = "NEW")
@@ -1333,7 +1333,7 @@ mob/verb/GM_GlobalRespawn()
         if(!ConfigureRespawnDefinition(D)) return
         respawnDefinitions += D
         ExecuteRespawnDefinition(D)
-        src << output("Created and spawned [D.count]x [initial(D.monsterType:name)] ([D.defName]).", "Info")
+        src.ShowInfo("Created and spawned [D.count]x [initial(D.monsterType:name)] ([D.defName]).")
         return
 
     var/datum/RespawnDefinition/D = picked
@@ -1344,13 +1344,13 @@ mob/verb/GM_GlobalRespawn()
         for(var/mob/enemy/E in D.spawnedMobs)
             if(E) del E
         respawnDefinitions -= D
-        src << output("Deleted respawn definition [D.defName].", "Info")
+        src.ShowInfo("Deleted respawn definition [D.defName].")
         return
 
     // Modify — re-runs the same flow onto the existing definition, then respawns.
     if(!ConfigureRespawnDefinition(D)) return
     ExecuteRespawnDefinition(D)
-    src << output("Updated and re-spawned [D.defName].", "Info")
+    src.ShowInfo("Updated and re-spawned [D.defName].")
 
 // -----------------------------
 // GM Kill Monsters
@@ -1374,7 +1374,7 @@ mob/verb/GM_KillMonsters()
     set desc = "Instantly kills monsters through the real death process, by type or all at once"
 
     if(!client || client.adminLevel < LEVEL_GM_HOST)
-        src << output("You don't have GM access.", "Info")
+        src.ShowInfo("You don't have GM access.")
         return
 
     var/list/choices = list("All" = "all")
@@ -1417,7 +1417,7 @@ mob/verb/GM_WorldReboot()
     set desc = "Saves everyone, then reboots the world after a 10-second countdown"
 
     if(!client || client.adminLevel < LEVEL_GM_HOST)
-        src << output("You don't have GM access.", "Info")
+        src.ShowInfo("You don't have GM access.")
         return
 
     var/confirm = alert(src, "Reboot the world? Everyone will be saved, then the map resets and the server restarts.", "Confirm World Reboot", "Yes", "No")
@@ -1471,7 +1471,7 @@ mob/verb/GM_SeeAreas()
     set desc = "Toggles a visual overlay showing which area each tile belongs to"
 
     if(!client || !client.canBuild)
-        src << output("You don't have Builder access.", "Info")
+        src.ShowInfo("You don't have Builder access.")
         return
 
     seeingAreas = !seeingAreas
@@ -1479,12 +1479,12 @@ mob/verb/GM_SeeAreas()
     if(seeingAreas)
         areaOverlayLastLoc = null  // force RefreshAreaOverlay() to build on the first tick
         AreaOverlayLoop()
-        src << output("Area overlay is now ON.", "Info")
+        src.ShowInfo("Area overlay is now ON.")
     else
         if(areaOverlayImages)
             client.images -= areaOverlayImages
             areaOverlayImages = null
-        src << output("Area overlay is now OFF.", "Info")
+        src.ShowInfo("Area overlay is now OFF.")
 
 // Polls while seeingAreas is on, rebuilding the overlay only when the GM has actually
 // moved to a new tile — skips redundant rebuilds while standing still.

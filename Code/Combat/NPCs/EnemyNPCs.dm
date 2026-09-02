@@ -173,7 +173,7 @@ mob/enemy
 		if(!T) return
 		var/obj/item/I = new dropType(T)
 		if(killer)
-			killer << output("[src] dropped [I.name]!", "Info")
+			killer.ShowInfo("[src] dropped [I.name]!")
 
 	// Pet state — null/PET_MODE_FOLLOW until a GM assigns this mob via
 	// ShowAssignPetMenu() below. See file header for the overall design.
@@ -577,7 +577,7 @@ mob/enemy
 			nearby[P.name] = P
 
 		if(!nearby.len)
-			GM << output("No players in view to assign this pet to.", "Info")
+			GM.ShowInfo("No players in view to assign this pet to.")
 			return
 
 		var/pick = input(GM, "Assign this [name] to which player?", "Assign Pet") in nearby
@@ -592,8 +592,8 @@ mob/enemy
 		owner = newOwner
 		petMode = PET_MODE_FOLLOW
 		newOwner.pet = src
-		GM << output("[name] assigned to [newOwner.name] as a pet.", "Info")
-		newOwner << output("You've been given a pet [name]! Double-click it to name it.", "Info")
+		GM.ShowInfo("[name] assigned to [newOwner.name] as a pet.")
+		newOwner.ShowInfo("You've been given a pet [name]! Double-click it to name it.")
 
 	// Owner-facing: first double-click after being assigned prompts for a name; every
 	// double-click after that opens the Rename/Set Mode/Release menu.
@@ -603,7 +603,7 @@ mob/enemy
 			if(!newName || !trimtext(newName)) return
 			petName = CensorText(trimtext(newName))
 			name = petName
-			M << output("Your pet is now named [petName].", "Info")
+			M.ShowInfo("Your pet is now named [petName].")
 			return
 
 		var/choice = input(M, "[petName]", "Pet Options") in list("Rename", "Set Mode", "Release", "Cancel")
@@ -613,7 +613,7 @@ mob/enemy
 				if(!newName || !trimtext(newName)) return
 				petName = CensorText(trimtext(newName))
 				name = petName
-				M << output("Your pet is now named [petName].", "Info")
+				M.ShowInfo("Your pet is now named [petName].")
 
 			if("Set Mode")
 				var/modeChoice = input(M, "Set [petName]'s behavior:", "Pet Mode") in list("Aggressive", "Sit", "Wander", "Follow", "Cancel")
@@ -623,12 +623,12 @@ mob/enemy
 					if("Wander")     petMode = PET_MODE_WANDER
 					if("Follow")     petMode = PET_MODE_FOLLOW
 					else return
-				M << output("[petName] is now set to [modeChoice].", "Info")
+				M.ShowInfo("[petName] is now set to [modeChoice].")
 
 			if("Release")
 				var/confirm = alert(M, "Release [petName]? It will become a wild monster again.", "Release Pet", "Yes", "No")
 				if(confirm != "Yes") return
-				M << output("You released [petName].", "Info")
+				M.ShowInfo("You released [petName].")
 				ReleaseToWild()
 
 	// Drops ownership and reverts this mob to a normal wild monster — shared by the

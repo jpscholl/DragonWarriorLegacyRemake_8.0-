@@ -222,7 +222,7 @@ mob/player/proc/RebuildIcon()
     var/icon/playerIcon = new /icon(baseIcon)
 
     if(!playerIcon)
-        src << output("ERROR: Failed to load icon [baseIcon]", "Info")
+        src.ShowInfo("ERROR: Failed to load icon [baseIcon]")
         return src
 
     // Recoloring only takes effect for icons that have real default-color data in
