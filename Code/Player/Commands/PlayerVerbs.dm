@@ -45,7 +45,7 @@ mob/verb/ScrollQuickItem()
         items += I
 
     if(!items.len)
-        src << output("You have no items.", "Info")
+        src.ShowInfo("You have no items.")
         quickItem = null
         return
 
@@ -56,19 +56,19 @@ mob/verb/ScrollQuickItem()
     index = (index >= items.len) ? 1 : index + 1
 
     quickItem = items[index]
-    src << output("Quick Item: [quickItem.name]", "Info")
+    src.ShowInfo("Quick Item: [quickItem.name]")
 
 mob/verb/UseQuickItem()
     set hidden = 1
 
     if(!quickItem)
-        src << output("No quick item selected. Press * on your numpad to choose one.", "Info")
+        src.ShowInfo("No quick item selected. Press * on your numpad to choose one.")
         return
 
     // The item may have been dropped, given away, or consumed since it was picked.
     if(quickItem.loc != src)
         quickItem = null
-        src << output("You no longer have that item.", "Info")
+        src.ShowInfo("You no longer have that item.")
         return
 
     quickItem.UseItem(src)
@@ -93,7 +93,7 @@ mob/player/verb/SetQuickCast()
         if(S.isSpell) castable[S.skillName] = S
 
     if(!castable.len)
-        src << output("You have no spells that can be hotkeyed.", "Info")
+        src.ShowInfo("You have no spells that can be hotkeyed.")
         return
 
     var/keyChoice = input(src, "Which hotkey will you change?", "Quick Cast Hotkeys") in list("F5", "F6", "F7", "Cancel")
@@ -106,11 +106,11 @@ mob/player/verb/SetQuickCast()
 
     if(spellChoice == "Clear")
         quickSpells[slot] = null
-        src << output("[keyChoice] cleared.", "Info")
+        src.ShowInfo("[keyChoice] cleared.")
         return
 
     quickSpells[slot] = castable[spellChoice]
-    src << output("[keyChoice] set to [spellChoice].", "Info")
+    src.ShowInfo("[keyChoice] set to [spellChoice].")
 
 // Driven by the F5/F6/F7 macros (Interface.dmf). Targets whoever is on the tile in
 // front, exactly like UseSkillSlot() (PlayerTemplate.dm) — a quick-cast spell is still
@@ -120,12 +120,12 @@ mob/verb/UseQuickSpell(slot as num)
 
     var/datum/skill/S = quickSpells[slot]
     if(!S)
-        src << output("No spell assigned to F[slot].", "Info")
+        src.ShowInfo("No spell assigned to F[slot].")
         return
 
     // Same central silence gate every other casting entry point uses.
     if(isSilenced)
-        src << output("You are silenced and cannot cast!", "Info")
+        src.ShowInfo("You are silenced and cannot cast!")
         return
 
     var/mob/target = null
@@ -167,7 +167,7 @@ mob/player/Click()
 mob/player
     proc/GivePlayerGold(mob/player/target)
         if(Gold <= 0)
-            src << output("You have no gold to give.", "Info")
+            src.ShowInfo("You have no gold to give.")
             return
 
         var/amount = input(src, "How much gold? (You have [Gold].)", "Give Gold", 0) as num
@@ -177,13 +177,13 @@ mob/player
         // amount must never become a way to TAKE gold from someone else.
         if(amount <= 0) return
         if(amount > Gold)
-            src << output("You don't have that much gold.", "Info")
+            src.ShowInfo("You don't have that much gold.")
             return
 
         Gold -= amount
         target.Gold += amount
-        src << output("You give [amount] gold to [target.name].", "Info")
-        target << output("[src.name] gives you [amount] gold.", "Info")
+        src.ShowInfo("You give [amount] gold to [target.name].")
+        target.ShowInfo("[src.name] gives you [amount] gold.")
 
     proc/GivePlayerItem(mob/player/target)
         var/list/items = list()
@@ -191,7 +191,7 @@ mob/player
             items[I.name] = I
 
         if(!items.len)
-            src << output("You have nothing to give.", "Info")
+            src.ShowInfo("You have nothing to give.")
             return
 
         var/choice = input(src, "Give which item?", "Give Item") in items + "Cancel"
@@ -201,11 +201,11 @@ mob/player
         if(!I) return
 
         if(!target.PickUpItem(I))
-            src << output("[target.name]'s inventory is full.", "Info")
+            src.ShowInfo("[target.name]'s inventory is full.")
             return
 
-        src << output("You give [I.name] to [target.name].", "Info")
-        target << output("[src.name] gives you [I.name].", "Info")
+        src.ShowInfo("You give [I.name] to [target.name].")
+        target.ShowInfo("[src.name] gives you [I.name].")
 
     // Casts one of this player's known skills directly at the clicked player, bypassing
     // the "whoever is on the tile in front of me" targeting that UseSkillSlot()
@@ -217,7 +217,7 @@ mob/player
             if(S.isSpell) castable[S.skillName] = S
 
         if(!castable.len)
-            src << output("You have no spells to cast.", "Info")
+            src.ShowInfo("You have no spells to cast.")
             return
 
         var/choice = input(src, "Cast which spell on [target.name]?", "Cast Magic") in castable + "Cancel"
@@ -230,7 +230,7 @@ mob/player
         // point into casting, so it needs the check too or Stopspell would be bypassable
         // just by clicking a player instead of using a numpad slot.
         if(isSilenced)
-            src << output("You are silenced and cannot cast!", "Info")
+            src.ShowInfo("You are silenced and cannot cast!")
             return
 
         S.OnUse(src, target)
@@ -295,17 +295,17 @@ mob/verb/Look()
     set category = "Action"
     set desc = "Shows players in view and their basic info"
 
-    src << output("<b>Players in view:</b>", "Info")
+    src.ShowInfo("<b>Players in view:</b>")
 
     var/found = FALSE
     for(var/mob/player/M in view(src))
         if(M == src) continue
         if(!M.client) continue
         found = TRUE
-        src << output("<font color='blue'> \icon[M] [M.name]([M.key]) <b>Class:</b> [M.class] <b>Level:</b> [M.Level] <b>Party:</b> [M.Party ? M.Party.name : "None"]</font>", "Info")
+        src.ShowInfo("<font color='blue'> \icon[M] [M.name]([M.key]) <b>Class:</b> [M.class] <b>Level:</b> [M.Level] <b>Party:</b> [M.Party ? M.Party.name : "None"]</font>")
 
     if(!found)
-        src << output("No other players in view.", "Info")
+        src.ShowInfo("No other players in view.")
 
 // -----------------------------
 // Turn Walk — toggle checked in mob/proc/Step() (Code/Core/SmoothMovement.dm). While on,
@@ -317,7 +317,7 @@ mob/verb/TurnWalk()
     set desc = "Toggle: face a new direction before walking that way, instead of moving instantly"
 
     turnWalkMode = !turnWalkMode
-    src << output("Turn-then-walk is now [turnWalkMode ? "ON" : "OFF"].", "Info")
+    src.ShowInfo("Turn-then-walk is now [turnWalkMode ? "ON" : "OFF"].")
 
 // -----------------------------
 // Volume Control — Master/Music/SFX sliders (client/ScaledVolume(), Main.dm). Per-ckey
@@ -335,7 +335,7 @@ mob/verb/SetMasterVolume()
     if(isnull(v)) return
     client.masterVolume = max(0, min(100, round(v)))
     client.saveManager.SaveVolumeSettings(client)
-    src << output("Master volume set to [client.masterVolume]%.", "Info")
+    src.ShowInfo("Master volume set to [client.masterVolume]%.")
     // Re-apply immediately, same reasoning as SetMusicVolume() below — Master affects
     // the currently-playing track too, not just future sounds.
     // status = SOUND_UPDATE adjusts the volume of whatever's already playing on this
@@ -351,7 +351,7 @@ mob/verb/SetMusicVolume()
     if(isnull(v)) return
     client.musicVolume = max(0, min(100, round(v)))
     client.saveManager.SaveVolumeSettings(client)
-    src << output("Music volume set to [client.musicVolume]%.", "Info")
+    src.ShowInfo("Music volume set to [client.musicVolume]%.")
     // Re-apply immediately so the change is audible without needing to change areas.
     // status = SOUND_UPDATE adjusts the volume of whatever's already playing on this
     // channel in place, instead of resending the file and restarting it from the top.
@@ -366,4 +366,4 @@ mob/verb/SetSFXVolume()
     if(isnull(v)) return
     client.sfxVolume = max(0, min(100, round(v)))
     client.saveManager.SaveVolumeSettings(client)
-    src << output("Sound effects volume set to [client.sfxVolume]%.", "Info")
+    src.ShowInfo("Sound effects volume set to [client.sfxVolume]%.")

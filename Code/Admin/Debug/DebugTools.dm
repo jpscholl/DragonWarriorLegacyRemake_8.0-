@@ -12,14 +12,14 @@ mob
 		DebugMovement()
 			set category = "Debug"
 			if(!usr.client || !usr.client.canBuild)
-				usr << output("You don't have Builder access.", "Info")
+				usr.ShowInfo("You don't have Builder access.")
 				return
-			usr << output("<b>Current Server Stats<b/>", "Info")
-			usr << output("FPS: [world.fps]", "Info")
-			usr << output("Tick Lag: [world.tick_lag]", "Info")
-			usr << output("Step Delay: [step_delay]", "Info")
-			usr << output("Glide Size: [glide_size]", "Info")
-			usr << output("Frames per Step: [round(step_delay / (1 / world.fps))]", "Info")
+			usr.ShowInfo("<b>Current Server Stats<b/>")
+			usr.ShowInfo("FPS: [world.fps]")
+			usr.ShowInfo("Tick Lag: [world.tick_lag]")
+			usr.ShowInfo("Step Delay: [step_delay]")
+			usr.ShowInfo("Glide Size: [glide_size]")
+			usr.ShowInfo("Frames per Step: [round(step_delay / (1 / world.fps))]")
 
 		// Nothing inflicts poison in-game yet (no monster attack, trap, or spell
 		// applies it) — this is the only way to trigger it for now. See
@@ -27,7 +27,7 @@ mob
 		Test_PoisonSelf()
 			set category = "Debug"
 			if(!usr.client || !usr.client.canBuild)
-				usr << output("You don't have Builder access.", "Info")
+				usr.ShowInfo("You don't have Builder access.")
 				return
 			usr.ApplyStatusEffect(/datum/status_effect/poison)
 
@@ -36,11 +36,11 @@ mob
 		FullRestore()
 			set category = "Debug"
 			if(!usr.client || !usr.client.canBuild)
-				usr << output("You don't have Builder access.", "Info")
+				usr.ShowInfo("You don't have Builder access.")
 				return
 			usr.HP = usr.MaxHP
 			usr.MP = usr.MaxMP
-			usr << output("Fully restored: [usr.HP]/[usr.MaxHP] HP, [usr.MP]/[usr.MaxMP] MP.", "Info")
+			usr.ShowInfo("Fully restored: [usr.HP]/[usr.MaxHP] HP, [usr.MP]/[usr.MaxMP] MP.")
 
 // Measures the real visible "ink" bounding box of a handful of sample glyphs in
 // text.dmi/numbers.dmi, pixel by pixel — added 2026-08-29 because icon.Width()/
@@ -55,14 +55,14 @@ mob
         Debug_MeasureFont()
             set category = "Debug"
             if(!usr.client || !usr.client.canBuild)
-                usr << output("You don't have Builder access.", "Info")
+                usr.ShowInfo("You don't have Builder access.")
                 return
 
-            usr << output("<b>--- text.dmi ---</b>", "Info")
+            usr.ShowInfo("<b>--- text.dmi ---</b>")
             for(var/ch in list("l", "e", "0", "8", ":", "%"))
                 MeasureGlyph('text.dmi', ch)
 
-            usr << output("<b>--- numbers.dmi ---</b>", "Info")
+            usr.ShowInfo("<b>--- numbers.dmi ---</b>")
             for(var/ch in list("0", "8", "m"))
                 MeasureGlyph('numbers.dmi', ch)
 
@@ -108,9 +108,9 @@ mob/proc/MeasureGlyph(fontFile, ch)
         colorSummary += "[c]x[colorCounts[c]] "
 
     if(maxX < minX)
-        usr << output("'[ch]': entirely blank (canvas [w]x[h]) — colors: [colorSummary]", "Info")
+        usr.ShowInfo("'[ch]': entirely blank (canvas [w]x[h]) — colors: [colorSummary]")
     else
-        usr << output("'[ch]': ink box x=[minX]-[maxX] (w=[maxX-minX+1]), y=[minY]-[maxY] (h=[maxY-minY+1]) — canvas [w]x[h] — colors: [colorSummary]", "Info")
+        usr.ShowInfo("'[ch]': ink box x=[minX]-[maxX] (w=[maxX-minX+1]), y=[minY]-[maxY] (h=[maxY-minY+1]) — canvas [w]x[h] — colors: [colorSummary]")
 
 // Simple descending sort of `keys` by colorCounts[key] — DM has no built-in sort-by-
 // custom-key, and this list is at most a few dozen entries (one 32x32 glyph's worth of
@@ -132,7 +132,7 @@ mob
         Debug_ShowZoneColors()
             set category = "Debug"
             if(!usr.client || !usr.client.canBuild)
-                usr << output("You don't have Builder access.", "Info")
+                usr.ShowInfo("You don't have Builder access.")
                 return
             // Zones to check
             var/list/zones = list("Hair", "Eyes", "Main", "Accent")
@@ -146,4 +146,4 @@ mob
                     if("Main")   current_color = mainColor
                     if("Accent") current_color = accentColor
 
-                usr << output("[zone]: Original=[baseColor]  Current=[current_color]", "Info")
+                usr.ShowInfo("[zone]: Original=[baseColor]  Current=[current_color]")

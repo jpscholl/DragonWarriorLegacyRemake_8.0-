@@ -54,11 +54,11 @@ obj/StatLink
         // past its class's intended max.
         var/list/caps = GetClassStatCaps(P.class)
         if(caps && currentStat >= caps[attributeName])
-            P << output("[attributeName] is already at its class cap ([caps[attributeName]])!", "Info")
+            P.ShowInfo("[attributeName] is already at its class cap ([caps[attributeName]])!")
             return
 
         if(P.StatPoints < cost)
-            P << output("Not enough stat points! (need [cost])", "Info")
+            P.ShowInfo("Not enough stat points! (need [cost])")
             return
 
         P.vars[attributeName]++   // Increment the actual stat

@@ -96,7 +96,7 @@ mob/player
 
             var/datum/skill/S = EquipSkill(U.skillType)
             if(!silent)
-                src << output("You learned [S.skillName]!", "Info")
+                src.ShowInfo("You learned [S.skillName]!")
 
 // -----------------------------
 // Per-class starting kits — confirmed (see EquipBasicAttack/Defend/Blaze's old

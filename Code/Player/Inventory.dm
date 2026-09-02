@@ -60,7 +60,7 @@ obj/item
         if(!ismob(loc)) return
         var/mob/M = loc
         loc = M.loc   // falls on the turf you're standing on
-        M << output("You drop [src.name].", "Info")
+        M.ShowInfo("You drop [src.name].")
 
     // Hands the item directly to a nearby player instead of dropping it on the ground.
     // "in view(5, usr)" restricts the target picker to players within 5 tiles, matching
@@ -73,15 +73,15 @@ obj/item
         if(!ismob(loc)) return
         var/mob/M = loc
         if(target == M)
-            M << output("You can't give an item to yourself.", "Info")
+            M.ShowInfo("You can't give an item to yourself.")
             return
 
         if(!target.PickUpItem(src))
-            M << output("[target.name]'s inventory is full.", "Info")
+            M.ShowInfo("[target.name]'s inventory is full.")
             return
 
-        M << output("You give [src.name] to [target.name].", "Info")
-        target << output("[M.name] gives you [src.name].", "Info")
+        M.ShowInfo("You give [src.name] to [target.name].")
+        target.ShowInfo("[M.name] gives you [src.name].")
 
 // A named key. Grants access to any lockable object whose own name matches keyName —
 // see obj/door's OnInteract() override in Code/World/Obj.dm.
@@ -104,13 +104,13 @@ obj/item/key
 
         for(var/obj/door/D in facingTile.contents)
             if(D.name != keyName)
-                user << output("This key doesn't match [D.name].", "Info")
+                user.ShowInfo("This key doesn't match [D.name].")
                 return
             D.is_locked = !D.is_locked
-            user << output("[D.name] is now [D.is_locked ? "locked" : "unlocked"].", "Info")
+            user.ShowInfo("[D.name] is now [D.is_locked ? "locked" : "unlocked"].")
             return
 
-        user << output("You're not facing a door.", "Info")
+        user.ShowInfo("You're not facing a door.")
 
 // -----------------------------
 // Consumables
@@ -155,7 +155,7 @@ obj/item/consumable/herb
 
     OnConsume(mob/user)
         if(user.HP >= user.MaxHP)
-            user << output("You are not hurt!", "Info")  // OG wording, verbatim
+            user.ShowInfo("You are not hurt!")  // OG wording, verbatim
             return FALSE
         user.ApplyHeal(user, healAmount)
         return TRUE
@@ -167,13 +167,13 @@ obj/item/consumable/tea
 
     OnConsume(mob/user)
         if(!user.hasMana || user.MaxMP <= 0)
-            user << output("You have no magic to restore.", "Info")
+            user.ShowInfo("You have no magic to restore.")
             return FALSE
         if(user.MP >= user.MaxMP)
-            user << output("You are at full MP!", "Info")  // OG wording, verbatim
+            user.ShowInfo("You are at full MP!")  // OG wording, verbatim
             return FALSE
         user.MP = min(user.MaxMP, user.MP + restoreAmount)
-        user << output("You restore [restoreAmount] MP! (MP: [user.MP]/[user.MaxMP])", "Info")
+        user.ShowInfo("You restore [restoreAmount] MP! (MP: [user.MP]/[user.MaxMP])")
         return TRUE
 
 // Revives a fallen ally. OG usage note, verbatim: "Face another player to use this item,
@@ -195,10 +195,10 @@ obj/item/consumable/leaf
             for(var/mob/player/P in facing.contents)
                 if(!P.isDead) continue
                 P.RespawnPlayer()
-                user << output("You revive [P.name] with [src.name].", "Info")
+                user.ShowInfo("You revive [P.name] with [src.name].")
                 return TRUE
 
-        user << output("Face another player to use this item, or give it to them while they are dead.", "Info")
+        user.ShowInfo("Face another player to use this item, or give it to them while they are dead.")
         return FALSE
 
 // Teleports the user back to the world spawn point — the item equivalent of the Return
@@ -209,10 +209,10 @@ obj/item/consumable/wyvernwing
 
     OnConsume(mob/user)
         if(user.isDead)
-            user << output("But the strange force contains the wing's powers!", "Info")  // OG wording
+            user.ShowInfo("But the strange force contains the wing's powers!")  // OG wording
             return FALSE
         user.loc = GetPlayerSpawnTurf()
-        user << output("You return to town!", "Info")
+        user.ShowInfo("You return to town!")
         return TRUE
 
 // CONFIRMED OG item (ClassReference.md/TODOList.md Phase 1): the non-Goof-off path to
@@ -234,16 +234,16 @@ obj/item/consumable/dharmaScroll
         var/mob/player/P = user
 
         if(istype(P, /mob/player/Sage))
-            P << output("You are already a Sage.", "Info")
+            P.ShowInfo("You are already a Sage.")
             return FALSE
 
         if(P.Level < CLASSCHANGE_MIN_LEVEL)
-            P << output("You must be at least level [CLASSCHANGE_MIN_LEVEL] to change your class.", "Info")
+            P.ShowInfo("You must be at least level [CLASSCHANGE_MIN_LEVEL] to change your class.")
             return FALSE
 
         for(var/obj/item/amulet/A in P.contents)
             if(A.worn)
-                P << output("You must unequip everything before you can change your class.", "Info")
+                P.ShowInfo("You must unequip everything before you can change your class.")
                 return FALSE
 
         var/confirm = alert(P, "Read the Dharma Scroll and change your class to Sage? (You will keep all your items and gold, but you will be set back to level 1.)", "Dharma Scroll", "Yes", "No")
@@ -331,7 +331,7 @@ obj/item/amulet
     // there's no fresh action from the player to narrate.
     proc/Equip(mob/user, silent = FALSE)
         if(CountWornAmulets(user) >= MAX_WORN_AMULETS)
-            if(!silent) user << output("You cannot wear more than [MAX_WORN_AMULETS] amulets at the same time!", "Info")
+            if(!silent) user.ShowInfo("You cannot wear more than [MAX_WORN_AMULETS] amulets at the same time!")
             return
 
         worn = TRUE
@@ -356,7 +356,7 @@ obj/item/amulet
         user.equipMaxMP += bonusMaxMP
         user.RecalculateVitals()
 
-        if(!silent) user << output("You equip [initial(name)].", "Info")
+        if(!silent) user.ShowInfo("You equip [initial(name)].")
 
     proc/Unequip(mob/user)
         worn = FALSE
@@ -378,7 +378,7 @@ obj/item/amulet
         user.equipMaxMP -= bonusMaxMP
         user.RecalculateVitals()
 
-        user << output("You remove [initial(name)].", "Info")
+        user.ShowInfo("You remove [initial(name)].")
 
     // Dropping or giving away a worn amulet has to strip its bonus first, or the
     // stats stay behind on a player who no longer owns it.
@@ -580,7 +580,7 @@ mob/proc/PickUpItem(obj/item/I)
             // fall through to the capacity check below for whatever's still left.
 
     if(GetInventoryCount() >= GetInventoryCapacity())
-        src << output("Your inventory is full.", "Info")
+        src.ShowInfo("Your inventory is full.")
         return FALSE
 
     I.loc = src
@@ -607,11 +607,11 @@ mob/verb/DropItem()
         items[I.name] = I
 
     if(!items.len)
-        src << output("You have nothing to drop.", "Info")
+        src.ShowInfo("You have nothing to drop.")
         return
 
     var/choice = input(src, "Drop which item?", "Drop Item") in items
     var/obj/item/toDrop = items[choice]
 
     toDrop.loc = loc   // falls on the turf you're standing on
-    src << output("You drop [toDrop.name].", "Info")
+    src.ShowInfo("You drop [toDrop.name].")

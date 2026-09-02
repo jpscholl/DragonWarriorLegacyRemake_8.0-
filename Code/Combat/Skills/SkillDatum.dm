@@ -164,10 +164,10 @@ datum/skill/Defend
                                                 // TakeDamage(), CombatSystem.dm
         if(user.isDefending)
             user.icon_state = "defend"
-            user << output("You raise your shield, bracing for incoming attacks.", "Info")
+            user.ShowInfo("You raise your shield, bracing for incoming attacks.")
         else
             user.icon_state = "world"
-            user << output("You lower your shield.", "Info")
+            user.ShowInfo("You lower your shield.")
 
 // -----------------------------
 // Blaze Spell Skill
@@ -206,7 +206,7 @@ datum/skill/Blaze
         // GetManaCost(), not mana_cost — respects the TESTING_CHEAP_SPELLS override
         var/cost = GetManaCost()
         if(user.MP < cost)
-            user << output("Not enough MP to cast Blaze! (need [cost])", "Info")
+            user.ShowInfo("Not enough MP to cast Blaze! (need [cost])")
             return
 
         user.MP -= cost
@@ -305,7 +305,7 @@ datum/skill/Fireball
         // already falls back to a turf-based effect instead of an on-target overlay.
 
         user.canAct = FALSE
-        user << output("You cast Fireball!", "Info")
+        user.ShowInfo("You cast Fireball!")
 
         // Play spell animation & sound (src is this skill datum, matching
         // PlayAttackAnimation's real signature: mob/user, datum/skill/S, mob/target)

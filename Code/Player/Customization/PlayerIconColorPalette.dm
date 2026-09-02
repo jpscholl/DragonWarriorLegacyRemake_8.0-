@@ -41,9 +41,9 @@ datum/DefaultIconColors
 
     proc/GetIconColors(class, icon_id, mob/M)
         if(!(class in colors_by_class))
-            if(M) M << output("No default colors for class [class]", "Info")
+            if(M) M.ShowInfo("No default colors for class [class]")
             return list()
         if(!(icon_id in colors_by_class[class]))
-            if(M) M << output("No default colors for icon [icon_id]", "Info")
+            if(M) M.ShowInfo("No default colors for icon [icon_id]")
             return list()
         return colors_by_class[class][icon_id]

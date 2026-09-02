@@ -188,7 +188,7 @@ mob/proc
                 var/turf/pvpTurf = src.loc
                 var/area/pvpArea = pvpTurf ? pvpTurf.loc : null
                 if(!pvpArea || !pvpArea.battleAllowsPvP)
-                    attacker << output("Coop mode is active here — you cannot attack other players.", "Info")
+                    attacker.ShowInfo("Coop mode is active here — you cannot attack other players.")
                     return FALSE
 
         // "src" here is a /mob/enemy check because enemies and players use different
@@ -324,7 +324,7 @@ mob/proc
                 attacker.LevelCheck()
 
             if(attackerGoldGained)
-                attacker << output("You gain [attackerGoldGained] Gold.", "Info")
+                attacker.ShowInfo("You gain [attackerGoldGained] Gold.")
 
             // Item drops (the OG's drop_type/drop_rate). Rolled here, inside the
             // attacker branch, so an unattributed death (a GM_KillMonsters sweep with no
@@ -355,7 +355,7 @@ mob/proc
             // window would otherwise still have this TRUE, letting Step() wave the
             // death lock through (PlayerTemplate.dm's attackRecoveryOnly).
             attackRecoveryOnly = FALSE
-            src << output("You will auto-respawn in [RESPAWN_AUTO_DELAY / 10] seconds. You may press 5 on your numpad to respawn before then.", "Info")
+            src.ShowInfo("You will auto-respawn in [RESPAWN_AUTO_DELAY / 10] seconds. You may press 5 on your numpad to respawn before then.")
 
             // Auto-respawn timer. Captures deathTime so a player who respawned early
             // (numpad 5), died again, and is now on a NEW death doesn't get yanked by
@@ -392,7 +392,7 @@ mob/proc
         loc = GetRespawnTurf()
         canAct = TRUE  // re-enable movement — Die() above locks this as part of the
                         // death flow
-        src << output("You respawn.", "Info")
+        src.ShowInfo("You respawn.")
 
 // PLACEHOLDER exp curve — convex on purpose ("fast at first, slows down" per your own
 // description): cheap early on, requirement balloons at high levels. Quadratic
@@ -423,7 +423,7 @@ mob/proc
             // placeholder 5 (TODOList.md Phase 7).
             src.StatPoints += 6
             src.RecalculateVitals()  // Code/Player/StatsDatum.dm — Level affects MaxHP/MaxMP too
-            src << output("You are now Level [src.Level]", "Info")
+            src.ShowInfo("You are now Level [src.Level]")
             src << sound('levelup.wav', channel = 2, volume = client ? client.ScaledVolume() : 100)
 
             // Leveled skill/spell learning (Code/Player/SkillUnlocks.dm) — enemies
@@ -547,7 +547,7 @@ mob/proc
         // always displays its full healing power even when already near/at max HP,
         // only the underlying HP gain itself is capped.
         target.HP = min(target.MaxHP, target.HP + amount)
-        target << output("You are healed for [amount] HP! (HP: [target.HP]/[target.MaxHP])", "Info")
+        target.ShowInfo("You are healed for [amount] HP! (HP: [target.HP]/[target.MaxHP])")
         ShowCombatNumber(target, "[amount]", "#00ff00")
         target.ShowFloatingHPBar()
 

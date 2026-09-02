@@ -188,6 +188,23 @@ client/proc/GetFadeOverlay()
 // — callers that need this to happen alongside other logic (e.g. an actual teleport
 // between the two halves) should call it from within their own spawn(), same pattern
 // sky's Entered() already used for its old placeholder delay (Turfs.dm).
+// Repeated verb calls (a hotkey held down, e.g. spamming a heal at full HP or an
+// out-of-MP spell) used to spam the exact same line into the Info pane once per
+// call — this throttles the identical-text case specifically: the same message
+// shown again within INFO_REPEAT_THROTTLE of the last one is silently dropped, but a
+// DIFFERENT message always gets through immediately regardless of timing. Per-mob
+// (not global), so one player spamming a key doesn't affect what anyone else sees.
+#define INFO_REPEAT_THROTTLE 5  // deciseconds — 0.5s
+mob/var/lastInfoText = null
+mob/var/lastInfoTime = 0
+
+mob/proc/ShowInfo(text)
+    if(!client) return
+    if(text == lastInfoText && (world.time - lastInfoTime) < INFO_REPEAT_THROTTLE) return
+    lastInfoText = text
+    lastInfoTime = world.time
+    src.ShowInfo(text)
+
 mob/proc/PlayScreenFade(toBlack = TRUE)
     if(!client) return
     var/obj/F = client.GetFadeOverlay()
@@ -390,7 +407,7 @@ mob/playerTemp
     Login()
         DisableCommands() //make sure you troublemakers can't do something while in the login menu
         client << sound('dw3conti.mid', repeat = 1, volume = client.ScaledVolume(isMusic = TRUE), channel = 1)
-        src << output("Welcome to DWL Remake!!", "Info")
+        src.ShowInfo("Welcome to DWL Remake!!")
 
         // Always show the login menu first
         spawn(1)
