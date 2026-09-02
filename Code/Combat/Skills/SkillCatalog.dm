@@ -108,6 +108,17 @@ datum/skill/GenericSpell
         // Silence is enforced centrally now (UseSkillSlot(), PlayerTemplate.dm) —
         // every skill funnels through there before OnUse() ever runs.
 
+        var/mob/actualTarget = isHealing ? (target || user) : target
+
+        // Can't cast a heal on someone already at full HP — blocked before spending MP
+        // or starting the cast at all, same as the "not enough MP" guard below. The
+        // number shown on a successful cast is always the spell's full rated power
+        // (ApplyHeal(), CombatSystem.dm), so there's no "wasted overheal" case where
+        // casting anyway would show anything meaningful — it just can't be cast.
+        if(isHealing && actualTarget && actualTarget.HP >= actualTarget.MaxHP)
+            user << output("[actualTarget == user ? "You are" : "[actualTarget] is"] already at full HP.", "Info")
+            return
+
         var/cost = GetManaCost()
         if(user.MP < cost)
             user << output("Not enough MP to cast [skillName]! (need [cost])", "Info")
@@ -120,8 +131,6 @@ datum/skill/GenericSpell
 
         var/mySession = user.defendToggleSession
         var/wasDefending = user.DropDefendForAction()
-
-        var/mob/actualTarget = isHealing ? (target || user) : target
 
         if(isHealing && hasHealAnimation)
             user.PlayHealCastSequence(src, actualTarget, heal_amount, wasDefending, mySession)
