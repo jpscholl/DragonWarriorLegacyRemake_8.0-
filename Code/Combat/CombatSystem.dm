@@ -236,7 +236,7 @@ mob/proc
 
         HP -= damage
         view(src) << output(isCrit ? "[src] takes a critical hit for [damage] damage! (HP: [max(HP,0)])" : "[src] takes [damage] damage! (HP: [max(HP,0)])", "Info")
-        ShowCombatNumber(src, "[damage]", isCrit ? "#ffff00" : "#ff0000")
+        ShowCombatNumber(src, "[damage]", isCrit ? "#ffff00" : DAMAGE_NUMBER_COLOR)
         ShowFloatingHPBar()
 
         // Being hit wakes you up — classic Dragon Warrior behavior, and previously

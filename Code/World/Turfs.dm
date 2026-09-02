@@ -551,7 +551,7 @@ turf/hazard
 		flick("hit", M)
 		PlaySFXAt(M, istype(M, /mob/enemy) ? 'enemyhit.wav' : 'hit.wav')
 		M << output("<font color='red'>[hazardMessage] (-[stepDamage] HP)</font>", "Info")
-		ShowCombatNumber(M, "[stepDamage]", "#ff0000")
+		ShowCombatNumber(M, "[stepDamage]", DAMAGE_NUMBER_COLOR)
 		M.ShowFloatingHPBar()
 
 		if(poisonChance && prob(poisonChance))

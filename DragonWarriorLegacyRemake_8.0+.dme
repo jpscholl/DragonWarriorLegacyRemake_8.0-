@@ -66,6 +66,14 @@
 // drift apart from each other.
 #define AREA_OVERLAY_LAYER 5
 
+// Plain floating damage numbers (not crit/heal/miss, see their own colors at each
+// ShowCombatNumber() call site, Code/UI/HUD.dm) — darker than pure #ff0000 so the
+// white-glyph-tinted text stays legible against bright map tiles instead of blowing
+// out. Lives here rather than in HUD.dm itself for the same #include-order reason as
+// the others above — Combat/CombatSystem.dm, Combat/StatusEffects.dm, and
+// World/Turfs.dm all use this and compile before UI/HUD.dm alphabetically.
+#define DAMAGE_NUMBER_COLOR "#cc0000"
+
 // Character-creation step constants (originally only in Code\UI\LoginMenu.dm, which
 // still owns the real creation flow). Same #include-order reason as the others above —
 // Code\Player\PlayerTemplate.dm's RunSageReclassFlow() needs these too (it reuses
