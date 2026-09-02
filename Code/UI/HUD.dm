@@ -32,7 +32,7 @@
 // separately (~8-9px ink) since it's a visibly smaller font used only for the floating
 // combat numbers, not the bottom HUD.
 #define HUD_GLYPH_SPACING 15
-#define COMBATNUM_GLYPH_SPACING 11
+#define COMBATNUM_GLYPH_SPACING 8   // tightened from 11 -- "miss" (its narrowest glyph, "i") read with visible gaps at 11; checked digits still don't touch at 8
 #define HUD_BAR_HEIGHT 32
 #define HUD_ROW_TOP 16
 #define HUD_ROW_BOTTOM 0
