@@ -432,12 +432,11 @@ datum/skill/Healmore
 datum/skill/Healus
     parent_type = /datum/skill/GenericSpell
     skillName = "Healus"
+    icon_state = "healmore"  // spells.dmi — no dedicated "healus" state exists; reuses Healmore's per user's own call
     isHealing = TRUE
+    hasHealAnimation = TRUE
     heal_amount = 40  // PLACEHOLDER — confirmed gate is 21 Int (Hero's table)
     mana_cost = 10  // PLACEHOLDER
-    // No matching spells.dmi state exists (only heal/healmore/healmost do) — stays on
-    // the generic PlayAttackAnimation() spell path (hasHealAnimation left FALSE) rather
-    // than showing wrong art.
 
 datum/skill/Healmost
     parent_type = /datum/skill/GenericSpell
@@ -451,7 +450,9 @@ datum/skill/Healmost
 datum/skill/Healusmore
     parent_type = /datum/skill/GenericSpell
     skillName = "Healusmore"
+    icon_state = "healmost"  // spells.dmi — no dedicated "healusmore" state exists; reuses Healmost's per user's own call
     isHealing = TRUE
+    hasHealAnimation = TRUE
     heal_amount = 75  // PLACEHOLDER
     mana_cost = 15  // PLACEHOLDER
 
