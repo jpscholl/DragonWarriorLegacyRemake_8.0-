@@ -98,7 +98,13 @@ datum/skill/GenericSpell
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
-        if(!user.InBattleArea()) return
+        // Battle-area gate applies to offensive spells only — no nuking someone in
+        // town — but healing has always been usable anywhere in this genre (after a
+        // fight, in a dungeon corridor, back home). Gating it the same way as damage
+        // spells silently no-op'd the ENTIRE cast (no MP cost, no windup, no number)
+        // the instant a player tried to Heal outside a battle-mode area, with no
+        // error message explaining why.
+        if(!isHealing && !user.InBattleArea()) return
         // Silence is enforced centrally now (UseSkillSlot(), PlayerTemplate.dm) —
         // every skill funnels through there before OnUse() ever runs.
 
