@@ -542,11 +542,13 @@ mob/proc
     // healed). Used by GenericSpell's healing branch (SkillCatalog.dm) and Rest.
     ApplyHeal(mob/target, amount)
         if(!target) return
-        var/oldHP = target.HP
+        // Number shown is the spell's full rated power (`amount`), not whatever
+        // actually landed after the MaxHP cap — confirmed real-game behavior: Heal
+        // always displays its full healing power even when already near/at max HP,
+        // only the underlying HP gain itself is capped.
         target.HP = min(target.MaxHP, target.HP + amount)
-        var/actualHealed = target.HP - oldHP
         target << output("You are healed for [amount] HP! (HP: [target.HP]/[target.MaxHP])", "Info")
-        if(actualHealed > 0) ShowCombatNumber(target, "[actualHealed]", "#00ff00")
+        ShowCombatNumber(target, "[amount]", "#00ff00")
         target.ShowFloatingHPBar()
 
 #define MELEE_ATK_BASE_DELAY 12
