@@ -88,6 +88,13 @@ datum/skill/GenericSpell
     var
         isHealing = FALSE
         heal_amount = 0
+        // TRUE only for the heal-tier skills that actually have spells.dmi art (Heal/
+        // Healmore/Healmost below, each overriding icon_state to match) — routes
+        // through the real 3-stage cast (PlayHealCastSequence(), CombatSystem.dm)
+        // instead of the generic spawn(cast_time) shape everything else still uses.
+        // Healus/Healusmore have no matching spells.dmi state yet, so they stay FALSE
+        // and fall back to the old behavior rather than showing wrong/missing art.
+        hasHealAnimation = FALSE
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
@@ -109,6 +116,10 @@ datum/skill/GenericSpell
         var/wasDefending = user.DropDefendForAction()
 
         var/mob/actualTarget = isHealing ? (target || user) : target
+
+        if(isHealing && hasHealAnimation)
+            user.PlayHealCastSequence(src, actualTarget, heal_amount, wasDefending, mySession)
+            return
 
         user.PlayAttackAnimation(user, src, actualTarget)
 
@@ -401,7 +412,9 @@ datum/skill/Explodet
 datum/skill/Heal
     parent_type = /datum/skill/GenericSpell
     skillName = "Heal"
+    icon_state = "heal"  // spells.dmi — real 4-frame animation, PlayHealCastSequence() (CombatSystem.dm)
     isHealing = TRUE
+    hasHealAnimation = TRUE
     heal_amount = 60  // CONFIRMED 2026-08-10 (Hero1 live test, single sample —
                       // heals on animation completion, not instantly on cast).
                       // Gate is 6 Int (Hero's table), also confirmed this session.
@@ -410,7 +423,9 @@ datum/skill/Heal
 datum/skill/Healmore
     parent_type = /datum/skill/GenericSpell
     skillName = "Healmore"
+    icon_state = "healmore"  // spells.dmi
     isHealing = TRUE
+    hasHealAnimation = TRUE
     heal_amount = 30  // PLACEHOLDER — confirmed gate is 14 Int (Hero's table)
     mana_cost = 8  // PLACEHOLDER
 
@@ -420,11 +435,16 @@ datum/skill/Healus
     isHealing = TRUE
     heal_amount = 40  // PLACEHOLDER — confirmed gate is 21 Int (Hero's table)
     mana_cost = 10  // PLACEHOLDER
+    // No matching spells.dmi state exists (only heal/healmore/healmost do) — stays on
+    // the generic PlayAttackAnimation() spell path (hasHealAnimation left FALSE) rather
+    // than showing wrong art.
 
 datum/skill/Healmost
     parent_type = /datum/skill/GenericSpell
     skillName = "Healmost"
+    icon_state = "healmost"  // spells.dmi
     isHealing = TRUE
+    hasHealAnimation = TRUE
     heal_amount = 55  // PLACEHOLDER
     mana_cost = 12  // PLACEHOLDER
 

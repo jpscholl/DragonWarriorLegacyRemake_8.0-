@@ -74,6 +74,28 @@
 // World/Turfs.dm all use this and compile before UI/HUD.dm alphabetically.
 #define DAMAGE_NUMBER_COLOR "#cc0000"
 
+// Cast windup speed, shared by every spell that plays a castmeter.dmi (icon_states "1"
+// through "10") windup — Blaze (Combat/Skills/SkillDatum.dm) and GenericSpell's healing
+// branch (Combat/Skills/SkillCatalog.dm, PlayHealCastSequence(), Combat/CombatSystem.dm)
+// both use it, so a single shared value keeps the windup feel consistent across spells
+// instead of two independently-tuned numbers drifting apart. Total windup = 10 frames *
+// frameDelay, so at this divisor a fresh level-1 caster winds up in a bit over a second,
+// and a high-Intelligence one noticeably faster. Bigger divisor = snappier cast. Lives
+// here rather than in SkillDatum.dm for the same #include-order reason as the others
+// above — Combat/CombatSystem.dm and Combat/Skills/SkillCatalog.dm both compile before
+// Combat/Skills/SkillDatum.dm alphabetically.
+#define CAST_METER_SPEED_DIVISOR 10
+#define CAST_METER_MIN_FRAME_DELAY 0.5
+
+// heal/healmore/healmost (spells.dmi) are all a real 4-frame animation (1 decisecond
+// per frame, rewind=1 — confirmed via the .dmi's own frame data, not guessed) that
+// plays forward then back once per full cycle: 4 frames * 1 decisecond, doubled for the
+// rewind, = 8 deciseconds total. PlayHealCastSequence() (CombatSystem.dm) holds the
+// overlay on-screen for exactly this long before removing it and applying the heal, so
+// the number pop always lands right as the animation finishes rather than cutting it
+// off early or leaving a dead pause after.
+#define HEAL_ANIM_DURATION 8
+
 // Character-creation step constants (originally only in Code\UI\LoginMenu.dm, which
 // still owns the real creation flow). Same #include-order reason as the others above —
 // Code\Player\PlayerTemplate.dm's RunSageReclassFlow() needs these too (it reuses
