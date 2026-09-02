@@ -43,7 +43,8 @@
 
 #define FLOATING_NUM_RISE_PIXELS 16
 #define FLOATING_NUM_RISE_TIME 10   // deciseconds — total on-screen time
-#define FLOATING_NUM_HOLD_TIME 7    // deciseconds — stays fully opaque this long, THEN fades over the remainder (was fading across the whole lifetime, which read as too transparent almost immediately)
+#define FLOATING_NUM_MOVE_TIME 5    // deciseconds — how long the pop-up rise itself takes; snappier than the full hold below
+#define FLOATING_NUM_HOLD_TIME 7    // deciseconds — stays fully opaque this long (holds in place once the rise above finishes), THEN fades over the remainder (was fading across the whole lifetime, which read as too transparent almost immediately)
 #define FLOATING_NUM_Y_OFFSET 30    // px above the mob's own sprite origin
 
 #define FLOATING_BAR_LAYER_OFFSET 0.5   // added to src.layer, keeps it above the mob
@@ -223,17 +224,28 @@ proc/ShowCombatNumber(atom/target, text, colorHex)
     for(var/i = 1 to length(text))
         var/ch = copytext(text, i, i + 1)
         var/obj/effect/combatNumber/N = new(T)
-        N.icon = GetWhiteFontIcon('numbers.dmi')
+        // numbers.dmi's own art is already white-fill/black-outline (confirmed by
+        // rendering it directly) — NOT GetWhiteFontIcon(), which swaps every black
+        // pixel to white before tinting. That's correct for text.dmi's plain-black
+        // glyphs (SetBitmapText, below), but on numbers.dmi it was swapping the
+        // outline to white too, so `color` below tinted the WHOLE glyph solid —
+        // outline included — instead of just the fill. Left untouched, black×color
+        // stays black (BYOND's `color` is a multiply tint) so the outline survives on
+        // its own with no swap needed at all.
+        N.icon = 'numbers.dmi'
         N.icon_state = ch
         N.color = colorHex
         N.pixel_x = startX + (i - 1) * COMBATNUM_GLYPH_SPACING
         N.pixel_y = FLOATING_NUM_Y_OFFSET
-        // Rises the full distance while staying fully opaque for FLOATING_NUM_HOLD_TIME,
-        // THEN fades out over the remainder — previously alpha faded linearly across the
-        // whole lifetime, which made the number look washed-out almost as soon as it
-        // appeared. Chained animate() (no target on the second call) continues from the
-        // first keyframe rather than restarting from N's original static vars.
-        animate(N, pixel_y = N.pixel_y + FLOATING_NUM_RISE_PIXELS, time = FLOATING_NUM_HOLD_TIME)
+        // Pops up to its full rise height quickly (FLOATING_NUM_MOVE_TIME), then holds
+        // there fully opaque until FLOATING_NUM_HOLD_TIME, THEN fades out over the
+        // remainder — previously the rise and the opacity hold were the same duration
+        // (a slower pop) and alpha faded linearly across the WHOLE lifetime (washed-out
+        // almost as soon as it appeared). Chained animate() calls (no target after the
+        // first) continue from the previous keyframe rather than restarting from N's
+        // original static vars; a plain `time=` with no properties is just a hold.
+        animate(N, pixel_y = N.pixel_y + FLOATING_NUM_RISE_PIXELS, time = FLOATING_NUM_MOVE_TIME)
+        animate(time = FLOATING_NUM_HOLD_TIME - FLOATING_NUM_MOVE_TIME)
         animate(alpha = 0, time = FLOATING_NUM_RISE_TIME - FLOATING_NUM_HOLD_TIME)
         spawn(FLOATING_NUM_RISE_TIME)
             del N
