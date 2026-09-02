@@ -46,6 +46,7 @@
 #define FLOATING_NUM_MOVE_TIME 5    // deciseconds — how long the pop-up rise itself takes; snappier than the full hold below
 #define FLOATING_NUM_HOLD_TIME 7    // deciseconds — stays fully opaque this long (holds in place once the rise above finishes), THEN fades over the remainder (was fading across the whole lifetime, which read as too transparent almost immediately)
 #define FLOATING_NUM_Y_OFFSET 30    // px above the mob's own sprite origin
+#define FLOATING_NUM_X_OFFSET 12    // px — shifts the number block right of tile-center, landing over the top-right of the sprite instead of dead-center
 
 #define FLOATING_BAR_LAYER_OFFSET 0.5   // added to src.layer, keeps it above the mob
                                          // sprite and the weapon-swing overlay (target.layer
@@ -219,7 +220,7 @@ proc/ShowCombatNumber(atom/target, text, colorHex)
 
     text = "[text]"
     var/totalWidth = length(text) * COMBATNUM_GLYPH_SPACING
-    var/startX = -totalWidth / 2   // centers the whole string over the target's tile
+    var/startX = FLOATING_NUM_X_OFFSET - totalWidth / 2   // shifted right of tile-center — top-right of the sprite, not dead-center
 
     for(var/i = 1 to length(text))
         var/ch = copytext(text, i, i + 1)

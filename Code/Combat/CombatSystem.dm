@@ -746,6 +746,55 @@ mob/proc
                 spawn(6)
                     target.overlays -= spellOverlay
 
+// Real 3-stage cast for GenericSpell's healing branch (SkillCatalog.dm) — used only for
+// the heal-tier skills that actually have spells.dmi art (Heal/Healmore/Healmost, each
+// overriding their inherited icon_state to "heal"/"healmore"/"healmost"; Healus/
+// Healusmore still fall back to PlayAttackAnimation()'s generic — and broken, see its
+// own note above — spell branch since no art exists for them yet). Deliberately
+// synchronous (plain sleep(), not spawn()) rather than the deferred spawn(cast_time)
+// shape GenericSpell used before — same proven pattern Blaze's own cast meter already
+// uses (SkillDatum.dm), so nothing downstream (the heal, the number, canAct) can ever
+// fire out of order relative to what's on screen.
+mob/proc/PlayHealCastSequence(datum/skill/S, mob/target, heal_amount, wasDefending, mySession)
+    var/atkDelay = GetAttackDelay(S, wasDefending)
+    var/frameDelay = max(CAST_METER_MIN_FRAME_DELAY, atkDelay / CAST_METER_SPEED_DIVISOR)
+
+    // Windup: cast meter over the CASTER (src) — identical shape to Blaze's (a fresh
+    // image per frame, previous one explicitly removed rather than mutated in place,
+    // since BYOND's overlays list snapshots appearance at add-time; mutating the same
+    // image afterward silently changes nothing on screen, the exact bug Blaze's own
+    // meter hit on its first playtest).
+    var/image/prevFrame = null
+    for(var/i = 1 to 10)
+        var/image/meterFrame = image('castmeter.dmi', src, "[i]")
+        meterFrame.layer = layer + 0.1
+        if(prevFrame) overlays -= prevFrame
+        overlays += meterFrame
+        prevFrame = meterFrame
+        sleep(frameDelay)
+    if(prevFrame) overlays -= prevFrame
+
+    if(isDead) return  // died mid-cast — same "don't stomp Die()'s canAct lock" guard Blaze uses
+
+    // Resolution: the TARGET plays the skill's own spells.dmi state (not the caster's
+    // body sprite sheet — the bug PlayAttackAnimation()'s generic spell branch has,
+    // noted above) at its own baked frame speed, held for its full real animation
+    // length (HEAL_ANIM_DURATION, .dme — measured from the .dmi's actual frame data,
+    // not guessed) before the heal lands and the number pops. /image with an explicit
+    // .layer, not the plain /icon PlayAttackAnimation() uses — that one likely renders
+    // behind the target's own sprite per its own comment; this doesn't repeat that.
+    if(target)
+        var/image/healFx = image('spells.dmi', target, S.icon_state)
+        healFx.layer = target.layer + 0.1
+        target.overlays += healFx
+        sleep(HEAL_ANIM_DURATION)
+        target.overlays -= healFx
+
+    ApplyHeal(target, heal_amount)
+
+    canAct = TRUE
+    RestoreDefendIfUntouched(wasDefending, mySession)
+
 // -----------------------------
 // Line (reach) melee hits
 // -----------------------------

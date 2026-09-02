@@ -176,11 +176,10 @@ datum/skill/Defend
 // system" entry) — Fireball above is the old placeholder (instant-hit, melee-range
 // only); Blaze is the first spell actually built against the real thing.
 
-// Cast windup speed. Total windup = 10 frames * frameDelay, so at the divisor below a
-// fresh level-1 caster winds up in a bit over a second, and a high-Intelligence one
-// noticeably faster. Bigger divisor = snappier cast.
-#define CAST_METER_SPEED_DIVISOR 10
-#define CAST_METER_MIN_FRAME_DELAY 0.5
+// CAST_METER_SPEED_DIVISOR/CAST_METER_MIN_FRAME_DELAY used to live here too — moved to
+// the .dme itself (same #include-order reason as MAX_CHARACTERS/MAX_NAME_LENGTH there)
+// once GenericSpell's healing branch (SkillCatalog.dm, PlayHealCastSequence(),
+// CombatSystem.dm) needed them too and both compile before this file alphabetically.
 
 // Projectile flight speed, scaled separately from the windup above. For reference, a
 // player moves one tile per 1.36 deciseconds (step_delay, SmoothMovement.dm) — anything
