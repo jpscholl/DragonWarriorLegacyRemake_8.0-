@@ -42,7 +42,8 @@
 #define HUD_COL_MAX 310
 
 #define FLOATING_NUM_RISE_PIXELS 16
-#define FLOATING_NUM_RISE_TIME 8    // deciseconds
+#define FLOATING_NUM_RISE_TIME 10   // deciseconds — total on-screen time
+#define FLOATING_NUM_HOLD_TIME 7    // deciseconds — stays fully opaque this long, THEN fades over the remainder (was fading across the whole lifetime, which read as too transparent almost immediately)
 #define FLOATING_NUM_Y_OFFSET 30    // px above the mob's own sprite origin
 
 #define FLOATING_BAR_LAYER_OFFSET 0.5   // added to src.layer, keeps it above the mob
@@ -227,7 +228,13 @@ proc/ShowCombatNumber(atom/target, text, colorHex)
         N.color = colorHex
         N.pixel_x = startX + (i - 1) * COMBATNUM_GLYPH_SPACING
         N.pixel_y = FLOATING_NUM_Y_OFFSET
-        animate(N, pixel_y = N.pixel_y + FLOATING_NUM_RISE_PIXELS, alpha = 0, time = FLOATING_NUM_RISE_TIME)
+        // Rises the full distance while staying fully opaque for FLOATING_NUM_HOLD_TIME,
+        // THEN fades out over the remainder — previously alpha faded linearly across the
+        // whole lifetime, which made the number look washed-out almost as soon as it
+        // appeared. Chained animate() (no target on the second call) continues from the
+        // first keyframe rather than restarting from N's original static vars.
+        animate(N, pixel_y = N.pixel_y + FLOATING_NUM_RISE_PIXELS, time = FLOATING_NUM_HOLD_TIME)
+        animate(alpha = 0, time = FLOATING_NUM_RISE_TIME - FLOATING_NUM_HOLD_TIME)
         spawn(FLOATING_NUM_RISE_TIME)
             del N
 

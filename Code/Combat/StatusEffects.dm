@@ -171,7 +171,7 @@ datum/status_effect/poison
 		PlaySFXAt(holder, isEnemy ? 'enemyhit.wav' : 'hit.wav')
 
 		holder << output("<font color='green'>The poison burns! (-[dmg] HP)</font>", "Info")
-		ShowCombatNumber(holder, "[dmg]", "#ff0000")
+		ShowCombatNumber(holder, "[dmg]", DAMAGE_NUMBER_COLOR)
 		holder.ShowFloatingHPBar()
 
 		if(holder.HP <= 0)
