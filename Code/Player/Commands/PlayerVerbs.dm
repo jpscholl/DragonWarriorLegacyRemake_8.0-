@@ -1,25 +1,15 @@
-// -----------------------------
-// Help — placeholder popup, wired to the File menu (Interface.dmf). Real content is
-// still TODOList.md Phase 4 work ("even the OG's own doc admits it's outdated") — this
-// just makes the menu item functional in the meantime, matching the confirmed OG
-// presentation (a browse() popup with a title bar/close button, not the output pane or
-// a stat panel). Hidden from the verb panel since File > Help is the only entry point.
-// -----------------------------
+// Placeholder popup, wired to the File menu (Interface.dmf) — real content is still
+// future work. Hidden from the verb panel since File > Help is the only entry point.
 mob/verb/Help()
     set hidden = 1
 
     src << browse("<h3>Dragon Warrior Legacy Remake</h3><p>Help content coming soon.</p>", "window=help;size=400x300")
 
-// -----------------------------
-// Self-click dispatch
-// -----------------------------
-// Standing on the stairs and double-clicking your own tile hits your own mob sprite —
-// the topmost atom at that screen position — not the turf beneath it, so
-// turf/stairs/DblClick() (Code/World/Turfs.dm) never sees that click. This catches
-// exactly that case (clicking yourself while on a stairs tile) and hands off to the
-// same ToggleStairJump() the turf's own DblClick() uses for the "clicked a stairs tile
-// you're NOT standing on" case, so both paths land in one place. Falls through to ..()
-// for every other double-click (e.g. mob/enemy/DblClick()'s pet menu, EnemyNPCs.dm).
+// Standing on the stairs and double-clicking your own tile hits your own mob sprite
+// (the topmost atom there), not the turf beneath it — turf/stairs/DblClick() never
+// sees that click. This catches exactly that case and hands off to the same
+// ToggleStairJump() the turf's own DblClick() uses. Falls through to ..() for every
+// other double-click (e.g. mob/enemy/DblClick()'s pet menu).
 mob/DblClick()
     if(usr == src && istype(loc, /turf/stairs))
         var/turf/stairs/S = loc
@@ -28,13 +18,9 @@ mob/DblClick()
     ..()
 
 // -----------------------------
-// Quick item — numpad * cycles, numpad - uses
+// Quick item — numpad * cycles, numpad - uses. The drag-onto-a-slot half of the OG
+// feature needs a screen-object HUD that doesn't exist yet — see Markdowns/CodeNotes.md.
 // -----------------------------
-// CONFIRMED OG feature, described in its own help file: "To choose a quick item, drag it
-// onto the slot in your inventory or press * on your numpad to cycle through items. To
-// use your quick item, press - on your numpad." The cycle half is what's built here; the
-// drag-onto-a-slot half needs a screen-object HUD, which doesn't exist yet (there is no
-// screen_loc usage anywhere in the codebase — RemakeVsOGStructure.md Part 3.15).
 mob/var/obj/item/quickItem = null
 
 mob/verb/ScrollQuickItem()
@@ -49,9 +35,8 @@ mob/verb/ScrollQuickItem()
         quickItem = null
         return
 
-    // Advance to the next item after the current one, wrapping around. A quick item that
-    // has since been used up or dropped isn't in the list any more, so this falls
-    // through to the first entry.
+    // Advance to the next item after the current one, wrapping around. A quick item
+    // used up or dropped since isn't in the list, so this falls through to the first entry.
     var/index = items.Find(quickItem)
     index = (index >= items.len) ? 1 : index + 1
 
@@ -74,19 +59,15 @@ mob/verb/UseQuickItem()
     quickItem.UseItem(src)
 
 // -----------------------------
-// Quick cast — F5 / F6 / F7
+// Quick cast — F5 / F6 / F7. Three spell hotkeys separate from the five numpad skill
+// slots, so a caster can keep utility spells reachable without spending a combat slot.
 // -----------------------------
-// CONFIRMED OG feature (quick_5/quick_6/quick_7 vars, plus its own "Quick Cast Hotkeys"
-// prompt and the "You have no spells that can be hotkeyed." refusal, both verbatim
-// below). Three spell hotkeys separate from the five numpad skill slots, so a caster can
-// keep utility spells reachable without spending a combat slot on them.
 mob/var/list/quickSpells = alist(5 = null, 6 = null, 7 = null)
 
 mob/player/verb/SetQuickCast()
     set category = "Action"
     set desc = "Assign a spell to one of the F5/F6/F7 hotkeys"
-    set hidden = 1   // stays functional (the F5/F6/F7 macros still work), just not
-                      // shown in the Action tab — user's call, 2026-08-30
+    set hidden = 1   // stays functional, just not shown in the Action tab
 
     var/list/castable = list()
     for(var/datum/skill/S in skills)
@@ -113,8 +94,7 @@ mob/player/verb/SetQuickCast()
     src.ShowInfo("[keyChoice] set to [spellChoice].")
 
 // Driven by the F5/F6/F7 macros (Interface.dmf). Targets whoever is on the tile in
-// front, exactly like UseSkillSlot() (PlayerTemplate.dm) — a quick-cast spell is still
-// a normal cast, it just skips the numpad slot.
+// front, same as UseSkillSlot() — a quick-cast spell is still a normal cast.
 mob/verb/UseQuickSpell(slot as num)
     set hidden = 1
 
@@ -123,7 +103,6 @@ mob/verb/UseQuickSpell(slot as num)
         src.ShowInfo("No spell assigned to F[slot].")
         return
 
-    // Same central silence gate every other casting entry point uses.
     if(isSilenced)
         src.ShowInfo("You are silenced and cannot cast!")
         return
@@ -139,21 +118,15 @@ mob/verb/UseQuickSpell(slot as num)
     S.OnUse(src, target)
 
 // -----------------------------
-// Player click menu
+// Player click menu — clicking another player opens a small action menu, the only
+// route for trading or casting a spell on someone who isn't directly in front of you.
+// Range-gated so this can't be used across the map.
 // -----------------------------
-// CONFIRMED OG feature (strings: "What shall you do?", "Give Gold", "Give Item",
-// "Cast Magic"). Clicking another player opens a small action menu — the OG's own way
-// of doing player-to-player trading and targeted support casting, and the only route it
-// had for casting a spell on someone who isn't directly in front of you.
-//
-// Range-gated to PLAYER_MENU_RANGE so this can't be used across the map. Falls through
-// to ..() for anything out of range or non-player, which keeps every existing Click()
-// behavior (inventory items, stat-panel links) working untouched.
 #define PLAYER_MENU_RANGE 5
 
 mob/player/Click()
-    // Only another player clicking us, in range, opens the menu. usr is reliable here —
-    // Click() is always driven directly by a real client action.
+    // Only another player clicking us, in range, opens the menu. usr is reliable here
+    // — Click() is always driven directly by a real client action.
     if(usr == src || !istype(usr, /mob/player) || get_dist(usr, src) > PLAYER_MENU_RANGE)
         return ..()
 
@@ -173,8 +146,8 @@ mob/player
         var/amount = input(src, "How much gold? (You have [Gold].)", "Give Gold", 0) as num
         if(isnull(amount)) return
         amount = round(amount)
-        // Clamped rather than rejected — a typo shouldn't cost a prompt, and a negative
-        // amount must never become a way to TAKE gold from someone else.
+        // Clamped rather than rejected — a negative amount must never become a way to
+        // TAKE gold from someone else.
         if(amount <= 0) return
         if(amount > Gold)
             src.ShowInfo("You don't have that much gold.")
@@ -207,10 +180,9 @@ mob/player
         src.ShowInfo("You give [I.name] to [target.name].")
         target.ShowInfo("[src.name] gives you [I.name].")
 
-    // Casts one of this player's known skills directly at the clicked player, bypassing
-    // the "whoever is on the tile in front of me" targeting that UseSkillSlot()
-    // (PlayerTemplate.dm) uses. This is what makes party healing practical — you can
-    // reach an ally standing beside or behind you.
+    // Casts one of this player's known skills directly at the clicked player,
+    // bypassing UseSkillSlot()'s "whoever is on the tile in front of me" targeting —
+    // this is what makes party healing practical.
     proc/CastAtPlayer(mob/player/target)
         var/list/castable = list()
         for(var/datum/skill/S in skills)
@@ -226,50 +198,40 @@ mob/player
         var/datum/skill/S = castable[choice]
         if(!S) return
 
-        // Same central silence gate UseSkillSlot() enforces — this is a second entry
-        // point into casting, so it needs the check too or Stopspell would be bypassable
-        // just by clicking a player instead of using a numpad slot.
+        // Same central silence gate UseSkillSlot() enforces — a second casting entry
+        // point, so Stopspell shouldn't be bypassable just by clicking a player.
         if(isSilenced)
             src.ShowInfo("You are silenced and cannot cast!")
             return
 
         S.OnUse(src, target)
 
-// -----------------------------
-// General Player Verbs
-// -----------------------------
 mob/verb/Interact()
-    set hidden = 1   // don’t clutter verb panel
+    set hidden = 1
 
-    // Dead players use Interact() to respawn instead of the normal interact flow.
-    // Interact() is bound to the "Center" macro (Interface.dmf) — i.e. numpad 5 — which
-    // is exactly the early-respawn key the OG documents, so this needs no minimum wait:
-    // pressing it respawns immediately, and Die()'s own timer (CombatSystem.dm) handles
-    // the automatic 60-second case for a player who doesn't press anything.
+    // Dead players use Interact() (bound to numpad 5) to respawn immediately instead
+    // of the normal interact flow — no minimum wait; Die()'s own timer handles the
+    // automatic case.
     if(isDead)
         RespawnPlayer()
         return
 
-    // Get the turf one step in the direction the mob is facing
     var/turf/target = get_step(src, src.dir)
     if(!target) return
 
-    // If the first turf is a counter, skip ahead one more space
+    // If the first turf is a counter, skip ahead one more space.
     if(istype(target, /turf/furniture/counter))
         target = get_step(target, src.dir)
         if(!target) return
 
-    // Objs on the tile get first chance to handle it, then mobs standing there, then
-    // the turf itself. Whatever's actually interactable overrides OnInteract() (see
-    // Code/World/Interaction.dm) and returns TRUE; nothing else responds.
+    // Objs first, then mobs, then the turf itself. Whatever's actually interactable
+    // overrides OnInteract() and returns TRUE; nothing else responds.
     for(var/obj/O in target.contents)
         if(O.OnInteract(src))
             return
 
-    // Mobs were never checked here before, which meant an NPC standing in front of you
-    // was unreachable no matter what it implemented — the reason merchants needed this
-    // (mob/npc/merchant, Code/World/NPCs.dm). Skips self and anything hostile: walking
-    // into a monster should stay a combat interaction, not an interact-key one.
+    // Skips self and anything hostile: walking into a monster stays a combat
+    // interaction, not an interact-key one.
     for(var/mob/M in target.contents)
         if(M == src) continue
         if(istype(M, /mob/enemy)) continue
@@ -279,18 +241,13 @@ mob/verb/Interact()
     if(target.OnInteract(src))
         return
 
-    // Nothing in front responded — check for loose items on our own tile (e.g.
-    // something just dropped, see DropItem() in Code/Player/Inventory.dm)
+    // Nothing in front responded — check for loose items on our own tile.
     if(isturf(loc))
         for(var/obj/item/I in loc.contents)
             if(I.OnInteract(src))
                 return
 
-// -----------------------------
-// Look — like Who() (Code/Player/Commands/SocialVerbs.dm) but restricted to players
-// actually in view, not everyone online. Same hardcoded Class/Level/Party stub as Who()
-// until the real data (TODOList.md Phase 2/4) exists.
-// -----------------------------
+// Like Who() (SocialVerbs.dm) but restricted to players actually in view.
 mob/verb/Look()
     set category = "Action"
     set desc = "Shows players in view and their basic info"
@@ -307,11 +264,9 @@ mob/verb/Look()
     if(!found)
         src.ShowInfo("No other players in view.")
 
-// -----------------------------
-// Turn Walk — toggle checked in mob/proc/Step() (Code/Core/SmoothMovement.dm). While on,
-// pressing a direction you're not already facing just turns you first; only a
-// direction you're already facing actually steps.
-// -----------------------------
+// Toggle checked in mob/proc/Step() (SmoothMovement.dm). While on, pressing a
+// direction you're not already facing just turns you first; only a direction you're
+// already facing actually steps.
 mob/verb/TurnWalk()
     set category = "Action"
     set desc = "Toggle: face a new direction before walking that way, instead of moving instantly"
@@ -320,11 +275,9 @@ mob/verb/TurnWalk()
     src.ShowInfo("Turn-then-walk is now [turnWalkMode ? "ON" : "OFF"].")
 
 // -----------------------------
-// Volume Control — Master/Music/SFX sliders (client/ScaledVolume(), Main.dm). Per-ckey
-// persisted (SaveManager.SaveVolumeSettings()/SaveSystem.dm) — these are /client vars,
-// so already scoped to the one player adjusting them, never global. Three separate
-// verbs rather than one combined prompt so each can be adjusted independently without
-// re-entering the others.
+// Volume Control — Master/Music/SFX sliders (client/ScaledVolume(), Main.dm),
+// per-ckey persisted (SaveManager.SaveVolumeSettings()). Three separate verbs so each
+// can be adjusted independently without re-entering the others.
 // -----------------------------
 mob/verb/SetMasterVolume()
     set category = "Settings"
@@ -336,10 +289,9 @@ mob/verb/SetMasterVolume()
     client.masterVolume = max(0, min(100, round(v)))
     client.saveManager.SaveVolumeSettings(client)
     src.ShowInfo("Master volume set to [client.masterVolume]%.")
-    // Re-apply immediately, same reasoning as SetMusicVolume() below — Master affects
-    // the currently-playing track too, not just future sounds.
-    // status = SOUND_UPDATE adjusts the volume of whatever's already playing on this
-    // channel in place, instead of resending the file and restarting it from the top.
+    // Re-apply immediately — Master affects the currently-playing track too, not just
+    // future sounds. SOUND_UPDATE adjusts the playing sound's volume in place instead
+    // of restarting it from the top.
     if(current_music) client << sound(null, channel = 1, volume = client.ScaledVolume(isMusic = TRUE), status = SOUND_UPDATE)
 
 mob/verb/SetMusicVolume()
@@ -352,9 +304,6 @@ mob/verb/SetMusicVolume()
     client.musicVolume = max(0, min(100, round(v)))
     client.saveManager.SaveVolumeSettings(client)
     src.ShowInfo("Music volume set to [client.musicVolume]%.")
-    // Re-apply immediately so the change is audible without needing to change areas.
-    // status = SOUND_UPDATE adjusts the volume of whatever's already playing on this
-    // channel in place, instead of resending the file and restarting it from the top.
     if(current_music) client << sound(null, channel = 1, volume = client.ScaledVolume(isMusic = TRUE), status = SOUND_UPDATE)
 
 mob/verb/SetSFXVolume()

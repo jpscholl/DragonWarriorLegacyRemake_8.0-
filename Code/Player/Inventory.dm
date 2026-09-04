@@ -1,14 +1,9 @@
 // -----------------------------
 // Items & Inventory
 // -----------------------------
-// Strength-scaled capacity — confirmed shape via the OG help file's own flavor text
-// ("Strength: increases physical damage AND the number of items you can carry",
-// TODOList.md 2026-08-04 decision). Coefficients are PLACEHOLDER, chosen so a fresh
-// level-1 character (Strength = 1, the actual creation default — PlayerTemplate.dm,
-// before any stat points are spent) lands exactly on the one confirmed real data
-// point: capacity 9. STR_PER_CAPACITY reuses the same /5 divisor already established
-// by the stat-point cost formula (obj/StatLink/GetCost(), ClickableStats.dm) for a bit
-// of internal consistency, not because it's independently confirmed.
+// Strength-scaled capacity, tuned so a fresh level-1 character lands on the one
+// confirmed real data point: capacity 9. See Markdowns/CodeNotes.md for the full
+// derivation.
 #define BASE_INVENTORY_CAPACITY 9
 #define STR_PER_CAPACITY 5
 
@@ -17,22 +12,18 @@
 obj/item
     var/description = ""
 
-    // Stacking (Phase 5's "Item stacking" gap). maxStack = 1 means "never merges" —
-    // the default for everything except obj/item/consumable below, since keys (each
-    // carries its own keyName/name) and amulets (each carries its own worn state) are
-    // meaningfully distinct per-instance and shouldn't silently combine.
+    // maxStack = 1 means "never merges" — the default for everything except
+    // obj/item/consumable, since keys/amulets are meaningfully distinct per-instance.
     var/amount = 1
     var/maxStack = 1
 
     // Called whenever `amount` changes on a stackable item, so the displayed name
-    // picks up "x[amount]" — no-op on the base type (and on any item that never
-    // stacks); obj/item/consumable below is the real override.
+    // picks up "x[amount]". No-op on the base type; consumable overrides it.
     proc/UpdateStackName()
         return
 
-    // Base does nothing; concrete item types override. Called from Click() below, which
-    // is how the Inventory tab (Code/Player/StatPanels.dm) wires up "click to use" —
-    // BYOND routes a stat()-panel click on an atom straight to that atom's Click().
+    // Click() on the Inventory tab (StatPanels.dm) routes here via BYOND's own
+    // stat-panel-click-to-Click() behavior.
     proc/UseItem(mob/user)
         return
 
@@ -41,17 +32,12 @@ obj/item
             var/mob/M = loc
             UseItem(M)
 
-    // Standing on a loose item and pressing Interact picks it up — see the fallback
-    // check in Interact() (Code/Player/Commands/PlayerVerbs.dm). Always returns TRUE
-    // once an attempt is made (even if the inventory's full — PickUpItem() already
-    // shows that message, no need to fall through and try interacting with the turf too).
+    // Standing on a loose item and pressing Interact picks it up.
     OnInteract(mob/user)
         user.PickUpItem(src)
         return TRUE
 
-    // "set src in usr" scopes this to only show up (in its own "Action" tab, per the
-    // original game) for items you're actually carrying — this is what replaces the old
-    // menu-based DropItem() verb below (now hidden).
+    // "set src in usr" scopes this to only show up for items you're carrying.
     verb/Drop()
         set src in usr
         set name = "Drop"
@@ -62,9 +48,7 @@ obj/item
         loc = M.loc   // falls on the turf you're standing on
         M.ShowInfo("You drop [src.name].")
 
-    // Hands the item directly to a nearby player instead of dropping it on the ground.
-    // "in view(5, usr)" restricts the target picker to players within 5 tiles, matching
-    // "give directly to a player in range" from the original design notes.
+    // "in view(5, usr)" restricts the target picker to players within 5 tiles.
     verb/Give(mob/player/target in view(5, usr))
         set src in usr
         set name = "Give"
@@ -91,9 +75,7 @@ obj/item/key
     icon_state = "key"
     var/keyName
 
-    // Double-clicking a key while carrying it and facing a matching-named door toggles
-    // that door's lock. Requires a name match, same as OnInteract()'s access check in
-    // Code/World/Obj.dm — a key can't lock/unlock a door it doesn't belong to.
+    // Double-clicking a key while facing a matching-named door toggles its lock.
     DblClick()
         if(!ismob(loc)) return
         var/mob/user = loc
@@ -115,28 +97,20 @@ obj/item/key
 // -----------------------------
 // Consumables
 // -----------------------------
-// Names and behavior are OG-confirmed (they appear verbatim in the extracted string
-// table): "medical herb", "herbal tea", "leaf of the world tree", "wing of wyvern".
-// Amounts are PLACEHOLDER — the OG stored a heal_amount per item but that value isn't
-// recovered yet.
-//
 // ART PLACEHOLDER: World Icons/Items/ currently contains only key.dmi, so every
-// consumable below borrows the key sprite. They are functionally complete but visually
-// indistinguishable from each other and from an actual key — this needs real item art
-// before it's playable, and is the single most visible unfinished thing about them.
+// consumable below borrows the key sprite — functionally complete but visually
+// indistinguishable from each other and from an actual key.
 obj/item/consumable
     icon = 'key.dmi'
     icon_state = "key"
-    maxStack = 99  // PLACEHOLDER — no OG stack-limit number recovered
+    maxStack = 99
 
-    // Subtypes return TRUE if the item was actually consumed. Returning FALSE (e.g.
-    // already at full HP) leaves the item in the inventory rather than wasting it —
-    // matching the OG's own "You are not hurt!" refusal.
+    // Subtypes return TRUE if the item was actually consumed; FALSE (e.g. already at
+    // full HP) leaves it in the inventory instead of wasting it.
     proc/OnConsume(mob/user)
         return TRUE
 
-    // "x[amount]" only shows once there's more than one — a single herb still just
-    // reads "medical herb", not "medical herb x1".
+    // "x[amount]" only shows once there's more than one.
     UpdateStackName()
         name = amount > 1 ? "[initial(name)] x[amount]" : initial(name)
 
@@ -151,11 +125,11 @@ obj/item/consumable
 obj/item/consumable/herb
     name = "medical herb"
     description = "Restores a small amount of HP."
-    var/healAmount = 30  // PLACEHOLDER
+    var/healAmount = 30
 
     OnConsume(mob/user)
         if(user.HP >= user.MaxHP)
-            user.ShowInfo("You are not hurt!")  // OG wording, verbatim
+            user.ShowInfo("You are not hurt!")
             return FALSE
         user.ApplyHeal(user, healAmount)
         return TRUE
@@ -163,29 +137,27 @@ obj/item/consumable/herb
 obj/item/consumable/tea
     name = "herbal tea"
     description = "Restores a small amount of MP."
-    var/restoreAmount = 20  // PLACEHOLDER
+    var/restoreAmount = 20
 
     OnConsume(mob/user)
         if(!user.hasMana || user.MaxMP <= 0)
             user.ShowInfo("You have no magic to restore.")
             return FALSE
         if(user.MP >= user.MaxMP)
-            user.ShowInfo("You are at full MP!")  // OG wording, verbatim
+            user.ShowInfo("You are at full MP!")
             return FALSE
         user.MP = min(user.MaxMP, user.MP + restoreAmount)
         user.ShowInfo("You restore [restoreAmount] MP! (MP: [user.MP]/[user.MaxMP])")
         return TRUE
 
-// Revives a fallen ally. OG usage note, verbatim: "Face another player to use this item,
-// or give it to them while they are dead." Only the facing case is implemented here —
-// the give-to-a-dead-player case works already, since a dead player can just use it
-// themselves once it's in their inventory.
+// OG usage note, verbatim: "Face another player to use this item, or give it to them
+// while they are dead." Only the facing case is implemented — give-to-a-dead-player
+// already works, since a dead player can just use it themselves once it's theirs.
 obj/item/consumable/leaf
     name = "leaf of the world tree"
     description = "Revives a fallen ally."
 
     OnConsume(mob/user)
-        // Self-use while dead is the "give it to them while they are dead" half.
         if(user.isDead)
             user.RespawnPlayer()
             return TRUE
@@ -201,28 +173,21 @@ obj/item/consumable/leaf
         user.ShowInfo("Face another player to use this item, or give it to them while they are dead.")
         return FALSE
 
-// Teleports the user back to the world spawn point — the item equivalent of the Return
-// spell (SkillCatalog.dm), and it reuses the same GetPlayerSpawnTurf() lookup.
+// The item equivalent of the Return spell (SkillCatalog.dm) — same spawn-point lookup.
 obj/item/consumable/wyvernwing
     name = "wing of wyvern"
     description = "Returns you to town."
 
     OnConsume(mob/user)
         if(user.isDead)
-            user.ShowInfo("But the strange force contains the wing's powers!")  // OG wording
+            user.ShowInfo("But the strange force contains the wing's powers!")
             return FALSE
         user.loc = GetPlayerSpawnTurf()
         user.ShowInfo("You return to town!")
         return TRUE
 
-// CONFIRMED OG item (ClassReference.md/TODOList.md Phase 1): the non-Goof-off path to
-// Sage. Goof-off learns Classchange as a free leveled skill (datum/skill/Classchange,
-// SkillCatalog.dm); every other class needs this scroll instead. Reuses the exact same
-// reclass flow (RunSageReclassFlow()/BecomeSage(), PlayerTemplate.dm) Classchange
-// already calls — there's only one real "become a Sage" implementation in the
-// codebase, this is just a second door into it. PLACEHOLDER: applies the same
-// level-25/unequip-everything gates as Classchange for consistency — no OG
-// confirmation either way whether the scroll path shares them.
+// The non-Goof-off path to Sage — reuses the same RunSageReclassFlow()/BecomeSage()
+// (PlayerTemplate.dm) Classchange itself calls.
 obj/item/consumable/dharmaScroll
     name = "Dharma Scroll"
     description = "A mystical scroll said to transform its reader into a Sage."
@@ -255,29 +220,13 @@ obj/item/consumable/dharmaScroll
         return TRUE
 
 // -----------------------------
-// Amulets
+// Amulets — see Markdowns/CodeNotes.md for the OG-confirmation status of this system.
+// Bonuses apply to separate equip* vars (never mutate the underlying stat directly),
+// same approach StatusEffects.dm uses for buffs — so unequipping is just subtraction,
+// with no risk of a bonus getting saved-in permanently.
 // -----------------------------
-// CONFIRMED OG system: 23 named amulets, a max of 2 worn at once ("You cannot wear more
-// than 2 amulets at the same time!" is verbatim), each with an /item/amulet/<x>/equip
-// override. This was an entire character-building axis with no remake equivalent at all
-// (RemakeVsOGStructure.md Part 3.6).
-//
-// The OG's own naming splits cleanly into two families, which is preserved here:
-//   "Amulet of <Stat>"  — raw stat bonuses (Strength, Agility, Vitality, Intelligence,
-//                         Spirit)
-//   "Amulet of <Power>" — derived bonuses (Power, Speed, Health, Magic, Light, ...)
-// Bonuses are applied the same way buffs are (StatusEffects.dm): to separate bonus vars,
-// never by mutating the underlying stat. Mutating would show in the Battle panel, trip
-// stat-cap checks, and — worst — could be persisted permanently by a save taken while
-// equipped, since SaveData.dm snapshots raw stats. Unequipping is then just subtraction,
-// with no risk of the bonus getting baked in.
-//
-// PLACEHOLDER bonus values — the OG stored a per-amulet `bonus` and that field isn't
-// recovered yet.
 #define MAX_WORN_AMULETS 2
 
-// Stat bonuses granted by worn equipment. Kept separate from the buff bonus vars so a
-// buff expiring can never strip an amulet's contribution and vice versa.
 mob
     var
         equipStrength = 0
@@ -299,7 +248,6 @@ obj/item/amulet
     icon = 'amulets.dmi'
     var/worn = FALSE
 
-    // Per-amulet stat contributions — subtypes set whichever they grant.
     var
         bonusStrength = 0
         bonusAgility = 0
@@ -326,9 +274,30 @@ obj/item/amulet
             if(A.worn) count++
         return count
 
-    // silent skips the "you cannot wear more"/"you equip" messages — used when
-    // re-equipping a saved amulet on login (SaveData.dm's ApplyInventory()), where
-    // there's no fresh action from the player to narrate.
+    // Equip()/Unequip() are otherwise mirror images of each other (add vs. subtract
+    // the same eleven fields) — factored into one signed helper so the field list
+    // only exists once. sign = 1 to apply, -1 to remove. MaxHP/MaxMP go through
+    // RecalculateVitals() rather than touching the maxima directly, so they compose
+    // correctly with level-ups and class factors.
+    proc/ApplyAmuletBonuses(mob/user, sign)
+        user.equipStrength += sign * bonusStrength
+        user.equipAgility += sign * bonusAgility
+        user.equipVitality += sign * bonusVitality
+        user.equipIntelligence += sign * bonusIntelligence
+        user.equipSpirit += sign * bonusSpirit
+        user.equipDefenseBonus += sign * bonusDefense
+        user.equipMagicDefenseBonus += sign * bonusMagicDefense
+        user.equipHazardImmune += sign * bonusHazardImmune
+        user.equipSleepImmune += sign * bonusSleepImmune
+        user.equipGoldBonusPercent += sign * bonusGoldPercent
+        user.equipExpBonusPercent += sign * bonusExpPercent
+        user.equipDropRateBonus += sign * bonusDropRate
+        user.equipMaxHP += sign * bonusMaxHP
+        user.equipMaxMP += sign * bonusMaxMP
+        user.RecalculateVitals()
+
+    // silent skips the messages — used when re-equipping a saved amulet on login
+    // (SaveData.dm's ApplyInventory()), where there's no fresh player action to narrate.
     proc/Equip(mob/user, silent = FALSE)
         if(CountWornAmulets(user) >= MAX_WORN_AMULETS)
             if(!silent) user.ShowInfo("You cannot wear more than [MAX_WORN_AMULETS] amulets at the same time!")
@@ -336,52 +305,19 @@ obj/item/amulet
 
         worn = TRUE
         name = "[initial(name)] (Equipped)"
-
-        user.equipStrength += bonusStrength
-        user.equipAgility += bonusAgility
-        user.equipVitality += bonusVitality
-        user.equipIntelligence += bonusIntelligence
-        user.equipSpirit += bonusSpirit
-        user.equipDefenseBonus += bonusDefense
-        user.equipMagicDefenseBonus += bonusMagicDefense
-        user.equipHazardImmune += bonusHazardImmune
-        user.equipSleepImmune += bonusSleepImmune
-        user.equipGoldBonusPercent += bonusGoldPercent
-        user.equipExpBonusPercent += bonusExpPercent
-        user.equipDropRateBonus += bonusDropRate
-
-        // MaxHP/MaxMP amulets work through RecalculateVitals() rather than touching the
-        // maxima directly, so they compose correctly with level-ups and class factors.
-        user.equipMaxHP += bonusMaxHP
-        user.equipMaxMP += bonusMaxMP
-        user.RecalculateVitals()
+        ApplyAmuletBonuses(user, 1)
 
         if(!silent) user.ShowInfo("You equip [initial(name)].")
 
     proc/Unequip(mob/user)
         worn = FALSE
         name = initial(name)
-
-        user.equipStrength -= bonusStrength
-        user.equipAgility -= bonusAgility
-        user.equipVitality -= bonusVitality
-        user.equipIntelligence -= bonusIntelligence
-        user.equipSpirit -= bonusSpirit
-        user.equipDefenseBonus -= bonusDefense
-        user.equipMagicDefenseBonus -= bonusMagicDefense
-        user.equipHazardImmune -= bonusHazardImmune
-        user.equipSleepImmune -= bonusSleepImmune
-        user.equipGoldBonusPercent -= bonusGoldPercent
-        user.equipExpBonusPercent -= bonusExpPercent
-        user.equipDropRateBonus -= bonusDropRate
-        user.equipMaxHP -= bonusMaxHP
-        user.equipMaxMP -= bonusMaxMP
-        user.RecalculateVitals()
+        ApplyAmuletBonuses(user, -1)
 
         user.ShowInfo("You remove [initial(name)].")
 
-    // Dropping or giving away a worn amulet has to strip its bonus first, or the
-    // stats stay behind on a player who no longer owns it.
+    // A worn amulet has to strip its bonus before leaving, or the stats stay behind on
+    // a player who no longer owns it.
     Drop()
         if(worn && ismob(loc)) Unequip(loc)
         ..()
@@ -497,9 +433,6 @@ obj/item/amulet/erdrick
     bonusSpirit = 2
 
 // --- Utility amulets ---------------------------------------------------------
-// Confirmed by the user from memory of the OG (no string-table/monster-table data
-// recovered for these, unlike the stat amulets above — functionally these are as
-// solid as anything else in this file, just sourced differently).
 obj/item/amulet/stepguard
     name = "Amulet of Safe Passage"
     description = "Protects against damage from lava and swamp terrain."
@@ -528,19 +461,19 @@ obj/item/amulet/gold
     name = "Amulet of Wealth"
     description = "Increases Gold gained from kills."
     icon_state = "gold"
-    bonusGoldPercent = 10  // PLACEHOLDER
+    bonusGoldPercent = 10
 
 obj/item/amulet/exp
     name = "Amulet of Experience"
     description = "Increases EXP gained from kills."
     icon_state = "exp"
-    bonusExpPercent = 10  // PLACEHOLDER
+    bonusExpPercent = 10
 
 obj/item/amulet/luck
     name = "Amulet of Luck"
     description = "Increases item drop rate."
     icon_state = "luck"
-    bonusDropRate = 10  // PLACEHOLDER — flat percentage points added to dropChance
+    bonusDropRate = 10  // flat percentage points added to dropChance
 
 // -----------------------------
 // Mob-side inventory helpers
@@ -556,10 +489,8 @@ mob/proc/GetInventoryCount()
         count++
     return count
 
-// Moves an item into this mob's inventory if there's room. Returns TRUE/FALSE.
-// Stackable items (maxStack > 1, Phase 5) merge into an existing same-type stack
-// first — that's not a new slot, so it can succeed even at capacity. Only the
-// leftover that doesn't fit in any existing stack needs a fresh slot of its own.
+// Stackable items (maxStack > 1) merge into an existing same-type stack first — that's
+// not a new slot, so it can succeed even at capacity.
 mob/proc/PickUpItem(obj/item/I)
     if(I.maxStack > 1)
         for(var/obj/item/existing in contents)
@@ -575,9 +506,8 @@ mob/proc/PickUpItem(obj/item/I)
             if(I.amount <= 0)
                 del I
                 return TRUE
-            // Still some left over (rare — would need a stack bigger than maxStack to
-            // begin with) — keep looking for another same-type stack with room, then
-            // fall through to the capacity check below for whatever's still left.
+            // Still some left over — keep looking for another same-type stack with
+            // room, then fall through to the capacity check below for what's left.
 
     if(GetInventoryCount() >= GetInventoryCapacity())
         src.ShowInfo("Your inventory is full.")
@@ -594,10 +524,8 @@ mob/proc/HasMatchingKey(lockName)
             return TRUE
     return FALSE
 
-// -----------------------------
-// Drop Item (legacy menu-based fallback — superseded by obj/item/verb/Drop() above,
-// which right-click gives you directly on the item itself. Kept, just hidden.)
-// -----------------------------
+// Legacy menu-based fallback — superseded by obj/item/verb/Drop() above (right-click
+// the item directly). Kept, just hidden.
 mob/verb/DropItem()
     set hidden = 1
     set desc = "Drop an item from your inventory onto the ground"

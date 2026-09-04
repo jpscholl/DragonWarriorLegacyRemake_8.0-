@@ -12,13 +12,11 @@ datum/SaveManager
         // Ensure the directory exists in your project: "Player SaveFiles/"
         F = new("Player SaveFiles/[ckey].sav")
 
-    // Releases this instance's file handle — call once a character's session is
-    // truly over (SaveAndLogout(), Main.dm). Without this, F stays open in memory
-    // for the rest of the server's life (mobs aren't garbage-collected on logout,
-    // just pulled out of `players`), and a second /savefile opened on the same path
-    // later (GM_Ban's Ban List scan, GMCommands.dm) can read a stale cached copy
-    // from before this session's last write — confirmed: a just-banned character
-    // wasn't showing up in the Ban List until a full server restart.
+    // Releases this instance's file handle — call once a character's session is truly
+    // over. Without this, a second /savefile opened on the same path later (GM_Ban's
+    // Ban List scan) could read a stale cached copy from before this session's last
+    // write — confirmed: a just-banned character wasn't showing up in the Ban List
+    // until a full server restart.
     proc/Close()
         F = null
 
@@ -98,19 +96,15 @@ datum/SaveManager
         // since re-equipping a saved amulet calls RecalculateVitals().
         D.ApplyInventory(newPlayer)
 
-        // Re-sync any leveled unlocks already earned before this player last
-        // disconnected — silent, since these were already learned, not just-now. MUST
-        // run after ApplyToCharacter() above, not before — CheckSkillUnlocks() reads
-        // Level/stats off the mob, which are still fresh-mob defaults (Level 1,
-        // Strength 1, etc.) until ApplyToCharacter() sets them from the save. Running
-        // it too early is exactly why a Fireball learned mid-session was vanishing on
-        // relog: the unlock check always failed against default stats.
+        // Re-sync any leveled unlocks already earned before disconnecting — silent,
+        // since these were already learned. MUST run after ApplyToCharacter() above:
+        // CheckSkillUnlocks() reads Level/stats off the mob, which are still fresh-mob
+        // defaults until ApplyToCharacter() sets them from the save — running it too
+        // early is exactly why a Fireball learned mid-session was vanishing on relog.
         newPlayer.CheckSkillUnlocks(silent = TRUE)
 
-        // Restore the player's own numpad slot arrangement (Code/Player/SkillLink.dm's
-        // drag-and-drop) — must run LAST, after every skill it could reference is
-        // actually known (starting kit above, plus whatever CheckSkillUnlocks() just
-        // re-granted).
+        // Restore the numpad slot arrangement — must run LAST, after every skill it
+        // could reference is actually known.
         D.ApplySkillSlots(newPlayer)
 
         // Full mana on login, every time — not just whatever was saved.
@@ -133,12 +127,10 @@ datum/SaveManager
         // Stop the login-menu music before handing control to the real character
         M << sound(null, channel = 1)
 
-        // Transfer client control. Grab the client ref BEFORE reassigning client.mob —
-        // once that reassignment happens, the engine clears M's own .client (M is no
-        // longer that client's mob), so "M.client.SyncGMVerbs()" after would be
-        // null.SyncGMVerbs(), aborting the proc before newPlayer.loc got set below and
-        // leaving newPlayer stuck at the default (1,1,1) spawn. Same pattern already
-        // used in FinalizePlayer() (LoginMenu.dm).
+        // Grab the client ref BEFORE reassigning client.mob — once that happens the
+        // engine clears M's own .client, so "M.client.SyncGMVerbs()" after would be
+        // null.SyncGMVerbs(), aborting the proc before newPlayer.loc got set below.
+        // Same pattern as FinalizePlayer() (LoginMenu.dm).
         var/client/C = M.client
         C.mob = newPlayer
         // The new mob's own verb list starts fresh from its type declaration (includes

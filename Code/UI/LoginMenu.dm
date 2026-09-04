@@ -54,13 +54,8 @@ proc/ShowLoginMenu(mob/playerTemp/M)
             ShowLoginMenu(M)
             return
         if(!M.client.saveManager.LoadCharacter(M, slot))
-            // LoadCharacter() failed (missing/corrupt save data, unresolvable class,
-            // etc.) — M was never handed a real character or relocated off of
-            // mob/playerTemp's default spot, which is BYOND's (1,1,1) origin (nothing
-            // ever gives playerTemp its own spawn — world.mob = /mob/playerTemp,
-            // Main.dm, with no loc override). Previously this failed completely
-            // silently, leaving the player stuck controlling that temp mob at (1,1,1)
-            // forever with no menu and no explanation.
+            // Previously failed silently, leaving the player stuck controlling the
+            // temp mob at BYOND's (1,1,1) origin forever with no menu or explanation.
             M.ShowInfo("Something went wrong loading that character.")
             ShowLoginMenu(M)
         return
@@ -109,9 +104,14 @@ proc/NewCharacterMenu(mob/playerTemp/M)
                 step = M.CustomizeColors()  // must return STEP_STATS or STEP_ICON
 
             if(STEP_STATS)
-                // Stat allocation
-                M.ShowInfo("Allocate Stats")
-                step = StatAllocation(M)     // must return STEP_STATS when done
+                // Archsage starts maxed (Level/stats set in FinalizePlayer() below) —
+                // nothing to interactively allocate, so skip straight to confirmation.
+                if(M.selectedClass == "Archsage")
+                    step = STEP_STATS
+                else
+                    // Stat allocation
+                    M.ShowInfo("Allocate Stats")
+                    step = StatAllocation(M)     // must return STEP_STATS when done
                 if(step == STEP_STATS)
                     if(M && M.client)
                         // Confirmation before the character is actually saved
@@ -204,7 +204,15 @@ proc/PromptForName(mob/M)
 proc/PromptForClass(mob/M)
     // Sage deliberately excluded — GM-only direct pick per existing design
     // (TODOList.md), not a creation-time choice for normal players.
-    var/list/classes = list("Hero", "Soldier", "Wizard", "Fighter", "Pilgrim", "Goof-off", "Back")
+    var/list/classes = list("Hero", "Soldier", "Wizard", "Fighter", "Pilgrim", "Goof-off")
+
+    // Archsage (PlayerTemplate.dm) is Cerebella's own personal test-all-skills class —
+    // gated on AEON_CKEY (AdminLevels.dm, her own hardcoded ckey) so it only ever shows
+    // up in HER class list, never a real player's.
+    if(M.ckey == AEON_CKEY)
+        classes += "Archsage"
+
+    classes += "Back"
     return input(M, "Choose your class:", "Class Selection") in classes
 
 // Turns a class choice into either the class name or null (on "Back")
@@ -217,6 +225,12 @@ proc/ApplyClassSelection(mob/M, selectedClass)
 // -----------------------------
 // Icon Handling
 // -----------------------------
+
+// Label used both as Archsage's custom-portrait list entry (GetClassIcons() below) and
+// as IconSelect()'s check for when to skip color customization entirely — the art is
+// already finished/precolored, running it through the Main/Accent/Hair/Eyes palette
+// loop would just break it.
+#define ARCHSAGE_CUSTOM_ICON_LABEL "My Own Portrait (precolored)"
 
 //fetch list based on the class player chooses
 proc/GetClassIcons(mob/M, selectedClass)
@@ -255,6 +269,33 @@ proc/GetClassIcons(mob/M, selectedClass)
             return list("Dragon Warrior 3 Sage (Male)"='Mob Icons/Player/dw3malesage.dmi',
                         "Dragon Warrior 3 Sage (Female)"='Mob Icons/Player/dw3femalesage.dmi',
                         "Back")
+        if("Archsage")
+            // Custom portrait first (IconSelect() matches ARCHSAGE_CUSTOM_ICON_LABEL
+            // to skip color customization for it), then every other class's icon
+            // options. Hand-listed, not built from the cases above — keep in sync by
+            // hand if a class's icon options ever change.
+            return list(ARCHSAGE_CUSTOM_ICON_LABEL = 'Mob Icons/Cere.dmi',
+                        "Dragon Warrior 1 Hero"='Mob Icons/Player/dw1hero.dmi',
+                        "Dragon Warrior 2 Hero"='Mob Icons/Player/dw2hero.dmi',
+                        "Dragon Warrior 3 Hero"='Mob Icons/Player/dw3hero.dmi',
+                        "Dragon Warrior 1 Soldier"='Mob Icons/Player/dw1soldier.dmi',
+                        "Dragon Warrior 2 Soldier"='Mob Icons/Player/dw2soldier.dmi',
+                        "Dragon Warrior 3 Guard"='Mob Icons/Player/dw3guard.dmi',
+                        "Dragon Warrior 1 Wizard"='Mob Icons/Player/dw1wizard.dmi',
+                        "Dragon Warrior 2 Wizard"='Mob Icons/Player/dw2wizard.dmi',
+                        "Dragon Warrior 3 Wizard"='Mob Icons/Player/dw3malewizard.dmi',
+                        "Dragon Warrior 1 Fighter"='Mob Icons/Player/dw1fighter.dmi',
+                        "Dragon Warrior 2 Fighter"='Mob Icons/Player/dw2fighter.dmi',
+                        "Dragon Warrior 3 Fighter (Male)"='Mob Icons/Player/dw3malefighter.dmi',
+                        "Dragon Warrior 3 Fighter (Female)"='Mob Icons/Player/dw3femalefighter.dmi',
+                        "Dragon Warrior 2 Pilgrim"='Mob Icons/Player/dw2pilgrim.dmi',
+                        "Dragon Warrior 3 Pilgrim (Male)"='Mob Icons/Player/dw3malepilgrim.dmi',
+                        "Dragon Warrior 3 Pilgrim (Female)"='Mob Icons/Player/dw3femalepilgrim.dmi',
+                        "Dragon Warrior 3 Goof-off (Male)"='Mob Icons/Player/dw3malegoofoff.dmi',
+                        "Dragon Warrior 3 Goof-off (Female)"='Mob Icons/Player/dw3femalegoofoff.dmi',
+                        "Dragon Warrior 3 Sage (Male)"='Mob Icons/Player/dw3malesage.dmi',
+                        "Dragon Warrior 3 Sage (Female)"='Mob Icons/Player/dw3femalesage.dmi',
+                        "Back")
     return list()
 
 //icon selection and storage
@@ -264,9 +305,7 @@ proc/GetClassIcons(mob/M, selectedClass)
 // RunSageReclassFlow() (PlayerTemplate.dm), which reuses this exact flow for Classchange.
 proc/IconSelect(mob/M)
     var/list/iconChoices = GetClassIcons(M, M.selectedClass)
-    // CONFIRMED OG wording (string table): "Who will you look like?" — was "Choose your
-    // icon:" with title "Icon Selection", neither of which matches the OG. Title
-    // shortened to "Icon" to match too (confirmed via live OG screenshot, 2026-08-25).
+    // CONFIRMED OG wording: "Who will you look like?", title "Icon".
     var/iconChoice = input(M, "Who will you look like?", "Icon") in iconChoices
 
     if(iconChoice == "Back")
@@ -276,6 +315,19 @@ proc/IconSelect(mob/M)
     M.selectedIconName = GetIconFilename(M.selectedIcon)
 
     M.ShowInfo("You've selected [M.selectedIconName]")
+
+    // Precolored custom portrait — skip the Main/Accent/Hair/Eyes loop entirely and go
+    // straight to stats. Runs IconPreview() itself (STEP_CUSTOM's own call never
+    // happens otherwise) and resets client.eye back to M immediately after — skipping
+    // CustomizeColors() means its "Finish" branch (which normally does that reset)
+    // never runs, and IconPreview() leaves eye on the temporary preview object, which
+    // would otherwise leave the new character never rendering in-world until the next
+    // relog forces a fresh eye. See Markdowns/CodeNotes.md.
+    if(iconChoice == ARCHSAGE_CUSTOM_ICON_LABEL)
+        M.IconPreview()
+        M.client.eye = M
+        return STEP_STATS
+
     return STEP_CUSTOM
 
 //---------------------------------
@@ -357,6 +409,17 @@ proc/FinalizePlayer(mob/playerTemp/M)
     // Appearance & stats
     ApplyCustomColors(M, newPlayer)
     ApplyCustomStats(M, newPlayer)
+
+    // Archsage skips creation-time stat allocation entirely (STEP_STATS, above) — it
+    // starts at max level with every stat already at this class's own cap, overwriting
+    // whatever ApplyCustomStats() just copied off the (never-shown) allocation screen.
+    if(istype(newPlayer, /mob/player/Archsage))
+        newPlayer.Level        = MAX_LEVEL
+        newPlayer.Strength     = newPlayer.capStrength
+        newPlayer.Vitality     = newPlayer.capVitality
+        newPlayer.Agility      = newPlayer.capAgility
+        newPlayer.Intelligence = newPlayer.capIntelligence
+        newPlayer.Spirit       = newPlayer.capSpirit
 
     // Derive MaxHP/MaxMP from the stats just applied, then top both off — a fresh
     // character should never start below full. This also retires the static
@@ -467,13 +530,10 @@ proc/ApplyCustomColors(mob/playerTemp/src, mob/player/dst)
     dst.accentColor = "[src.accentColor]"
 
 // -----------------------------
-// Stat Allocation
+// Stat Allocation — confirmed 2026-08-10: 12 points to allocate, each capped at 10 for
+// this screen (the higher per-class ceilings, GetClassStatCaps(), still govern
+// level-up spend but aren't reachable at creation).
 // -----------------------------
-// Confirmed 2026-08-10: creation starts every stat at 1 (base mob default,
-// PlayerTemplate.dm) with 12 points to allocate, each stat capped at 10 for this
-// screen specifically — the much higher per-class ceilings (GetClassStatCaps(),
-// PlayerTemplate.dm) still govern level-up spend (ClickableStats.dm), just not
-// reachable at creation anymore.
 #define CREATION_STAT_POINTS 12
 #define CREATION_STAT_CAP 10
 

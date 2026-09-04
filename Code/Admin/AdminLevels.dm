@@ -35,14 +35,11 @@ var/list/aeons_crew = list("azekrai")
 #define AEON_CKEY "cerebella"
 
 // -----------------------------
-// Persistent Builder/Admin promotion (TODOList.md Phase 2/9) — a Host/GM can grant or
-// revoke Builder/Admin at runtime (GM_PromoteBuilder/GM_PromoteAdmin below) without a
-// recompile, unlike the hardcoded test_builders/test_admins lists above. Deliberately
-// its OWN savefile under "Server Data/", not anywhere under "Player SaveFiles/" — this
-// project has its own Save File Editor tool, so a promotion list living where a player
-// could point that tool at their own save would be a real self-promotion vector, not a
-// hypothetical one (same reasoning this file's own header already applies to
-// adminLevel never being read from a player's save).
+// Persistent Builder/Admin promotion — a Host/GM can grant or revoke Builder/Admin at
+// runtime (GM_PromoteBuilder/GM_PromoteAdmin) without a recompile. Deliberately its
+// OWN savefile under "Server Data/", not "Player SaveFiles/" — this project has its
+// own Save File Editor tool, so a promotion list under a player's own save would be a
+// real self-promotion vector, same reasoning as adminLevel never being read from one.
 // -----------------------------
 var/list/persistent_builders = list()
 var/list/persistent_admins = list()
@@ -98,24 +95,16 @@ client
     // extended to all of them so a player without sufficient access doesn't see a verb
     // they can't use at all, instead of seeing it and getting rejected on click. Each
     // verb still keeps its own internal canBuild/canAdmin/adminLevel check too (defense
-    // in depth) — this only controls whether it's offered in the first place. Verbs live
-    // per-mob, not per-client, so this needs re-running whenever `mob` changes — called
-    // here (ApplyAdminLevel(), covers the initial mob/playerTemp) and again from
-    // FinalizePlayer() (LoginMenu.dm)/LoadCharacter() (SaveSystem.dm)/BecomeSage()
-    // (PlayerTemplate.dm) once the real mob/player character takes over.
+    // in depth) — this only controls whether it's offered in the first place. Verbs
+    // live per-mob, not per-client, so this needs re-running whenever `mob` changes —
+    // called here and again from FinalizePlayer()/LoadCharacter()/BecomeSage() once
+    // the real mob/player character takes over.
     //
     // MAINTENANCE NOTE: this is the one central place a verb's access tier is
-    // declared — its own internal check (e.g. GM_MakeTurf's `if(!client.canBuild)`)
-    // only rejects on USE, it doesn't hide the verb. A future GM verb that gets its
-    // internal check right but isn't added to one of the three lists below will still
-    // be visible-but-rejected for anyone below that tier — the exact bug this proc was
-    // extended to fix for the others (GM_KillMonsters was missing here entirely until
-    // this pass — same bug, just never caught since nothing failed loudly). DM verbs
-    // can't carry their own custom metadata to read back generically here, so there's
-    // no way to derive these lists automatically; a new GM verb needs a manual entry
-    // below. Naming convention: every GM verb is GM_PascalCase (e.g. GM_MakeMob) — one
-    // consistent style makes accidental omissions like the GM_KillMonsters one easier
-    // to spot by eye.
+    // declared. DM verbs can't carry their own custom metadata to read back
+    // generically here, so a new GM verb needs a manual entry below — see
+    // Markdowns/CodeNotes.md for the bug this fixed (a verb missing from every list
+    // stays visible-but-rejected instead of hidden).
     proc/SyncGMVerbs()
         if(!mob) return
 
@@ -170,4 +159,25 @@ client
             mob.verbs += gmHostVerbs
         else
             mob.verbs -= gmHostVerbs
+
+// -----------------------------
+// Access guards — every GM/Builder/Debug verb across the codebase used to hand-roll
+// its own "if(!client || !client.X) { ShowInfo(...); return }" check (35 identical
+// copies across GMCommands.dm/DebugTools.dm/BuildTools.dm). One guard per tier here
+// instead: returns TRUE if the caller has access, otherwise shows the same rejection
+// message and returns FALSE. Called as `if(!RequireX()) return` at the top of a verb.
+mob/proc/RequireBuilder()
+    if(client && client.canBuild) return TRUE
+    src.ShowInfo("You don't have Builder access.")
+    return FALSE
+
+mob/proc/RequireAdmin()
+    if(client && client.canAdmin) return TRUE
+    src.ShowInfo("You don't have Admin access.")
+    return FALSE
+
+mob/proc/RequireGMHost()
+    if(client && client.adminLevel >= LEVEL_GM_HOST) return TRUE
+    src.ShowInfo("You don't have GM access.")
+    return FALSE
 

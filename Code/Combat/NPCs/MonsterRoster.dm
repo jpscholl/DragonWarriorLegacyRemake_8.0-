@@ -1,39 +1,10 @@
 // -----------------------------
 // Monster Roster — every mob/enemy subtype in the game
 // -----------------------------
-// Stat blocks are REAL OG DATA as of 2026-08-25, not placeholders: every Level/MaxHP/
-// MaxMP/Strength/Agility/Vitality/Intelligence/Spirit/element/exp/gold value below is
-// read straight out of the original Dragon Warrior Legacy .dmb's own type table (see
-// Markdowns/OGMonsterBaseStats.tsv for the raw extract and Markdowns/MonsterBaseStats.md
-// for the confidence notes). The two flat placeholder tiers this file used to carry
-// (TIER1_*/TIER2_* defines, then mob/enemy/tier1 and /tier2 base types) are gone —
-// they were never a real OG concept. Real monsters differ per-stat, most sharply in
-// Agility, which spans 1 (Babble) to 10 (Bat) across just these ten.
-//
-// Per that TSV's own header, confidence varies by column: element is CERTAIN (the stored
-// values are literally element name strings), Level/MaxHP/MaxMP and the five stats are
-// HIGH, exp/gold are MEDIUM. Nothing here is a guess of ours; where a column was too
-// uncertain to apply, it's called out below rather than used.
-//
-// Originally trimmed to ten monsters (cat, slime, dog, redslime, bat, fox, babble,
-// skeleton, drakee, healer) per the "5-6 monster types for training cages, not the
-// full ~86 roster" call from the 2026-08-14 session. Expanded 2026-08-28 to all 24
-// monster names actually CONFIRMED to exist in the OG (via GMglobalrespawn/
-// GMkillallmonsters's type pickers, GMCommandsReference.md) — the other 53 rows in the
-// TSV belong to icons with no confirmed real name, so they're left out rather than
-// guessed at. The TSV holds real stats for all 77; adding one more back is just a
-// block below with its row's numbers, no tier to pick.
-//
-// TWO COLUMNS DELIBERATELY NOT APPLIED:
-//   delay — real and high-confidence (inversely monotonic with Agility across the whole
-//     roster), but its UNITS are unknown. Values run 4-8; attackCooldown (EnemyNPCs.dm)
-//     is in deciseconds and currently defaults to 10, so mapping delay straight across
-//     would roughly double every monster's attack rate on an unverified unit conversion.
-//     Left alone until the collaborator's bytecode pass recovers how delay is consumed.
-//   flee — applied below as fleeHealthPercent, but flagged MEDIUM confidence in the TSV
-//     ("name is a guess"). The values behave exactly like a percent — 0 on every boss and
-//     on Skeleton, highest on the metal monsters — which is what fleeHealthPercent already
-//     means, so the mapping is safe even if the name turns out wrong.
+// Stat blocks are REAL OG DATA (Markdowns/OGMonsterBaseStats.tsv), not placeholders —
+// see Markdowns/CodeNotes.md for provenance, confidence levels, and which two TSV
+// columns (delay, flee) were deliberately left unapplied and why. dropType/dropChance
+// are the exception — not in the TSV, chosen loosely.
 
 // =============================================================================
 // TIER 1-equivalent — the low end of the real difficulty ordering (Levels 1-3)
@@ -120,7 +91,7 @@ mob/enemy/bat
     HP = 45
     MaxHP = 45
     Strength = 5
-    Agility = 10   // fastest thing in the trimmed roster — the stat the old flat tiers erased
+    Agility = 10
     Vitality = 3
     Intelligence = 2
     Spirit = 1
@@ -162,7 +133,7 @@ mob/enemy/babble
     HP = 60
     MaxHP = 60
     Strength = 6
-    Agility = 1    // slowest in the roster
+    Agility = 1
     Vitality = 6
     Intelligence = 8
     Spirit = 1
@@ -188,7 +159,7 @@ mob/enemy/skeleton
     mobElement = "Darkness"
     expReward = 8
     goldReward = 8
-    fleeHealthPercent = 0  // never flees — real value, matches every boss in the TSV
+    fleeHealthPercent = 0  // never flees
     dropType = /obj/item/consumable/herb
     dropChance = 12
 
@@ -210,12 +181,8 @@ mob/enemy/drakee
     dropType = /obj/item/consumable/tea
     dropChance = 10
 
-// The only monster in the trimmed roster with an MP pool. CONFIRMED 2026-08-18: "Healer"
-// is the proper OG name for what earlier notes called "healslime"/"healer slime" — same
-// monster, not a separate gap. Its self/ally-heal AI is TryHeal() (EnemyNPCs.dm), the
-// remake's equivalent of the OG's HealCheck; the real MaxMP below is what pays for it.
-// With only 20 MP and Heal costing 4, it gets roughly five casts before it's dry and
-// drops to melee — which is what makes killing it first actually matter.
+// Its self/ally-heal AI is TryHeal() (EnemyNPCs.dm) — see Markdowns/CodeNotes.md for
+// the "Healer" naming confirmation.
 mob/enemy/healer
     name = "Healer"
     icon = 'healer.dmi'
@@ -238,16 +205,6 @@ mob/enemy/healer
     dropChance = 15
     healSkills = list(/datum/skill/Heal)
 
-// =============================================================================
-// 2026-08-28 roster expansion — same real OG data source as the ten above
-// (Markdowns/OGMonsterBaseStats.tsv), extending from the trimmed 10-monster training
-// cage out to all 24 monster names actually confirmed to exist in the OG (via the
-// GMglobalrespawn/GMkillallmonsters type pickers, GMCommandsReference.md). Same
-// confidence notes apply (element CERTAIN, level/HP/MP/stats HIGH, exp/gold MEDIUM,
-// delay/flee left out of scope — see this file's header). dropType/dropChance aren't
-// in the TSV at all (no drop data was extractable) — chosen in the same loose style as
-// the original 10's own drop fields, not sourced from anything.
-// =============================================================================
 mob/enemy/magician
     name = "Magician"
     icon = 'magician.dmi'
@@ -267,9 +224,8 @@ mob/enemy/magician
     fleeHealthPercent = 15
     dropType = /obj/item/consumable/tea
     dropChance = 12
-    // Has a real MP pool per the TSV, but no castableSkills wired — the confirmed OG
-    // caster AI (kiting, MP-drain-then-fallback-to-melee, TODOList.md Phase 6) isn't
-    // built yet, so this is melee-only for now despite the name/MP.
+    // Has a real MP pool but no castableSkills wired — caster AI isn't built yet
+    // (see Markdowns/CodeNotes.md).
 
 mob/enemy/snailslime
     name = "Snail Slime"
@@ -305,7 +261,7 @@ mob/enemy/ghost
     mobElement = "Darkness"
     expReward = 20
     goldReward = 20
-    fleeHealthPercent = 0   // never flees — real TSV value, same as Skeleton
+    fleeHealthPercent = 0   // never flees
     dropType = /obj/item/consumable/tea
     dropChance = 12
 
@@ -347,7 +303,7 @@ mob/enemy/magidrakee
     fleeHealthPercent = 15
     dropType = /obj/item/consumable/tea
     dropChance = 12
-    // Same "has MP, no caster AI yet" note as Magician above.
+    // Has a real MP pool but no castableSkills wired — caster AI isn't built yet.
 
 mob/enemy/reptile
     name = "Reptile"
@@ -406,12 +362,8 @@ mob/enemy/panther
     dropType = /obj/item/consumable/tea
     dropChance = 10
 
-// CONFIRMED OG AI (TODOList.md Phase 6, live-tested 2026-08-10): Acolytes self-cast
-// Increase (physical defense buff) the instant they spot the player. Not built here —
-// EnemyNPCs.dm has no "self-buff on aggro" hook at all yet (only castableSkills/
-// healSkills, both offense/heal-shaped) — so this is melee-only for now despite the
-// real MP pool below. Worth its own AILoop() pass alongside the other confirmed-but-
-// unbuilt caster behaviors (TODOList.md), not bolted on here.
+// Confirmed OG AI (self-cast Increase on aggro) not built yet — see
+// Markdowns/CodeNotes.md.
 mob/enemy/acolyte
     name = "Acolyte"
     icon = 'acolyte.dmi'
@@ -453,7 +405,7 @@ mob/enemy/gremlin
     fleeHealthPercent = 25
     dropType = /obj/item/consumable/tea
     dropChance = 14
-    // Same "has MP, no caster AI yet" note as Magician above.
+    // Has a real MP pool but no castableSkills wired — caster AI isn't built yet.
 
 mob/enemy/blazeghost
     name = "Blazeghost"
@@ -472,7 +424,7 @@ mob/enemy/blazeghost
     mobElement = "Fire"
     expReward = 47
     goldReward = 47
-    fleeHealthPercent = 0   // never flees — real TSV value, same as Skeleton/Ghost
+    fleeHealthPercent = 0   // never flees
     dropType = /obj/item/consumable/tea
     dropChance = 16
 
@@ -509,7 +461,7 @@ mob/enemy/manowar
     mobElement = "Water"
     expReward = 59
     goldReward = 59
-    fleeHealthPercent = 0   // never flees — real TSV value, same as Skeleton/Ghost/Blazeghost
+    fleeHealthPercent = 0   // never flees
     dropType = /obj/item/consumable/herb
     dropChance = 12
 

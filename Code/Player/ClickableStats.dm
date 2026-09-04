@@ -48,10 +48,8 @@ obj/StatLink
         var/currentStat = P.vars[attributeName]
         var/cost = GetCost(currentStat)
 
-        // Per-class ceiling (PlayerTemplate.dm's GetClassStatCaps()) — this level-up
-        // spend path had no cap check at all before, unlike creation-time
-        // StatAllocation() (LoginMenu.dm), so a stat could be pushed arbitrarily high
-        // past its class's intended max.
+        // Per-class ceiling — this level-up spend path had no cap check at all before,
+        // unlike creation-time StatAllocation() (LoginMenu.dm).
         var/list/caps = GetClassStatCaps(P.class)
         if(caps && currentStat >= caps[attributeName])
             P.ShowInfo("[attributeName] is already at its class cap ([caps[attributeName]])!")

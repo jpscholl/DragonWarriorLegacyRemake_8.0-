@@ -43,20 +43,16 @@ datum/CharacterSaveData
     var/mainColor
     var/accentColor
 
-    // Skills — WHICH skills are known isn't saved here at all: it's fully derivable
-    // from Level/stats (GetSkillUnlocks(), Code/Player/SkillUnlocks.dm) plus the fixed
-    // starting kit, both re-applied on load (LoadCharacter(), SaveSystem.dm). WHICH
-    // numpad slot each known skill sits in, though, is the player's own drag-and-drop
-    // customization (Code/Player/SkillLink.dm) — not derivable from anything else, so
-    // that's what this actually stores: a slotNum -> skill typepath snapshot (or null
-    // for an empty slot).
+    // WHICH skills are known isn't saved here — it's fully derivable from
+    // Level/stats plus the fixed starting kit, both re-applied on load. WHICH numpad
+    // slot each known skill sits in IS the player's own drag-and-drop customization,
+    // not derivable from anything else — that's what this stores: slotNum -> skill
+    // typepath (or null for an empty slot).
     var/list/equippedSkillTypes
 
-    // Carried items (Code/Player/Inventory.dm) — one entry per obj/item in contents,
-    // as a plain type + the couple of bits of per-instance state that would otherwise
-    // be lost: a worn amulet's equip bonus, a key's engraved name. Not a full var dump
-    // of each item, same "store the minimum that's actually per-instance" approach as
-    // equippedSkillTypes above.
+    // One entry per obj/item in contents: a plain type + the couple of bits of
+    // per-instance state that would otherwise be lost (a worn amulet's equip bonus, a
+    // key's engraved name) — not a full var dump of each item.
     var/list/inventorySnapshot
 
 // ------------------------------------

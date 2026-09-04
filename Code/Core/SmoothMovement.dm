@@ -13,15 +13,12 @@ mob
     // Step the mob in a direction
     proc
         Step(dir, delay = step_delay)
-            // Root the mob in place while canAct is FALSE — mid-attack/cast
-            // (SkillDatum.dm's OnUse(), EnemyNPCs.dm's AILoop()), dead (Die(),
-            // CombatSystem.dm), or falling through turf/sky (World/Turfs.dm). Reached
-            // by BOTH players (via client/Move() below) AND enemies (EnemyNPCs.dm's
-            // StepRelativeTo()/Wander() call this same proc directly) — so an
-            // attacking enemy gets rooted mid-swing too, not just players.
-            // attackRecoveryOnly (PlayerTemplate.dm) is the one exception: a melee
-            // swing's windup already landed and only the "can't attack again yet"
-            // half of canAct's lock is still active, so movement is let through.
+            // Root the mob while canAct is FALSE — mid-attack/cast, dead, or falling
+            // through turf/sky. Reached by both players (client/Move() below) and
+            // enemies (EnemyNPCs.dm calls this same proc directly), so an attacking
+            // enemy gets rooted mid-swing too. attackRecoveryOnly is the one
+            // exception: a swing's windup already landed and only the "can't attack
+            // again yet" half of canAct's lock is still active.
             if(!canAct && !attackRecoveryOnly)
                 return 0
 
@@ -76,26 +73,19 @@ client
 
             if(state)  // key pressed
                 if(mob && mob.turnWalkMode && dir != mob.dir)
-                    // Turn-walk toggle: face the new direction, then wait a brief,
-                    // deliberate moment before actually starting to walk — without an
-                    // actual pause here, the turn and the first step happen close
-                    // enough together to be imperceptible. Tracked per-direction
-                    // (pendingDir/pendingSession) rather than a single global counter —
-                    // a global counter meant releasing ANY other key (e.g. letting go
-                    // of the direction you were previously walking, entirely unrelated
-                    // to this one) would cancel this pending turn too, even though this
-                    // key was never released. That left the newly-pressed direction
-                    // stuck doing nothing until its own key was pressed again.
-                    // Only cancel the glide if a step is actually still in flight
-                    // (mob.next_step hasn't passed yet) — calling walk(mob, 0) when
-                    // there's nothing animating is a no-op for the movement itself, but
-                    // may still be causing an avoidable visual snap on its own.
+                    // Turn-walk toggle: face the new direction, then wait a brief
+                    // deliberate moment before walking — without a pause the turn and
+                    // first step happen too close together to perceive. Tracked
+                    // per-direction (pendingDir/pendingSession), not a single global
+                    // counter — a global counter would let releasing ANY other key
+                    // cancel this pending turn too, leaving the newly-pressed
+                    // direction stuck doing nothing. Only cancels the glide if a step
+                    // is actually still in flight (mob.next_step hasn't passed).
                     if(mob.next_step > world.time)
                         walk(mob, 0)
                     mob.dir = dir
-                    move_dir = 0  // stop any movement already in progress — otherwise
-                                  // you'd keep sliding the OLD direction while visually
-                                  // facing the NEW one for the whole pause
+                    move_dir = 0  // stop movement already in progress, or you'd keep
+                                  // sliding the OLD direction while facing the NEW one
                     pendingDir = dir
                     pendingSession++
                     var/my_session = pendingSession
@@ -115,11 +105,9 @@ client
                 if(move_dir == dir)
                     move_dir = 0  // stop moving in that direction
 
-        // Numpad 9/7/3/1/0 skill slots (mob/player/skillSlots, Code/Player/PlayerTemplate.dm).
-        // Repurposes what used to be diagonal-movement macros (Interface.dmf) — this game
-        // has no diagonal movement at all, confirmed (matches classic Dragon Warrior,
-        // 4-directional only; diagonal motion may only ever happen as a skill's own
-        // effect later, e.g. a dash, never as direct key input).
+        // Numpad 9/7/3/1/0 skill slots (skillSlots, PlayerTemplate.dm) — repurposes
+        // what used to be diagonal-movement macros (Interface.dmf), since this game
+        // has no diagonal movement at all.
         UseSkillKey(slotNum as num)
             set instant = 1
             set hidden = 1

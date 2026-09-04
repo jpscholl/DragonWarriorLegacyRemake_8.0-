@@ -43,17 +43,12 @@ mob/player
         stat("Hit Points: [HP]/[MaxHP]")  // Current/max HP
         stat("Magic Points: [MP]/[MaxMP]")// Current/max MP
         // Confirmed OG field order places these two here, between Magic Points and
-        // Experience Points — shown to everyone rather than staff-only, matching that
-        // confirmed order (TODOList.md Phase 3; "staff-only?" was an open question,
-        // going with the OG-faithful behavior since this pass targets matching the OG
-        // as closely as possible).
+        // Experience Points, shown to everyone rather than staff-only.
         stat("GM Level: [client ? client.adminLevel : 0]")
         stat("CPU: [world.cpu]")
         // Percent is progress within the CURRENT level's band (Exp resets to 0 on
-        // every level-up, LevelCheck() above, so Exp/Nexp already IS that fraction —
-        // no separate floor/threshold tracking needed), one decimal place, matching
-        // the OG's own confirmed format ("10882/14011 (10.3%)"), not a whole-number
-        // percent of the raw total.
+        // every level-up, so Exp/Nexp already IS that fraction), matching the OG's
+        // own confirmed format ("10882/14011 (10.3%)").
         stat("Experience Points: [Exp]/[Nexp] ([FormatPercent(Exp, Nexp)]%)")
         stat("Gold: [Gold]")              // Currency
         stat("Players online: [length(players)]") // Total players online
