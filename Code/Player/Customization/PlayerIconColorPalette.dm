@@ -15,17 +15,9 @@ datum/DefaultIconColors
             "Main"   = rgb(0,124,255),
             "Accent" = rgb(255,255,255)
         )
-        // Soldier/Wizard's DW3 icons (TODOList.md Phase 1) — sampled by loading the
-        // actual .dmi (they're PNG-formatted internally) and counting distinct pixel
-        // colors. Unlike dw3hero.dmi above, which encodes Hair/Eyes/Main as three
-        // barely-distinguishable-but-genuinely-separate palette entries (0,124,254 /
-        // 0,124,250 / 0,124,255), dw3guard.dmi and dw3malewizard.dmi each only use ONE
-        // real costume color in the actual pixel data (plus a shared skin tone and
-        // white/near-white background/outline, neither of which is a customizable
-        // zone) — so only "Main" is populated here. That's a real property of these
-        // two sprites, not a shortcut: PaletteManager.dm only ever iterates whatever
-        // zones are present in this list, so a missing Hair/Eyes/Accent entry just
-        // means that zone has no visible effect on these icons, not a crash.
+        // Soldier/Wizard's DW3 icons only use ONE real costume color in the actual
+        // pixel data, so only "Main" is populated — a real property of these sprites,
+        // not a shortcut. See Markdowns/CodeNotes.md.
         colors_by_class["Soldier"] = list()
         colors_by_class["Soldier"]["dw3guard.dmi"] = list(
             "Main" = rgb(0,120,248)

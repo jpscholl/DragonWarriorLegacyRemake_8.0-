@@ -1,18 +1,11 @@
 // -----------------------------
-// Clickable/draggable Skill Link — Battle tab numpad slots + Free Skills list
+// Clickable/draggable Skill Link — Battle tab numpad slots + Free Skills list. Same
+// mechanism as obj/StatLink (ClickableStats.dm) — a real BYOND obj shown via stat(),
+// not plain text, so it can be dragged. Confirmed OG behavior: drag a known skill from
+// Free Skills onto a numpad slot to equip it (swaps with whatever was there), and drag
+// an equipped skill back onto Free Skills to unequip it. MouseDrop() fires on the
+// DRAGGED object (src), not the drop target — `over` is the target.
 // -----------------------------
-// Same mechanism as obj/StatLink (Code/Player/ClickableStats.dm) for the stat-alloc
-// links — a real BYOND obj shown in the stat panel via stat(), not plain text, so it
-// can be dragged. Confirmed OG behavior (ClassReference.md's "Skills vs. equipped
-// skills" note): drag a known skill from Free Skills onto a numpad slot to equip it
-// there (swaps with whatever was already in that slot), and drag an equipped skill
-// back onto the Free Skills area to unequip it. Works both directions, and slot-to-slot
-// dragging is a true swap.
-//
-// MouseDrop() fires on the DRAGGED object (src), not the drop target — `over` is the
-// target. Easy to get backward (an earlier version of this file did), which is exactly
-// why only one direction worked before: MouseDrop() was written as if it fired on the
-// target instead.
 obj/SkillLink
     var/mob/player/P
     var/datum/skill/S       // skill this link represents; null on an empty numpad slot

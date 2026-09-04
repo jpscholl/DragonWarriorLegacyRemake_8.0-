@@ -178,19 +178,11 @@ area
 
 // -----------------------------
 // World spawn markers — confirmed OG names "playerstart" (login) / "playerspawn"
-// (after-death respawn), confirmed distinct from each other (GMCommandsReference.md's
-// Builder tier section: GMseeareas shows login spawns and death/respawn spawns as
-// separately-marked types). Built as plain OBJECTS, not areas — a turf only ever
-// belongs to ONE area, so an area-based marker painted onto an existing Town/Dungeon/
-// etc. tile would silently strip that tile of its real area's music/battle-mode/
-// everything else. An object sitting on top of a tile doesn't touch its area at all.
-// Also matches the OG closer than an area would have: GMmakestat (the OG's stat-object
-// placement tool) lists both of these among its stat types, not among area types.
-//
-// invisibility this high keeps them unseen by every normal client regardless of
-// indoor/outdoor see_invisible swings (area/ceiling's Entered()/Exited() above only
-// ever sets 0 or 1) — "can only be seen as an area for GMs" means GM_SeeAreas'
-// overlay specifically, not merely being a GM; nothing renders these directly, ever.
+// (after-death respawn), confirmed distinct from each other. Built as plain OBJECTS,
+// not areas — a turf only ever belongs to ONE area, so an area-based marker painted
+// onto an existing Town/Dungeon tile would silently strip its real area's music/
+// battle-mode/everything else. An object sitting on top of a tile doesn't touch its
+// area at all.
 #define SPAWN_MARKER_INVISIBILITY 100
 
 obj/spawnMarker
@@ -205,14 +197,10 @@ obj/spawnMarker
 		icon = 'sign.dmi'
 		icon_state = "church"
 
-// Finds a random tile with a marker of the given type on it — lets a host building
-// their own map just place the marker wherever they want (playerStart for the world
-// login point, playerSpawn for after-death respawn) instead of a hardcoded coordinate
-// baked into the code. Multiple markers of the same type are all pooled together so a
-// host can lay down more than one without extra work. Falls back to PLAYER_SPAWN (the
-// old hardcoded coordinate, .dme) with a log line if the map has no such marker at
-// all yet, so a map that hasn't been updated for this system (or is just missing the
-// marker by mistake) doesn't strand a spawning/respawning player.
+// Finds a random tile with a marker of the given type on it, instead of a hardcoded
+// coordinate baked into the code. Multiple markers of the same type pool together.
+// Falls back to PLAYER_SPAWN (the old hardcoded coordinate) with a log line if the map
+// has no such marker yet, so it doesn't strand a spawning/respawning player.
 proc/FindSpawnTurf(markerType, markerLabel)
 	var/list/candidates = list()
 	for(var/obj/spawnMarker/M in world)
