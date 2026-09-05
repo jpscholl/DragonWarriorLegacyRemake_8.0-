@@ -22,6 +22,10 @@
 // END_PREFERENCES
 #define TILE_WIDTH 32
 #define TILE_HEIGHT 32
+// (world.view width - 1) / 2 — must stay in sync with world.view ("13x13") in Main.dm.
+// Used by CameraEye (SmoothMovement.dm) to clamp the camera so it never scrolls past
+// the map edge.
+#define CAMERA_VIEW_HALF 6
 // Shared vertical sprite offset (players AND enemies) — defined here, not in a .dm
 // file, so it's available regardless of #include order below (Combat/NPCs/EnemyNPCs.dm
 // compiles before Core/Main.dm alphabetically, same reason TILE_WIDTH/TILE_HEIGHT live here).

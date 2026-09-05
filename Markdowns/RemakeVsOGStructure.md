@@ -199,7 +199,7 @@ Legend: **✅ Built** · **🟡 Partial / scaffolded** · **❌ Missing**
 | Defense from stats | `/proc/base_def` (AGI+VIT) | **none — raw Strength damage, no defense term at all** | ❌ |
 | Magic defense (VIT+INT) | Yes | none | ❌ |
 | **Critical hits** | `crit_rate` on every hit, driven by Spirit | **nothing — zero occurrences of "crit" in the codebase** | ❌ |
-| Hit / miss roll | `miss`, `chance` | `RollDodge()` (Agility, invented) | 🟡 different model |
+| Hit / miss roll | `miss`, `chance` | `RollDodge()` (Agility, placeholder formula — OG had this too, per the user, just not yet reverse-engineered from `miss`/`chance`) | 🟡 different model |
 | Defend stance | `defend` flag | `isDefending`, 50% reduction | ✅ confirmed match |
 | Positional dodge | `jumpable` + Jump skill | Jump exists as a damage skill only | ❌ |
 | Barrier blocks damage | `blockable` | Barrier is a skill; no `blockable` channel | 🟡 |

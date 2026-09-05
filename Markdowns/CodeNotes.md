@@ -237,8 +237,9 @@ Organized by source file, in the order files were processed.
   (`DropDefendForAction()`, already matches). The remake's own addition on top —
   `DEFEND_ATTACK_SPEED_PENALTY` below, an attack-speed penalty on drop, not in the OG —
   is explicitly preferred by the user over the OG's plain drop, so it stays.
-- **Lines 94-99 (`RollDodge()`/dodge constants)**: dodge chance is a new mechanic — no
-  such thing existed before, so this is a placeholder formula, not OG-derived.
+- **Lines 94-99 (`RollDodge()`/dodge constants)**: dodge existed in the OG too, per the
+  user, just never confirmed/noted from the string table — so this is a placeholder
+  formula standing in for real OG behavior, not an invented remake mechanic.
   Agility-based, capped so it's never a sure thing.
 - **Lines 107-118 (defense divisors)**: new — no OG numeric formula exists to confirm
   against (only the help file's plain-language claim that Agility+Vitality drive

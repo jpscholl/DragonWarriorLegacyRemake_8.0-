@@ -210,6 +210,8 @@ turf
 			spawn(0)
 				M.PlayScreenFade(TRUE)
 				M.loc = destination
+				if(M.client && M.client.camera)
+					M.client.camera.SnapTo(M)  // instant, not a glide — a stairs jump isn't a walk
 				var/area/newArea = destination.loc
 				if(istype(newArea) && newArea.areaMusic)
 					M.PlayAreaMusic(newArea.areaMusic)

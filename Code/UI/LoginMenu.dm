@@ -468,6 +468,7 @@ proc/FinalizePlayer(mob/playerTemp/M)
     // non-GM's removal carries over from the old temp mob.
     C.SyncGMVerbs()
     newPlayer.loc = GetPlayerSpawnTurf()
+    C.AttachCamera(newPlayer)  // camera (SmoothMovement.dm) takes over as eye from here on
 
     // Start whatever music belongs to the spawn area (mob -> turf -> area)
     // right away, rather than waiting for the player's first step to trigger it.

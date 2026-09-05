@@ -421,6 +421,7 @@ mob/player/proc/BecomeSage()
 
     C.mob = newMob
     C.SyncGMVerbs()
+    C.AttachCamera(newMob)  // camera (SmoothMovement.dm) — reassigning .mob alone leaves eye on the old, about-to-be-deleted mob
 
     // This swap replaces an EXISTING character already in players (unlike
     // FinalizePlayer()/LoadCharacter(), which only ever add a new one).
