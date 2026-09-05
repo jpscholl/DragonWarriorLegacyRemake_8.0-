@@ -149,6 +149,11 @@ client
             for(var/obj/spawnMarker/M in T.contents)
                 return M
         for(var/atom/movable/A in T.contents)
+            // CameraEye (SmoothMovement.dm) is a real, invisible /atom/movable that
+            // normally sits on or near the player — without this it gets silently
+            // grabbed instead of an actual decoration, and dragging it relocates the
+            // camera rather than anything the GM meant to move.
+            if(istype(A, /obj/CameraEye)) continue
             return A
         return null
 
@@ -305,7 +310,15 @@ client
                     if(BUILD_MODE_LINE)
                         if(buildDownTurf) PlaceBuildLine(buildDownTurf, T)
                     if(BUILD_MODE_MOVE)
-                        if(buildGrabbedAtom) buildGrabbedAtom.loc = T
+                        if(buildGrabbedAtom)
+                            buildGrabbedAtom.loc = T
+                            // Same direct-.loc-bypasses-the-camera issue as beds/stairs/
+                            // Return — if what got grabbed is a mob (the GM's own, or any
+                            // other player's), its camera needs an explicit snap too.
+                            if(ismob(buildGrabbedAtom))
+                                var/mob/grabbedMob = buildGrabbedAtom
+                                if(grabbedMob.client && grabbedMob.client.camera)
+                                    grabbedMob.client.camera.SnapTo(grabbedMob)
                 RefreshAreaOverlayIfWatching()
 
         buildDownTurf = null

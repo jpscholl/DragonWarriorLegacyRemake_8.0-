@@ -837,22 +837,15 @@ proc/ToggleNightIconState(atom/A, toNight)
     else if(IsNightVariant(A.icon_state))
         A.icon_state = copytext(A.icon_state, 1, length(A.icon_state) - 4)
 
-// Swaps every turf/obj's icon_state to its night variant and back. Confirmed OG
-// convention: night states are just the day icon_state with "night" appended directly,
-// no separator, world-icons only — mobs don't have night sprites.
+// Toggles day/night. Delegates the actual sweep to SetWorldNight() (Main.dm) so a
+// GM-forced toggle and the clock-driven one share one implementation.
 mob/verb/GM_DayNight()
     set category = "GM"
-    set desc = "Toggles day/night for every turf and obj in the world"
+    set desc = "Toggles day/night for every turf, obj, and mob in the world"
 
     if(!RequireGMHost()) return
 
-    isNight = !isNight
-
-    for(var/turf/T in world)
-        ToggleNightIconState(T, isNight)
-    for(var/obj/O in world)
-        if(istype(O, /obj/StatLink)) continue
-        ToggleNightIconState(O, isNight)
+    SetWorldNight(!isNight)
 
     world << output("[src] has turned it to [isNight ? "night" : "day"].", "Info")
 

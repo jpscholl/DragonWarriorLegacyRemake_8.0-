@@ -140,6 +140,8 @@ turf
 					return TRUE   // already sleeping here, nothing more to do
 
 				user.loc = src
+				if(user.client && user.client.camera)
+					user.client.camera.SnapTo(user)  // direct .loc change bypasses client/Move(), the only place the camera normally tracks
 				user.icon_state = "sleep"
 				user.isSleeping = TRUE
 				user.SleepRestoreLoop()
@@ -305,6 +307,8 @@ turf
 				var/turf/new_loc = locate(M.x, M.y, M.z - 1)
 				if(new_loc)
 					M.loc = new_loc
+					if(M.client && M.client.camera)
+						M.client.camera.SnapTo(M)  // direct .loc change bypasses client/Move(), the only place the camera normally tracks
 				M.PlayScreenFade(FALSE)
 				M.canAct = TRUE
 
