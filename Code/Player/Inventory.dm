@@ -183,6 +183,8 @@ obj/item/consumable/wyvernwing
             user.ShowInfo("But the strange force contains the wing's powers!")
             return FALSE
         user.loc = GetPlayerSpawnTurf()
+        if(user.client && user.client.camera)
+            user.client.camera.SnapTo(user)  // direct .loc change bypasses client/Move(), the only place the camera normally tracks
         user.ShowInfo("You return to town!")
         return TRUE
 

@@ -42,9 +42,25 @@ var/global/adultServer = FALSE
 var/global/allowMultiLogin = FALSE
 
 // Day/night state — driven by the world clock below, still toggleable on demand by
-// GM_DayNight(). World icons only (turfs/objs), not mobs — the OG has no night
-// sprites for those.
+// GM_DayNight(). Turfs/objs swap to their confirmed-OG "night" icon_state variant;
+// mobs have no such variant in the OG, so they're darkened with a color tint instead
+// (ApplyNightTint() below) — a remake-only idea, not OG behavior.
 var/global/isNight = FALSE
+
+// Multiplied against a mob's sprite at night — darkens and slightly blue-shifts it
+// without going fully black. Doesn't touch player palette recoloring (RebuildIcon(),
+// SaveSystem.dm bakes colors into the icon itself, not the color var) or the glyph/
+// name-tag objects in HUD.dm that use color for their own unrelated purposes.
+#define NIGHT_TINT_COLOR rgb(130,130,170)
+
+mob/proc/ApplyNightTint(toNight)
+    color = toNight ? NIGHT_TINT_COLOR : null
+
+// Base hook so every mob — player or enemy, however it's created — starts out
+// matching whatever isNight already is, not just mobs present at the last toggle.
+mob/New()
+    . = ..()
+    ApplyNightTint(isNight)
 
 // -----------------------------
 // World clock — see Markdowns/CodeNotes.md for OG confirmation and cadence rationale.
@@ -78,6 +94,8 @@ proc/SetWorldNight(toNight, message)
     for(var/obj/O in world)
         if(istype(O, /obj/StatLink)) continue
         ToggleNightIconState(O, isNight)
+    for(var/mob/M in world)
+        M.ApplyNightTint(isNight)
 
     if(message)
         players << output("<center><b>[message]</b></center>", "Messages")

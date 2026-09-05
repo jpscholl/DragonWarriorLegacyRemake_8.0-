@@ -2,19 +2,21 @@
 /*
 MAP_PLANE_MASTERS: 
 MAP_ZOOM: 1.500
-LAST_COMPILE_TIME: 1788620605
-DIR: Code\Admin Code\Admin\Commands Code\Admin\Debug Code\Combat Code\Combat\NPCs Code\Combat\Skills Code\Core Code\Player Code\Player\Commands Code\Player\Customization Code\Save Code\UI Code\World 
+LAST_COMPILE_TIME: 1788633801
 PACKAGE_RSC_NAME: C:\Users\jpsch\Desktop\DragonWarriorLegacyRemake_8.0+_rsc.zip
+DIR: Code Code\Admin\Commands Code\Admin\Debug Code\Combat\NPCs Code\Combat\Skills Code\Player Code\Player\Customization Mob Icons Mob Icons\Player 
 AUTO_FILE_DIR: ON
 PACKAGE_DMB_INFO: 
 MAP_ICON_TYPE: 0
 PACKAGE_DME_NAME: C:\Users\jpsch\Desktop\DWLR Test\DragonWarriorLegacyRemake_8.0+_src.zip
 LAST_COMPILE_VERSION: 516.1687
-PACKAGE_DME_START: 
 PACKAGE_TYPE: 0
+PACKAGE_DME_START: 
+WINDOW: Code\Player\Customization\PlayerIconColorPalette.dm
 PACKAGE_DME_INFO: 
+FILE: Code\Player\Customization\PlayerIconColorPalette.dm
 MAP_INSTANCE_MODE: copy
-PACKAGE_DMB_NAME: C:\Users\jpsch\Desktop\DWLR Test alt\DWLRtest.zip
 PACKAGE_DME_DEMO: 
+PACKAGE_DMB_NAME: C:\Users\jpsch\Desktop\DWLR Test alt\DWLRtest.zip
 */
 // END_INTERNALS

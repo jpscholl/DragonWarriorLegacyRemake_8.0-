@@ -361,15 +361,27 @@ mob/proc/CustomizeColors()
     // Build palette ONCE
     palette = new /datum/PaletteManager(selectedClass, selectedIconName, src)
 
+    var/lastZone = null // which zone was picked last, so the dialog re-highlights it (same pattern as StatAllocation()'s lastStat)
+
     while(TRUE)
-        var/list/options = list("Main", "Accent", "Hair", "Eyes", "Finish", "Back")
-        var/zone_choice = input(src, "Choose a zone to change or Finish", "Color Customization") in options
+        var/list/options = list("Main", "Accent", "Hair", "Eyes", "Reset All to Default", "Finish", "Back")
+        var/zone_choice = input(src, "Choose a zone to change or Finish", "Color Customization", lastZone) in options
+        lastZone = zone_choice // harmless for "Finish"/"Back"/"Reset All to Default" too, see below
 
         switch(zone_choice)
             if("Main")   SetZoneColorPrompt("Main")
             if("Accent") SetZoneColorPrompt("Accent")
             if("Hair")   SetZoneColorPrompt("Hair")
             if("Eyes")   SetZoneColorPrompt("Eyes")
+
+            if("Reset All to Default")
+                // Same per-zone default each zone's own "Default Color" option uses,
+                // just applied to every zone at once instead of one at a time.
+                for(var/zone in palette.colors)
+                    palette.SetZoneColor(zone, palette.originalColors[zone], src)
+                UpdateAppearance()
+                src.ShowInfo("All zones reset to default colors.")
+
             if("Finish")
                 src.hairColor   = palette.GetZoneColor("Hair")
                 src.eyeColor    = palette.GetZoneColor("Eyes")
