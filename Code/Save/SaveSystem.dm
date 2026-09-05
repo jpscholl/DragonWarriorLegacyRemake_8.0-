@@ -144,6 +144,7 @@ datum/SaveManager
         // coordinates or a Z-level that no longer exists, so this falls back safely).
         var/turf/restoreTurf = (saveLocationEnabled && D.savedX) ? locate(D.savedX, D.savedY, D.savedZ) : null
         newPlayer.loc = restoreTurf || GetPlayerSpawnTurf()
+        C.AttachCamera(newPlayer)  // camera (SmoothMovement.dm) takes over as eye from here on
 
         var/area/spawnArea = newPlayer.loc?.loc
         if(spawnArea && spawnArea.areaMusic)

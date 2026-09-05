@@ -22,11 +22,17 @@ mob
             if(!canAct && !attackRecoveryOnly)
                 return 0
 
-            // Throttle stepping: only allow step if enough time has passed
+            // Throttle stepping: only allow step if enough time has passed. The >= tick_lag/10
+            // slack (not a plain world.time < next_step check) matters because world.time is a
+            // float — comparing it for exact equality is fragile, and at "clean" framerates like
+            // 30/60fps that imprecision compounds over a long-running world into missed/late
+            // frames. This is the documented fix (Ter13, BYOND forum post 2481387, endorsed by
+            // Lummox JR) for exactly that class of jitter.
             if(next_step - world.time >= world.tick_lag / 10)
                 return 0
 
-            // Calculate glide size for smoother movement
+            // Marries glide_size to the step delay so the visual glide finishes exactly when
+            // the next step is allowed, instead of the two drifting out of sync.
             glide_size = TILE_WIDTH / delay * world.tick_lag
 
             // Attempt to step in the given direction
@@ -38,6 +44,54 @@ mob
             return 0  // step failed
 
 // -----------------------------
+// CAMERA
+// -----------------------------
+// Replaces EDGE_PERSPECTIVE's screen-snap-at-the-edge behavior with a camera that
+// glides continuously in lockstep with the player, while staying boxed inside the
+// map the same way EDGE_PERSPECTIVE did — the box-in feel is confirmed OG behavior
+// (Markdowns/OGStringTable.txt has the literal EDGE_PERSPECTIVE string), but the
+// player's own glide combined with the screen only moving in edge-triggered snaps
+// made the environment look jittery relative to a player who was otherwise moving
+// smoothly. This object is the client's eye instead of the mob itself, so the view
+// follows IT, not the raw mob position.
+obj/CameraEye
+    icon = null
+    density = FALSE
+    opacity = FALSE
+    mouse_opacity = 0
+    invisibility = 101
+
+    proc
+        // Keeps the view from ever showing past the map edge, same box-in point
+        // EDGE_PERSPECTIVE enforced.
+        ClampAxis(value, mapMax)
+            return min(max(value, CAMERA_VIEW_HALF + 1), mapMax - CAMERA_VIEW_HALF)
+
+        // Jump straight to target's (clamped) position with no glide — for spawn-in
+        // and stair teleports, where a smooth pan would be wrong.
+        SnapTo(mob/target)
+            if(!target) return
+            glide_size = 0
+            loc = locate(ClampAxis(target.x, world.maxx), ClampAxis(target.y, world.maxy), target.z)
+
+        // Follow target's latest step smoothly, staying boxed inside the map. Sets
+        // loc directly rather than step()/step_to() — this is a pure camera anchor,
+        // not a physical object, and its clamped tile is often NOT the tile the
+        // player is standing on (that's the whole point near an edge), so it must
+        // never be collision-checked against whatever's on that tile.
+        TrackTarget(mob/target)
+            if(!target) return
+            if(z != target.z)
+                SnapTo(target)
+                return
+            var/desiredX = ClampAxis(target.x, world.maxx)
+            var/desiredY = ClampAxis(target.y, world.maxy)
+            if(desiredX == x && desiredY == y)
+                return
+            glide_size = target.glide_size
+            loc = locate(desiredX, desiredY, z)
+
+// -----------------------------
 // CLIENT MOVEMENT
 // -----------------------------
 client
@@ -45,6 +99,21 @@ client
         move_dir = 0  // current movement direction from input
         pendingDir = 0  // direction currently mid turn-pause (see onMoveKey), 0 = none
         pendingSession = 0  // invalidates a stale spawn() timer for pendingDir specifically
+        obj/CameraEye/camera  // set by AttachCamera() once gameplay actually starts (LoginMenu.dm)
+
+    proc
+        // Called once from FinalizePlayer() (LoginMenu.dm) when a character enters
+        // the world for real — not during character-creation previews, which manage
+        // client.eye themselves.
+        AttachCamera(mob/target)
+            if(!camera) camera = new()
+            camera.SnapTo(target)
+            eye = camera
+
+    Del()
+        if(camera)
+            del camera
+        ..()
 
     // MoveLoop() is started from client/New() in Code/Core/Main.dm — DM doesn't merge
     // duplicate proc definitions across files, so a second New() override here would
@@ -63,7 +132,10 @@ client
     Move(atom/loc, dir)
         walk(mob, 0)  // cancel current walk (stops animation) — usr isn't reliable here
                        // since MoveLoop() calls this from a background loop, not a verb trigger
-        return mob.Step(dir)  // call the mob's Step proc
+        var/moved = mob.Step(dir)  // call the mob's Step proc
+        if(moved && camera)
+            camera.TrackTarget(mob)
+        return moved
 
     // Key input for movement
     verb

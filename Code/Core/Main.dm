@@ -207,7 +207,12 @@ var/global/saveLocationEnabled = FALSE
 
 world
     name      = "Dragon Warrior Legacy Remake"
-    fps       = 60
+    // Setting world.fps directly rounds tick_lag UP (fps=60 -> tick_lag=0.17 -> an actual
+    // ~59fps), which is the documented source of persistent jank at "clean" framerates
+    // like 60 (Ter13, BYOND forum post 2481387). Setting tick_lag directly and rounding
+    // DOWN instead (floor(1000/60)/100 = 0.16) lands north of 60fps (~62.5) rather than
+    // south of it.
+    tick_lag  = 0.16
     icon_size = 32
     turf      = /turf/ground
     mob       = /mob/playerTemp
@@ -259,7 +264,19 @@ client
         saveManager = new(ckey)
         saveManager.LoadVolumeSettings(src)   // must run before Login()'s login-music sound() call
 
-        perspective = EDGE_PERSPECTIVE
+        // The view centers exactly on whatever client.eye is. During real gameplay
+        // that's CameraEye (SmoothMovement.dm), which already replicates
+        // EDGE_PERSPECTIVE's box-in-the-map behavior on its own — MOB_PERSPECTIVE
+        // here just means "follow eye directly," not "follow the raw player mob."
+        perspective = MOB_PERSPECTIVE
+
+        // client.tick_lag is separate from world.tick_lag — it controls how often THIS
+        // client re-renders/interpolates glides, independent of the server's own tick
+        // rate. Set north of common high-refresh monitors (floor(1000/144)/100 = 0.06,
+        // ~167fps) so gliding isn't capped below the display's own refresh rate. Per
+        // Ter13 (BYOND forum post 2481387): "you want your client.tick_lag to give you
+        // an FPS that is north of your user's refresh rate."
+        tick_lag = 0.06
 
         if(.) MoveLoop()  // smooth-movement loop (SmoothMovement.dm)
 
