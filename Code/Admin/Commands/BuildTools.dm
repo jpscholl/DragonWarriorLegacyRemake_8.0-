@@ -385,6 +385,7 @@ mob/verb/GM_MakeTurf()
     set desc = "Pick a turf type and sprite variant for the build tool to place"
 
     if(!RequireBuilder()) return
+    if(!RequireCanAct()) return
 
     var/list/choices = GetTypeChoices(/turf, list(/turf/furniture/bedhead))
     var/choice = input(src, "Choose a turf category to place (or None to cancel):", "GM_MakeTurf") in choices
@@ -435,6 +436,7 @@ mob/verb/GM_MakeMob()
     set category = "GM"
     set desc = "Pick a monster type for the build tool to place"
 
+    if(!RequireCanAct()) return
     PickBuildSelection(GetTypeChoices(/mob/enemy), "Choose a monster to place (or None to cancel):", "GM_MakeMob", "mob")
 
 // Placing "an area" means reassigning a turf to an EXISTING instance of that area type
@@ -446,6 +448,7 @@ mob/verb/GM_MakeArea()
     set desc = "Pick an area type for the build tool to assign"
 
     if(!RequireBuilder()) return
+    if(!RequireCanAct()) return
 
     var/list/choices = GetTypeChoices(/area)
 
@@ -477,6 +480,7 @@ mob/verb/GM_MakeTool()
     set desc = "Pick how the build tool places things (Click/Drag/Block/Line/Move/Flood/Delete)"
 
     if(!RequireBuilder()) return
+    if(!RequireCanAct()) return
 
     var/list/modes = list(
         BUILD_MODE_CLICK,

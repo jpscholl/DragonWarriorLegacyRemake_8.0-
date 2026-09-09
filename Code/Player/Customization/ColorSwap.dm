@@ -5,7 +5,7 @@
 //In depth list of colors
 var/list/color_swatches = list(
 		"Red" = rgb(255,0,0),
-		"Green" = rgb(0,255,0),
+		"Green" = rgb(0,140,0),
 		"Cyan" = rgb(0,255,255),
 		"Blue" = rgb(0,0,255),
 		"Yellow" = rgb(255,255,0),

@@ -14,6 +14,13 @@ mob
     // canAct=FALSE case, which fully roots the mob.
     var/attackRecoveryOnly = 0
 
+    // Shared guard for verbs that shouldn't be usable while canAct is FALSE (mid-swing,
+    // dead, asleep, or mid-transition — LockForTransition(), Main.dm) — same
+    // "if(!RequireX()) return" shape as RequireBuilder()/RequireAdmin()/RequireGMHost()
+    // (AdminLevels.dm), just silent on rejection rather than showing a message.
+    proc/RequireCanAct()
+        return canAct
+
     // Basic character info
     var
         class = null
@@ -113,11 +120,17 @@ mob/player
     pixel_y = SPRITE_PIXEL_Y_OFFSET
 
     // Party tab (partykick/leave/recruit/say/share/who) only shown while in a party.
+    // CreateParty (PartyVerbs.dm) is the mirror image -- only makes sense while NOT
+    // already in one, so it hides/shows in the opposite direction of the Party tab
+    // itself instead of sitting there uselessly once it'd just say "already in a
+    // party." Confirmed real UX bug 2026-09-09: it never actually disappeared before.
     proc/ShowPartyVerbs()
         src.verbs += PARTY_VERBS
+        src.verbs -= /mob/player/verb/CreateParty
 
     proc/HidePartyVerbs()
         src.verbs -= PARTY_VERBS
+        src.verbs += /mob/player/verb/CreateParty
 
     // skills = everything this character KNOWS (the "Free Skills" pool);
     // skillSlots = what's equipped to each numpad key.
@@ -330,6 +343,29 @@ proc/GetClassStatCaps(class_name)
     classStatCapCache[class_name] = caps
     return caps
 
+// Hides P's own body for the duration of a reclass preview (RunSageReclassFlow()
+// below) — NOT via invisibility. Live-tested 2026-09-09: a client still renders its own
+// client.mob's sprite regardless of invisibility level even when client.eye points
+// elsewhere (IconPreview()'s preview object, LoginMenu.dm) — client.mob stays P
+// throughout the reclass (only BecomeSage() ever reassigns it), so no invisibility
+// value hides P from the one client that matters here. Blanking the appearance outright
+// sidesteps that exemption entirely. Floating HP/MP bars (HUD.dm) are separate /image
+// overlays that don't disappear just because the base icon does, so they're hidden
+// explicitly too.
+mob/player/proc/EnterReclassPreview()
+    HideFloatingHPBar()
+    HideFloatingMPBar()
+    icon = null
+    icon_state = null
+
+// Reverses EnterReclassPreview() — only needed on a canceled reclass; a completed one
+// deletes P in BecomeSage() below instead of ever un-hiding it.
+mob/player/proc/ExitReclassPreview()
+    icon = icon(baseIcon)
+    icon_state = "world"
+    ShowFloatingHPBar()
+    ShowFloatingMPBar()
+
 // Sage reclass flow — Classchange (SkillCatalog.dm) calls this BEFORE BecomeSage()
 // below. Re-runs the real character creation flow (icon, colors, stats) on the
 // EXISTING player mob P via IconSelect()/CustomizeColors()/StatAllocation()
@@ -340,21 +376,53 @@ proc/GetClassStatCaps(class_name)
 proc/RunSageReclassFlow(mob/player/P)
     P.selectedClass = "Sage"  // restricts IconSelect()'s picker to Sage's own portraits
 
+    // IconPreview() (LoginMenu.dm) only redirects client.eye to the preview object —
+    // fine for a fresh mob/playerTemp, which already starts out wherever it spawned in
+    // the creation room, but P here is an ALREADY-PLAYING character standing wherever
+    // in the real world they cast Classchange. Relocating P to that same preview turf
+    // for the duration matches what character creation actually looks like, and hiding
+    // P's own body (EnterReclassPreview() above) keeps it from rendering right next to
+    // the preview object. Both restored on cancel; BecomeSage() below sends a
+    // successful reclass to the real spawn point instead, not back here.
+    var/turf/originalLoc = P.loc
+    P.canAct = FALSE
+    P.EnterReclassPreview()
+    P.loc = CREATION_PREVIEW_TURF
+
     var/step = STEP_ICON
     while(step)
         switch(step)
             if(STEP_ICON)
                 step = IconSelect(P)
                 if(step == STEP_CLASS)
-                    return FALSE  // "Back" at the icon step = cancel the whole reclass
+                    // "Back" at the icon step = cancel the whole reclass. Only relevant
+                    // once a STEP_CUSTOM pass has actually run (IconPreview() creates
+                    // newCharPreview) -- BecomeSage() cleans this up on a SUCCESSFUL
+                    // reclass, but canceling out after already previewing an icon needs
+                    // its own cleanup here or it leaks the same way.
+                    if(P.newCharPreview)
+                        del P.newCharPreview
+                        P.newCharPreview = null
+                    P.loc = originalLoc
+                    P.ExitReclassPreview()
+                    P.canAct = TRUE
+                    return FALSE
 
             if(STEP_CUSTOM)
                 P.IconPreview()
                 step = P.CustomizeColors()
 
             if(STEP_STATS)
-                step = StatAllocation(P)
+                // resetFromZero = TRUE -- see StatAllocation()'s own comment
+                // (LoginMenu.dm): P's real stats are whatever this already-leveled
+                // character earned, which would otherwise block this screen's 10-cap
+                // almost immediately instead of allocating fresh like real creation.
+                // PLACEHOLDER (2026-09-09, TODOList.md): the real target is DW3's own
+                // Dharma Shrine behavior -- HALVE existing stats, not reset-and-
+                // reallocate from scratch. Revisit once that full system gets built.
+                step = StatAllocation(P, resetFromZero = TRUE)
                 if(step == STEP_STATS)
+                    P.canAct = TRUE
                     return TRUE
 
 // Sage reclass — Goof-off's Classchange skill (SkillCatalog.dm) hands off here after
@@ -365,8 +433,14 @@ mob/player/proc/BecomeSage()
     if(!client) return
 
     var/client/C = client
+    DestroyHUD(C)  // this mob's HUD would otherwise linger in C.screen after del src
+                   // below, doubled up with newMob's own freshly-built one (HUD.dm)
     var/mob/player/Sage/newMob = new /mob/player/Sage
-    var/turf/T = loc
+    // NOT loc -- RunSageReclassFlow() (above) relocated this mob to the icon-preview
+    // room for the duration of the reclass, and that's the last place a brand-new
+    // character should land. Same spawn point FinalizePlayer() (LoginMenu.dm) sends any
+    // other new character to.
+    var/turf/T = GetPlayerSpawnTurf()
 
     // Appearance from the FRESH picks RunSageReclassFlow() just staged on P, not the
     // old character's own icon/baseIcon/basePlayerIcon.

@@ -129,6 +129,7 @@ client
         )
         var/list/gmHostVerbs = list(
             /mob/verb/GM_DayNight,
+            /mob/verb/GM_HorribleNight,
             /mob/verb/GM_ToggleLog,
             /mob/verb/GM_LevelIncrease,
             /mob/verb/GM_BattleMode,

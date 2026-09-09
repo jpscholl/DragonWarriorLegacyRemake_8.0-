@@ -45,6 +45,7 @@ obj/item
 
         if(!ismob(loc)) return
         var/mob/M = loc
+        if(!M.RequireCanAct()) return
         loc = M.loc   // falls on the turf you're standing on
         M.ShowInfo("You drop [src.name].")
 
@@ -56,6 +57,7 @@ obj/item
 
         if(!ismob(loc)) return
         var/mob/M = loc
+        if(!M.RequireCanAct()) return
         if(target == M)
             M.ShowInfo("You can't give an item to yourself.")
             return
@@ -532,6 +534,7 @@ mob/verb/DropItem()
     set hidden = 1
     set desc = "Drop an item from your inventory onto the ground"
 
+    if(!RequireCanAct()) return
     var/list/items = list()
     for(var/obj/item/I in contents)
         items[I.name] = I

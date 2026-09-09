@@ -158,17 +158,67 @@ datum/SaveManager
     // -----------------------------
     // Delete a character slot
     // -----------------------------
+    // Confirmed 2026-09-09 UX decision: deleting slot 1 while 2/3/4 are occupied should
+    // leave them at 1/2/3, not leave a gap at 1 -- every later slot shifts down to keep
+    // filled slots contiguous starting at 1. MoveCharacterSlot() below moves the
+    // ".banned" key along with ".name"/".data", so a ban follows the character it was
+    // actually on, not the slot number (matters for ShowBanList(), GMCommands.dm, which
+    // reads bans straight off slot number on demand).
+    //
+    // Deliberately a cascade, low slot to high, each writing into the slot the
+    // PREVIOUS iteration just finished reading out of: slot [slot+1] -> [slot], then
+    // [slot+2] -> [slot+1], etc. Every slot except the very last one in the chain gets
+    // fully overwritten by the next iteration (or by nulls, if that next source slot
+    // was empty) -- MoveCharacterSlot() doesn't need to (and must NOT, see its own
+    // comment) separately clear the slot it just read from. Only the true tail end
+    // (char[MAX_CHARACTERS], never anyone's destination) needs the explicit cleanup
+    // below.
     proc/DeleteCharacter(slot)
         if(slot < 1 || slot > MAX_CHARACTERS) return 0
 
-        var/prefix = "char[slot]."
+        for(var/i = slot to MAX_CHARACTERS - 1)
+            MoveCharacterSlot(i + 1, i)
 
+        var/prefix = "char[MAX_CHARACTERS]."
         for(var/key in F.dir)
             if(findtext(key, prefix) == 1)
                 F[key] = null
 
         F.Flush()
         return 1
+
+    // Copies the "char[fromSlot]" entry onto "char[toSlot]" (.data/.name/.banned),
+    // reading each into its ACTUAL type rather than a generic untyped var via an F.dir
+    // scan -- an untyped read/write round-trip of ".data" was silently losing the
+    // /icon nested inside its CharacterSaveData blob (confirmed 2026-09-09).
+    //
+    // Deliberately does NOT clear fromSlot afterward. It used to (immediately null it
+    // right after copying out), which looked safe in isolation but broke on a 3-slot
+    // cascade: deleting slot 1 correctly moved 2->1, then 3->2 silently lost its icon
+    // — the second move's destination (slot 2) was exactly the slot the FIRST move had
+    // just nulled moments earlier, and a flush() in between didn't fix it either. Root
+    // cause not fully pinned down (a savefile quirk around immediately rewriting a
+    // just-cleared key, near as testing narrowed it), but DeleteCharacter()'s cascade
+    // never actually needs this proc to self-clean: every slot but the true tail gets
+    // fully overwritten by the next call in the chain anyway (or by nulls, if that next
+    // source was itself empty), and the tail is handled once, explicitly, in
+    // DeleteCharacter() itself. Safe to call with an empty fromSlot -- writes nulls
+    // through, which correctly empties toSlot too (GetCharacterSlots() treats a null
+    // .name as unoccupied). Params aren't named from/to -- `to` is a reserved DM
+    // keyword (for(x = a to b)) and broke compilation.
+    proc/MoveCharacterSlot(fromSlot, toSlot)
+        var/datum/CharacterSaveData/D
+        F["char[fromSlot].data"] >> D
+
+        var/charName
+        F["char[fromSlot].name"] >> charName
+
+        var/banned
+        F["char[fromSlot].banned"] >> banned
+
+        F["char[toSlot].data"] << D
+        F["char[toSlot].name"] << charName
+        F["char[toSlot].banned"] << banned
 
     // -----------------------------
     // Ban / unban a single character slot (GM_Ban, GMCommands.dm)

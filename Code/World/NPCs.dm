@@ -11,6 +11,7 @@ mob/npc
     icon = 'npc.dmi'
     icon_state = "man"
     density = 1
+    pixel_y = SPRITE_PIXEL_Y_OFFSET  // same vertical offset as players/enemies (Main.dm)
 
     // Which line gets spoken keys off the world clock's isNight (Main.dm) — the same
     // flag that drives the day/night turf swap.
@@ -137,6 +138,13 @@ mob/npc/merchant
 
         var/obj/item/I = sellable[choice]
         if(!I) return
+
+        // A worn amulet has to come off before it's sold, or its stat bonus stays
+        // applied to a player who no longer owns it — same reasoning as Drop()/Give()
+        // (Inventory.dm), which this same case had been missing.
+        if(istype(I, /obj/item/amulet))
+            var/obj/item/amulet/A = I
+            if(A.worn) A.Unequip(P)
 
         P.Gold += round(stock[I.type] * buybackPercent / 100)
         del I

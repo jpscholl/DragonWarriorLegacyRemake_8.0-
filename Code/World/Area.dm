@@ -55,9 +55,15 @@ area
 
 	Entered(atom/movable/O)
 		..()
-		if(areaMusic && ismob(O))
+		if(ismob(O))
 			var/mob/M = O
-			M.PlayAreaMusic(areaMusic)
+			// Curse night (isCurseNight, Main.dm) overrides every area's own music for
+			// its duration — without this check, walking into a new area mid-curse-night
+			// would immediately switch back to that area's normal track.
+			if(isCurseNight)
+				M.PlayAreaMusic(CURSE_NIGHT_MUSIC)
+			else if(areaMusic)
+				M.PlayAreaMusic(areaMusic)
 
 	casino
 		icon_state = "casino"
@@ -109,10 +115,20 @@ area
 
 		Exited(atom/movable/O)
 			..()
+			// Skipped during a curse night (isCurseNight, Main.dm) -- the curse track is
+			// meant to play continuously across every area, bar included, so cutting
+			// channel 1 here would silence it right before the next area's Entered()
+			// (PlayAreaMusic(), above) no-ops anyway since it wants that same track back.
+			if(isCurseNight) return
 			if(ismob(O))
 				var/mob/M = O
 				if(M.client)
 					M.client << sound(null, channel = 1)
+					// Without this, current_music still claims whatever was playing here
+					// is still audible, so the next area's Entered() (PlayAreaMusic(),
+					// above) silently no-ops if that area happens to want the same
+					// track — normally never true outside a curse night (guarded above).
+					M.current_music = null
 
 	jail
 		icon_state = "jail"

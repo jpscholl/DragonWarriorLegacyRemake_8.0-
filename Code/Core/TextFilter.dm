@@ -262,9 +262,10 @@ proc/CensorText(text)
     return result
 
 // -----------------------------
-// Chat Log — every text chat verb logs here unconditionally, even when CheckMuted()
-// blocks the message from actually displaying, so a muted player attempting to speak
-// still leaves a paper trail. Writes to world.log (redirected to server.log,
+// Chat Log — every text chat verb logs here unconditionally, even when isMuted (see
+// DeliverChat(), SocialVerbs.dm) blocks the message from actually displaying, so a
+// muted player attempting to speak still leaves a paper trail. Writes to world.log
+// (redirected to server.log,
 // world/New() in Main.dm), matching a confirmed real excerpt from the OG's own server
 // log where connect/disconnect/host events and chat lines share one auto-timestamped
 // stream. See Markdowns/CodeNotes.md for the date/IP formatting details this matches.

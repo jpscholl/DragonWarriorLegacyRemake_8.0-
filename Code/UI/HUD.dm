@@ -4,6 +4,14 @@
 // screenshot/measurement basis behind the pixel constants below; every value is
 // placeholder until seen tuned in-game.
 // -----------------------------
+#define NIGHT_HUD_TEXT_COLOR "#3E6B9E"  // dark blue swap for the default-white HUD text
+                                         // once isNight (Main.dm) is TRUE — health-state
+                                         // colors (green/pink, GetHUDHealthColor() below)
+                                         // still take priority over this.
+#define CURSE_HUD_TEXT_COLOR "#ff2222"  // replaces NIGHT_HUD_TEXT_COLOR on a curse night
+                                         // (isCurseNight, Main.dm) — same priority tier,
+                                         // still under the HP-critical colors below it.
+
 #define HUD_LAYER 20                // the black backdrop bar
 #define HUD_TEXT_LAYER 21           // text, drawn above the backdrop bar
 #define METER_MAX_STEP 12           // meter.dmi/magicmeter.dmi/expmeter.dmi icon_states "0".."12"
@@ -130,13 +138,44 @@ mob/player
 
         UpdateHUD()
 
+    // Reverses BuildHUD() — needed anywhere a mob stops controlling its client without
+    // a real disconnect (BecomeSage(), PlayerTemplate.dm, is the only case today).
+    // hudBackdrop/every hudGlyph live in client.screen, NOT on this mob itself, so
+    // swapping client.mob to a different mob and just deleting the old one leaves them
+    // behind forever — the new mob's own BuildHUD() then adds a second, independent set
+    // on top, and both render at once. C is passed explicitly rather than read off
+    // `client` because by the time this is needed, `client` may already be null (it
+    // reflects whichever mob currently controls it, which BecomeSage() reassigns before
+    // deleting the old mob).
+    proc/DestroyHUD(client/C)
+        if(!C) return
+        if(hudBackdrop)
+            C.screen -= hudBackdrop
+            del hudBackdrop
+            hudBackdrop = null
+        for(var/list/row in list(hudLevelLine, hudXPLine, hudHPLabel, hudMPLabel, hudHPCurrent, hudMPCurrent, hudHPMax, hudMPMax))
+            for(var/obj/screen/G in row)
+                C.screen -= G
+                del G
+            row.Cut()
+
+    // Default HUD text color for whatever's currently going on with the day/night cycle
+    // (Main.dm) — plain white by day, dark blue at night, curse-red on the rare night
+    // the easter egg rolls. Kept separate from GetHUDHealthColor() below so the
+    // HP-critical colors there can still take priority over all three.
+    proc/GetNightHUDColor()
+        if(isCurseNight) return CURSE_HUD_TEXT_COLOR
+        if(isNight) return NIGHT_HUD_TEXT_COLOR
+        return "#ffffff"
+
     // CONFIRMED OG behavior (live-tested 2026-08-30): the whole HUD's text turns green
-    // at 25% HP or below, and a light red/pink once HP hits 0 — otherwise plain white.
+    // at 25% HP or below, and a light red/pink once HP hits 0 — otherwise whatever
+    // GetNightHUDColor() says for the current day/night state.
     proc/GetHUDHealthColor()
-        if(MaxHP <= 0) return "#ffffff"
+        if(MaxHP <= 0) return GetNightHUDColor()
         if(HP <= 0) return "#ff9999"
         if(HP <= MaxHP * 0.25) return "#00ff00"
-        return "#ffffff"
+        return GetNightHUDColor()
 
     proc/UpdateHUD()
         if(!client) return

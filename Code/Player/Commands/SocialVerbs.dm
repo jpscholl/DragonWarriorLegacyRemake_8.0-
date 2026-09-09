@@ -22,11 +22,6 @@ mob
             if(P.client && P.client.canAdmin)
                 P << output("<font color='gray'>(Muted)</font> [msg]", "Messages")
 
-    // Retained so existing callers keep compiling, but no longer speaks to the target
-    // — see DeliverChat() above.
-    proc/CheckMuted()
-        return isMuted
-
 // -----------------------------
 // World chat rate limit
 // -----------------------------
@@ -48,6 +43,7 @@ mob/verb/ToggleWorldSay()
     set category = "Social"
     set desc = "Turn world say and world emote on or off for yourself"
 
+    if(!RequireCanAct()) return
     worldChatEnabled = !worldChatEnabled
     src.ShowInfo("You turn [worldChatEnabled ? "on" : "off"] worldsay and worldemote.")
     players << output("<font color='purple'>[src.name]([src.key]) [worldChatEnabled ? "activates" : "deactivates"] worldsay.</font>", "Messages")
@@ -74,18 +70,20 @@ mob
         Emote(msg as text)
             set category = "Social"
             set desc = "Chat to players in view"
+            if(!RequireCanAct()) return
 
             if(trimtext(msg) == "") return
-            LogChat("<[src.name]([src.key]) [msg]>", src)
+            LogChat("<[src.name]([src.key]) [msg]>")
             msg = CensorText(msg)
             DeliverChat(view(src), "<font color='black'> \icon[src]&lt;[src.name] [msg]&gt;</font>")
 
         Say(msg as text)
             set category = "Social"
             set desc = "Talk to players in view"
+            if(!RequireCanAct()) return
 
             if(trimtext(msg) == "") return
-            LogChat("<[src.name]([src.key]) says:> [msg]", src)
+            LogChat("<[src.name]([src.key]) says:> [msg]")
             msg = CensorText(msg)
             DeliverChat(view(src), "<font color='blue'> \icon[src]&lt;[src.name] says:&gt; [msg]</font>")
 
@@ -94,9 +92,10 @@ mob
         Whisper(msg as text)
             set category = "Social"
             set desc = "Talk quietly to players standing right next to you"
+            if(!RequireCanAct()) return
 
             if(trimtext(msg) == "") return
-            LogChat("<[src.name]([src.key]) whispers:> [msg]", src)
+            LogChat("<[src.name]([src.key]) whispers:> [msg]")
             msg = CensorText(msg)
             DeliverChat(view(WHISPER_RANGE, src), "<font color='gray'> \icon[src]&lt;[src.name] whispers:&gt; [msg]</font>")
 
@@ -104,18 +103,20 @@ mob
         Shout(msg as text)
             set category = "Social"
             set desc = "Talk loudly to players well beyond your normal view"
+            if(!RequireCanAct()) return
 
             if(trimtext(msg) == "") return
-            LogChat("<[src.name]([src.key]) shouts:> [msg]", src)
+            LogChat("<[src.name]([src.key]) shouts:> [msg]")
             msg = CensorText(msg)
             DeliverChat(view(SHOUT_RANGE, src), "<font color='red'> \icon[src]&lt;[src.name] shouts:&gt; [msg]</font>")
 
         Tell(mob/M, msg as text)
             set category = "Social"
             set desc = "Directly talk to another player"
+            if(!RequireCanAct()) return
 
             if(trimtext(msg) == "") return
-            LogChat("<[src.name]([src.key]) tells [M.name]([M.key]):> [msg]", src)
+            LogChat("<[src.name]([src.key]) tells [M.name]([M.key]):> [msg]")
             msg = CensorText(msg)
             if(M != src)
                 // Through DeliverChat() so a muted sender's Tell silently doesn't arrive.
@@ -128,6 +129,7 @@ mob
         Who()
             set category = "Social"
             set desc = "Shows all players logged in and basic info"
+            if(!RequireCanAct()) return
 
             src.ShowInfo("<b>Players currently online:</b>")
             for(var/mob/player/M in players)
@@ -136,25 +138,27 @@ mob
         WorldEmote(msg as text)
             set category = "Social"
             set desc = "Emote to all players in the world"
+            if(!RequireCanAct()) return
 
             if(trimtext(msg) == "") return
             if(!worldChatEnabled)
                 src.ShowInfo("You have worldsay turned off.")
                 return
             if(WorldChatThrottled("emote")) return
-            LogChat("<[src.name]([src.key]) [msg] to the world>", src)
+            LogChat("<[src.name]([src.key]) [msg] to the world>")
             msg = CensorText(msg)
             DeliverChat(WorldChatAudience(), "<font color='maroon'> \icon[src]&lt;[src.name] [msg] to the world&gt;</font>")
 
         WorldSay(msg as text)
             set category = "Social"
             set desc = "Chat to all players in the world"
+            if(!RequireCanAct()) return
 
             if(trimtext(msg) == "") return
             if(!worldChatEnabled)
                 src.ShowInfo("You have worldsay turned off.")
                 return
             if(WorldChatThrottled("say")) return
-            LogChat("<[src.name]([src.key]) wsays:> [msg]", src)
+            LogChat("<[src.name]([src.key]) wsays:> [msg]")
             msg = CensorText(msg)
             DeliverChat(WorldChatAudience(), "<font color='purple'> \icon[src]&lt;[src.name] wsays:&gt; [msg]</font>")

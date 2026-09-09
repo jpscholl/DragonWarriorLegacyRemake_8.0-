@@ -208,17 +208,22 @@ turf
 		// area instance, which never re-fires Entered(); this explicit re-check
 		// covers that case (PlayAreaMusic() no-ops if already playing).
 		proc/TeleportWithFade(mob/M, turf/destination)
-			M.canAct = FALSE
+			M.LockForTransition()  // Main.dm — canAct + every bare mob/verb, for the fade's duration
 			spawn(0)
 				M.PlayScreenFade(TRUE)
 				M.loc = destination
 				if(M.client && M.client.camera)
 					M.client.camera.SnapTo(M)  // instant, not a glide — a stairs jump isn't a walk
 				var/area/newArea = destination.loc
-				if(istype(newArea) && newArea.areaMusic)
+				// Curse night (isCurseNight, Main.dm) overrides every area's own music --
+				// without this check, stairs landing in a different area instance would
+				// switch back to that area's normal track mid-curse-night.
+				if(isCurseNight)
+					M.PlayAreaMusic(CURSE_NIGHT_MUSIC)
+				else if(istype(newArea) && newArea.areaMusic)
 					M.PlayAreaMusic(newArea.areaMusic)
 				M.PlayScreenFade(FALSE)
-				M.canAct = TRUE
+				M.UnlockAfterTransition()
 
 		// Levels defaults to a plain walk-over (1); GMs can toggle THIS tile's own
 		// jumpLevels via DblClick() below.
@@ -300,7 +305,7 @@ turf
 			// Already mid-fall — without this, walking across multiple sky tiles
 			// during the delay re-triggered Entered() on each one, stacking falls.
 			if(!M.canAct) return
-			M.canAct = FALSE
+			M.LockForTransition()  // Main.dm — canAct + every bare mob/verb, for the fade's duration
 			M << sound('fall.wav', repeat = 0, channel = SFX_CHANNEL, volume = M.client ? M.client.ScaledVolume() : 100)
 			spawn(0)
 				M.PlayScreenFade(TRUE)
@@ -310,7 +315,7 @@ turf
 					if(M.client && M.client.camera)
 						M.client.camera.SnapTo(M)  // direct .loc change bypasses client/Move(), the only place the camera normally tracks
 				M.PlayScreenFade(FALSE)
-				M.canAct = TRUE
+				M.UnlockAfterTransition()
 
 //don't go burning these...how else you supposed to get across water?
 	bridge
@@ -344,7 +349,7 @@ turf
 				return
 
 			M.warpCooldown = TRUE
-			M.canAct = FALSE
+			M.LockForTransition()  // Main.dm — canAct + every bare mob/verb, for the whole ~12.5s transit
 			// Passable for the whole transition so other players can walk through a
 			// mob mid-warp instead of queuing behind them.
 			var/oldDensity = M.density
@@ -360,10 +365,15 @@ turf
 				M.warpCooldown = FALSE
 				M.PlayScreenFade(FALSE)
 				var/area/newArea = partner.loc
-				if(istype(newArea) && newArea.areaMusic)
+				// Curse night (isCurseNight, Main.dm) overrides every area's own music --
+				// current_music was just nulled above for warp.wav, so this always
+				// replays fresh regardless of which track it picks.
+				if(isCurseNight)
+					M.PlayAreaMusic(CURSE_NIGHT_MUSIC)
+				else if(istype(newArea) && newArea.areaMusic)
 					M.PlayAreaMusic(newArea.areaMusic)
 				M.density = oldDensity
-				M.canAct = TRUE
+				M.UnlockAfterTransition()
 
 		DblClick()
 			if(usr) RenameWarpTurf(src, usr)

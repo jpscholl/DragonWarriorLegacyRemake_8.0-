@@ -202,7 +202,14 @@ not gospel). New confirmed mechanics not previously in this file:
       destinations, not just the one endpoint. Needs its own design pass once the base
       class/skill systems are further along: which classes can change into what beyond
       Sage, whether new destinations are item-gated (more Dharma-Scroll-like items) or
-      skill-gated, and whether it's one-way or reversible.
+      skill-gated, and whether it's one-way or reversible. **Stat treatment on
+      reclass (2026-09-09 decision)**: the real target is DW3's own Dharma Shrine
+      behavior — HALVE the character's existing stats, not reset-and-reallocate from
+      scratch. Current `RunSageReclassFlow()`/`StatAllocation(resetFromZero = TRUE)`
+      behavior (fresh 12-point/cap-10 allocation from a base-1 baseline, `PlayerTemplate.dm`/
+      `LoginMenu.dm`) is an explicitly temporary placeholder until this full system gets
+      built, not the intended final mechanic — don't mistake it for a confirmed design
+      choice later.
 - [ ] **Move tutor — your own idea, not OG-derived, "eventually."** An NPC that teaches
       skills/spells outside a class's normal kit — lets a player cross-train into
       abilities they wouldn't otherwise unlock by leveling their own class. Related to
@@ -1338,7 +1345,16 @@ not gospel). New confirmed mechanics not previously in this file:
       room shouldn't see `Say()` messages from players outside it, and vice versa.
       Flavor/immersion feature, not core to getting the visibility rework itself
       working — pick up only once the border/ceiling mechanic above is solid.
-- [ ] Day/Night cycle (GM-toggleable) — nothing built yet
+- [x] Day/Night cycle (GM-toggleable) — **built (2026-09-05/06)**: world clock
+      (`WorldClockLoop()`, `Main.dm`) drives sunrise/sunset automatically, `GM_DayNight()`
+      forces it on demand. Turfs/objs swap to their "night" icon_state variant; mobs get
+      a color-tint darken (`ApplyNightTint()`) since the OG has no mob night variant. HUD
+      text shifts to a dark blue at night (`GetNightHUDColor()`, `HUD.dm`) instead of
+      staying white. Bonus: a hidden 1-in-20 "curse night" easter egg
+      (`TriggerCurseNight()`, `Main.dm` — forceable via the hidden `GM_HorribleNight`
+      verb) turns the HUD text red, broadcasts a big red banner, and swaps every area's
+      music for a dedicated curse track (`cursenight.wav`) that persists through area
+      transitions, stairs, and warps until sunrise.
 - [ ] Weather system — confirmed via `GMweather` (see `GMCommandsReference.md`): three
       parts — Rain/Snow toggle (outside areas only), Puddles (scatters walkable water or
       snow onto random turfs based on the rain/snow choice), and Temperature (9-level
@@ -1533,9 +1549,11 @@ not gospel). New confirmed mechanics not previously in this file:
       confirmed quirks preserved (one-shot spawn, not a maintained population; a
       non-matching Area+Z level combo silently spawns nothing).
       **Still not built** (both explicitly lower-priority or bigger-scoped per their
-      own reference-doc notes): `GMblaze` (needs a fire-DoT terrain system first),
-      `GMroleplaymode` (low priority, wanted as a redesign not a port), `GMweather`
-      (ties into the RP-mode bucket that's explicitly out of scope right now).
+      own reference-doc notes): `GMroleplaymode` (low priority, wanted as a redesign not
+      a port), `GMweather` (ties into the RP-mode bucket that's explicitly out of scope
+      right now). `GMblaze` dropped from the roadmap entirely (2026-09-07,
+      `GMCommandsReference.md`) — `GM_KillMonsters` already covers its whole use case
+      without needing a fire-DoT terrain system built just for it.
 - [x] `GMworldreboot` — implemented as `GM_WorldReboot` (`GMCommands.dm`), see
       `GMCommandsReference.md` for the full flow. Fixed the OG's confirmed-broken
       post-reboot black screen via a `world/Reboot()` override (`Main.dm`) rather than
@@ -1766,9 +1784,9 @@ playtest pass if it hasn't had one.
       scroll through to find the right thing. Replace with something that shows the
       actual icon/sprite for each option instead of just a name. Still text-menu-only for
       v1 per the Scope Note — this is explicitly a later visual-polish target, not v1 work.
-- [ ] Darken player/monster sprites at night, eventually dynamic lighting — OG's
-      `GMdaynight` only re-skins world icons (turfs/objects), not mobs at all; this is a
-      remake-only enhancement idea on top of that, not something to match from the OG
+- [x] Darken player/monster sprites at night — **built (2026-09-05)** as part of the
+      Day/Night cycle work above (`ApplyNightTint()`, `Main.dm`). **Still open**: true
+      dynamic lighting (torches/light radii) beyond this flat darken-tint.
 - [x] Language filter — **already done** (`TextFilter.dm`, word-boundary censoring +
       GM-toggleable strictness), can be removed from future QoL lists
 - [ ] Player-created custom icons, usable on servers they host — idea floated alongside

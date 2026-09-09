@@ -209,8 +209,10 @@ Status key: `[ ]` not discussed yet, `[x]` confirmed behavior documented below.
       Leaves a trail of fire behind the GM as they walk, dealing AoE damage over time to
       anything standing in it — handy for clearing out enemies. Level 1 only puts fire on
       the exact tile you're currently walking on; higher levels' exact effect (wider
-      trail? stronger DoT? bigger AoE per tile?) not yet confirmed. **Depends on the
-      spell/fire-damage system existing first** — low priority until then.
+      trail? stronger DoT? bigger AoE per tile?) not yet confirmed. **DECIDED AGAINST
+      2026-09-07**: on top of needing a fire/terrain-DoT system built from scratch, its
+      entire purpose (clear out enemies around the GM) is already covered by the much
+      simpler `GM_KillMonsters` — not worth building.
 - [x] `GMcoopmode` — same per-area-instance toggle pattern as `GMbattlemode`. Coop ON =
       players cannot kill each other (PvE only); Coop OFF = PvP enabled between players.
       Note: GMs are never considered "players" for this check — players can still hurt a

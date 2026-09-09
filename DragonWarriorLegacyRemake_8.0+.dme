@@ -12,6 +12,13 @@
 #define FILE_DIR "Mob Icons/Monsters"
 #define FILE_DIR "Mob Icons/NPC"
 #define FILE_DIR "Mob Icons/Player"
+#define FILE_DIR "Mob Icons/Player/Fighter"
+#define FILE_DIR "Mob Icons/Player/Goof-off"
+#define FILE_DIR "Mob Icons/Player/Hero"
+#define FILE_DIR "Mob Icons/Player/Pilgrim"
+#define FILE_DIR "Mob Icons/Player/Sage"
+#define FILE_DIR "Mob Icons/Player/Soldier"
+#define FILE_DIR "Mob Icons/Player/Wizard"
 #define FILE_DIR "Sound & Music"
 #define FILE_DIR "UI & Effects"
 #define FILE_DIR "World Icons"
@@ -111,6 +118,13 @@
 #define STEP_ICON   3
 #define STEP_CUSTOM 4
 #define STEP_STATS  5
+
+// Character-creation preview room — IconPreview()'s default turf (LoginMenu.dm), and
+// also where RunSageReclassFlow() (PlayerTemplate.dm) relocates an already-playing mob
+// for the duration of a Classchange reclass, so the same room renders behind the
+// preview either way instead of two independently-hardcoded coordinates drifting apart
+// if this room ever moves. Same #include-order reason as the others above.
+#define CREATION_PREVIEW_TURF locate(3, 3, 2)
 
 // BEGIN_INCLUDE
 #include "Interface.dmf"

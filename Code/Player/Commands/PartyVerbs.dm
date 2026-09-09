@@ -17,6 +17,7 @@ var/list/PARTY_VERBS = list(
 mob/player/verb/CreateParty()
     set category = "Social"
     set desc = "Found a new party"
+    if(!RequireCanAct()) return
 
     if(Party)
         src << output("<font color='#006400'>You're already in a party.</font>", "Messages")
@@ -35,6 +36,7 @@ mob/player/verb/CreateParty()
 mob/player/verb/PartyKick(mob/player/M in Party.members)
     set category = "Party"
     set desc = "Remove a member from your party (leader only)"
+    if(!RequireCanAct()) return
 
     if(!Party) return
     if(!isPartyLeader)
@@ -49,6 +51,7 @@ mob/player/verb/PartyKick(mob/player/M in Party.members)
 mob/player/verb/PartyLeave()
     set category = "Party"
     set desc = "Leave your current party"
+    if(!RequireCanAct()) return
 
     if(!Party) return
     Party.RemoveMember(src)
@@ -56,6 +59,7 @@ mob/player/verb/PartyLeave()
 mob/player/verb/PartyRecruit(mob/player/M in view(src))
     set category = "Party"
     set desc = "Invite a nearby player into your party"
+    if(!RequireCanAct()) return
 
     if(!Party) return
     if(M == src) return
@@ -68,10 +72,11 @@ mob/player/verb/PartyRecruit(mob/player/M in view(src))
 mob/player/verb/PartySay(msg as text)
     set category = "Party"
     set desc = "Talk to your party only"
+    if(!RequireCanAct()) return
 
     if(!Party) return
     if(trimtext(msg) == "") return
-    LogChat("<[src.name]([src.key]) psays ([Party.name]):> [msg]", src)
+    LogChat("<[src.name]([src.key]) psays ([Party.name]):> [msg]")
     msg = CensorText(msg)
 
     // Routed through DeliverChat() (SocialVerbs.dm) rather than Party.Broadcast() so a
@@ -82,6 +87,7 @@ mob/player/verb/PartySay(msg as text)
 mob/player/verb/PartyShare()
     set category = "Party"
     set desc = "Toggle experience sharing for the party (leader only)"
+    if(!RequireCanAct()) return
 
     if(!Party) return
     if(!isPartyLeader)
@@ -94,6 +100,7 @@ mob/player/verb/PartyShare()
 mob/player/verb/PartyWho()
     set category = "Party"
     set desc = "List your party's members"
+    if(!RequireCanAct()) return
 
     if(!Party) return
     src << output("<font color='#006400'><b>[Party.name]</b></font>", "Messages")

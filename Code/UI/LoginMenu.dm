@@ -236,38 +236,55 @@ proc/ApplyClassSelection(mob/M, selectedClass)
 proc/GetClassIcons(mob/M, selectedClass)
     switch(selectedClass)
         if("Hero")
-            return list("Dragon Warrior 1 Hero"='Mob Icons/Player/dw1hero.dmi',
-                        "Dragon Warrior 2 Hero"='Mob Icons/Player/dw2hero.dmi',
-                        "Dragon Warrior 3 Hero"='Mob Icons/Player/dw3hero.dmi',
+            return list("Dragon Warrior 1 Hero"='Mob Icons/Player/Hero/dw1hero.dmi',
+                        "Dragon Warrior 2 Hero"='Mob Icons/Player/Hero/dw2hero.dmi',
+                        "Dragon Warrior 3 Hero"='Mob Icons/Player/Hero/dw3hero.dmi',
+                        "Dragon Warrior 4 Hero (Male)"='Mob Icons/Player/Hero/dw4malehero.dmi',
+                        "Dragon Warrior 4 Hero (Female)"='Mob Icons/Player/Hero/dw4femalehero.dmi',
+                        "Dragon Warrior 4 Elf"='Mob Icons/Player/Hero/dw4elf.dmi',
                         "Back")
         if("Soldier")
-            return list("Dragon Warrior 1 Soldier"='Mob Icons/Player/dw1soldier.dmi',
-                        "Dragon Warrior 2 Soldier"='Mob Icons/Player/dw2soldier.dmi',
-                        "Dragon Warrior 3 Guard"='Mob Icons/Player/dw3guard.dmi',
+            return list("Dragon Warrior 1 Soldier"='Mob Icons/Player/Soldier/dw1soldier.dmi',
+                        "Dragon Warrior 2 Soldier"='Mob Icons/Player/Soldier/dw2soldier.dmi',
+                        "Dragon Warrior 3 Guard"='Mob Icons/Player/Soldier/dw3guard.dmi',
+                        "Dragon Warrior 3 Soldier (Male)"='Mob Icons/Player/Soldier/dw3malesoldier.dmi',
+                        "Dragon Warrior 3 Soldier (Female)"='Mob Icons/Player/Soldier/dw3femalesoldier.dmi',
+                        "Dragon Warrior 4 Guard (Female)"='Mob Icons/Player/Soldier/dw4femaleguard.dmi',
+                        "Dragon Warrior 4 Ragnar"='Mob Icons/Player/Soldier/dw4ragnar.dmi',
+                        "Dragon Warrior 4 Adventurer"='Mob Icons/Player/Soldier/dw4adventurer.dmi',
                         "Back")
         if("Wizard")
-            return list("Dragon Warrior 1 Wizard"='Mob Icons/Player/dw1wizard.dmi',
-                        "Dragon Warrior 2 Wizard"='Mob Icons/Player/dw2wizard.dmi',
-                        "Dragon Warrior 3 Wizard"='Mob Icons/Player/dw3malewizard.dmi',
+            return list("Dragon Warrior 1 Wizard"='Mob Icons/Player/Wizard/dw1wizard.dmi',
+                        "Dragon Warrior 2 Wizard"='Mob Icons/Player/Wizard/dw2wizard.dmi',
+                        "Dragon Warrior 2 Princess"='Mob Icons/Player/Wizard/dw2princess.dmi',
+                        "Dragon Warrior 3 Wizard (Male)"='Mob Icons/Player/Wizard/dw3malewizard.dmi',
+                        "Dragon Warrior 3 Wizard (Female)"='Mob Icons/Player/Wizard/dw3femalewizard.dmi',
+                        "Dragon Warrior 4 Brey"='Mob Icons/Player/Wizard/dw4brey.dmi',
+                        "Dragon Warrior 4 Nara"='Mob Icons/Player/Wizard/dw4nara.dmi',
+                        "Dragon Warrior 4 Mara"='Mob Icons/Player/Wizard/dw4mara.dmi',
                         "Back")
         if("Fighter")
-            return list("Dragon Warrior 1 Fighter"='Mob Icons/Player/dw1fighter.dmi',
-                        "Dragon Warrior 2 Fighter"='Mob Icons/Player/dw2fighter.dmi',
-                        "Dragon Warrior 3 Fighter (Male)"='Mob Icons/Player/dw3malefighter.dmi',
-                        "Dragon Warrior 3 Fighter (Female)"='Mob Icons/Player/dw3femalefighter.dmi',
+            return list("Dragon Warrior 1 Fighter"='Mob Icons/Player/Fighter/dw1fighter.dmi',
+                        "Dragon Warrior 2 Fighter"='Mob Icons/Player/Fighter/dw2fighter.dmi',
+                        "Dragon Warrior 3 Fighter (Male)"='Mob Icons/Player/Fighter/dw3malefighter.dmi',
+                        "Dragon Warrior 3 Fighter (Female)"='Mob Icons/Player/Fighter/dw3femalefighter.dmi',
+                        "Dragon Warrior 4 Alena"='Mob Icons/Player/Fighter/dw4alena.dmi',
                         "Back")
         if("Pilgrim")
-            return list("Dragon Warrior 2 Pilgrim"='Mob Icons/Player/dw2pilgrim.dmi',
-                        "Dragon Warrior 3 Pilgrim (Male)"='Mob Icons/Player/dw3malepilgrim.dmi',
-                        "Dragon Warrior 3 Pilgrim (Female)"='Mob Icons/Player/dw3femalepilgrim.dmi',
+            return list("Dragon Warrior 2 Pilgrim"='Mob Icons/Player/Pilgrim/dw2pilgrim.dmi',
+                        "Dragon Warrior 3 Pilgrim (Male)"='Mob Icons/Player/Pilgrim/dw3malepilgrim.dmi',
+                        "Dragon Warrior 3 Pilgrim (Female)"='Mob Icons/Player/Pilgrim/dw3femalepilgrim.dmi',
+                        "Dragon Warrior 4 Cristo"='Mob Icons/Player/Pilgrim/dw4cristo.dmi',
                         "Back")
         if("Goof-off")
-            return list("Dragon Warrior 3 Goof-off (Male)"='Mob Icons/Player/dw3malegoofoff.dmi',
-                        "Dragon Warrior 3 Goof-off (Female)"='Mob Icons/Player/dw3femalegoofoff.dmi',
+            return list("Dragon Warrior 3 Goof-off (Male)"='Mob Icons/Player/Goof-off/dw3malegoofoff.dmi',
+                        "Dragon Warrior 3 Goof-off (Female)"='Mob Icons/Player/Goof-off/dw3femalegoofoff.dmi',
+                        "Dragon Warrior 3 Bard"='Mob Icons/Player/Goof-off/dw3bard.dmi',
+                        "Dragon Warrior 4 Bard"='Mob Icons/Player/Goof-off/dw4bard.dmi',
                         "Back")
         if("Sage")
-            return list("Dragon Warrior 3 Sage (Male)"='Mob Icons/Player/dw3malesage.dmi',
-                        "Dragon Warrior 3 Sage (Female)"='Mob Icons/Player/dw3femalesage.dmi',
+            return list("Dragon Warrior 3 Sage (Male)"='Mob Icons/Player/Sage/dw3malesage.dmi',
+                        "Dragon Warrior 3 Sage (Female)"='Mob Icons/Player/Sage/dw3femalesage.dmi',
                         "Back")
         if("Archsage")
             // Custom portrait first (IconSelect() matches ARCHSAGE_CUSTOM_ICON_LABEL
@@ -275,26 +292,43 @@ proc/GetClassIcons(mob/M, selectedClass)
             // options. Hand-listed, not built from the cases above — keep in sync by
             // hand if a class's icon options ever change.
             return list(ARCHSAGE_CUSTOM_ICON_LABEL = 'Mob Icons/Cere.dmi',
-                        "Dragon Warrior 1 Hero"='Mob Icons/Player/dw1hero.dmi',
-                        "Dragon Warrior 2 Hero"='Mob Icons/Player/dw2hero.dmi',
-                        "Dragon Warrior 3 Hero"='Mob Icons/Player/dw3hero.dmi',
-                        "Dragon Warrior 1 Soldier"='Mob Icons/Player/dw1soldier.dmi',
-                        "Dragon Warrior 2 Soldier"='Mob Icons/Player/dw2soldier.dmi',
-                        "Dragon Warrior 3 Guard"='Mob Icons/Player/dw3guard.dmi',
-                        "Dragon Warrior 1 Wizard"='Mob Icons/Player/dw1wizard.dmi',
-                        "Dragon Warrior 2 Wizard"='Mob Icons/Player/dw2wizard.dmi',
-                        "Dragon Warrior 3 Wizard"='Mob Icons/Player/dw3malewizard.dmi',
-                        "Dragon Warrior 1 Fighter"='Mob Icons/Player/dw1fighter.dmi',
-                        "Dragon Warrior 2 Fighter"='Mob Icons/Player/dw2fighter.dmi',
-                        "Dragon Warrior 3 Fighter (Male)"='Mob Icons/Player/dw3malefighter.dmi',
-                        "Dragon Warrior 3 Fighter (Female)"='Mob Icons/Player/dw3femalefighter.dmi',
-                        "Dragon Warrior 2 Pilgrim"='Mob Icons/Player/dw2pilgrim.dmi',
-                        "Dragon Warrior 3 Pilgrim (Male)"='Mob Icons/Player/dw3malepilgrim.dmi',
-                        "Dragon Warrior 3 Pilgrim (Female)"='Mob Icons/Player/dw3femalepilgrim.dmi',
-                        "Dragon Warrior 3 Goof-off (Male)"='Mob Icons/Player/dw3malegoofoff.dmi',
-                        "Dragon Warrior 3 Goof-off (Female)"='Mob Icons/Player/dw3femalegoofoff.dmi',
-                        "Dragon Warrior 3 Sage (Male)"='Mob Icons/Player/dw3malesage.dmi',
-                        "Dragon Warrior 3 Sage (Female)"='Mob Icons/Player/dw3femalesage.dmi',
+                        "Dragon Warrior 1 Hero"='Mob Icons/Player/Hero/dw1hero.dmi',
+                        "Dragon Warrior 2 Hero"='Mob Icons/Player/Hero/dw2hero.dmi',
+                        "Dragon Warrior 3 Hero"='Mob Icons/Player/Hero/dw3hero.dmi',
+                        "Dragon Warrior 4 Hero (Male)"='Mob Icons/Player/Hero/dw4malehero.dmi',
+                        "Dragon Warrior 4 Hero (Female)"='Mob Icons/Player/Hero/dw4femalehero.dmi',
+                        "Dragon Warrior 4 Elf"='Mob Icons/Player/Hero/dw4elf.dmi',
+                        "Dragon Warrior 1 Soldier"='Mob Icons/Player/Soldier/dw1soldier.dmi',
+                        "Dragon Warrior 2 Soldier"='Mob Icons/Player/Soldier/dw2soldier.dmi',
+                        "Dragon Warrior 3 Guard"='Mob Icons/Player/Soldier/dw3guard.dmi',
+                        "Dragon Warrior 3 Soldier (Male)"='Mob Icons/Player/Soldier/dw3malesoldier.dmi',
+                        "Dragon Warrior 3 Soldier (Female)"='Mob Icons/Player/Soldier/dw3femalesoldier.dmi',
+                        "Dragon Warrior 4 Guard (Female)"='Mob Icons/Player/Soldier/dw4femaleguard.dmi',
+                        "Dragon Warrior 4 Ragnar"='Mob Icons/Player/Soldier/dw4ragnar.dmi',
+                        "Dragon Warrior 4 Adventurer"='Mob Icons/Player/Soldier/dw4adventurer.dmi',
+                        "Dragon Warrior 1 Wizard"='Mob Icons/Player/Wizard/dw1wizard.dmi',
+                        "Dragon Warrior 2 Wizard"='Mob Icons/Player/Wizard/dw2wizard.dmi',
+                        "Dragon Warrior 2 Princess"='Mob Icons/Player/Wizard/dw2princess.dmi',
+                        "Dragon Warrior 3 Wizard (Male)"='Mob Icons/Player/Wizard/dw3malewizard.dmi',
+                        "Dragon Warrior 3 Wizard (Female)"='Mob Icons/Player/Wizard/dw3femalewizard.dmi',
+                        "Dragon Warrior 4 Brey"='Mob Icons/Player/Wizard/dw4brey.dmi',
+                        "Dragon Warrior 4 Nara"='Mob Icons/Player/Wizard/dw4nara.dmi',
+                        "Dragon Warrior 4 Mara"='Mob Icons/Player/Wizard/dw4mara.dmi',
+                        "Dragon Warrior 1 Fighter"='Mob Icons/Player/Fighter/dw1fighter.dmi',
+                        "Dragon Warrior 2 Fighter"='Mob Icons/Player/Fighter/dw2fighter.dmi',
+                        "Dragon Warrior 3 Fighter (Male)"='Mob Icons/Player/Fighter/dw3malefighter.dmi',
+                        "Dragon Warrior 3 Fighter (Female)"='Mob Icons/Player/Fighter/dw3femalefighter.dmi',
+                        "Dragon Warrior 4 Alena"='Mob Icons/Player/Fighter/dw4alena.dmi',
+                        "Dragon Warrior 2 Pilgrim"='Mob Icons/Player/Pilgrim/dw2pilgrim.dmi',
+                        "Dragon Warrior 3 Pilgrim (Male)"='Mob Icons/Player/Pilgrim/dw3malepilgrim.dmi',
+                        "Dragon Warrior 3 Pilgrim (Female)"='Mob Icons/Player/Pilgrim/dw3femalepilgrim.dmi',
+                        "Dragon Warrior 4 Cristo"='Mob Icons/Player/Pilgrim/dw4cristo.dmi',
+                        "Dragon Warrior 3 Goof-off (Male)"='Mob Icons/Player/Goof-off/dw3malegoofoff.dmi',
+                        "Dragon Warrior 3 Goof-off (Female)"='Mob Icons/Player/Goof-off/dw3femalegoofoff.dmi',
+                        "Dragon Warrior 3 Bard"='Mob Icons/Player/Goof-off/dw3bard.dmi',
+                        "Dragon Warrior 4 Bard"='Mob Icons/Player/Goof-off/dw4bard.dmi',
+                        "Dragon Warrior 3 Sage (Male)"='Mob Icons/Player/Sage/dw3malesage.dmi',
+                        "Dragon Warrior 3 Sage (Female)"='Mob Icons/Player/Sage/dw3femalesage.dmi',
                         "Back")
     return list()
 
@@ -333,7 +367,7 @@ proc/IconSelect(mob/M)
 //---------------------------------
 // Preview icon in a separate area
 //---------------------------------
-mob/proc/IconPreview(turf/T = locate(3,3,2))
+mob/proc/IconPreview(turf/T = CREATION_PREVIEW_TURF)
     if(newCharPreview)
         del newCharPreview
 
@@ -474,6 +508,16 @@ proc/FinalizePlayer(mob/playerTemp/M)
     M.ShowInfo("Player finalized")
     M << sound(null, channel = 1)
 
+    // Would otherwise sit orphaned at CREATION_PREVIEW_TURF forever -- BecomeSage()
+    // (PlayerTemplate.dm) already does this same cleanup for the reclass path; this
+    // path (fresh character creation) was missing it. `del M` below doesn't cascade to
+    // this -- it's a separate /obj only ever REFERENCED by M's own var, not a child of
+    // it. Confirmed real leak 2026-09-09: repeated Logout -> Create Character cycles
+    // (each using a brand-new mob/playerTemp, so IconPreview()'s own "delete my
+    // previous preview" self-cleanup never sees the PRIOR cycle's mob's preview) left
+    // one orphaned preview icon behind per character created this way.
+    if(M.newCharPreview) del M.newCharPreview
+
     C.mob = newPlayer
     // The new mob's own verb list starts fresh from its type declaration (includes
     // GM-only verbs like GM_ToggleLog by default) — re-sync (AdminLevels.dm) so a
@@ -551,8 +595,14 @@ proc/ApplyCustomColors(mob/playerTemp/src, mob/player/dst)
 #define CREATION_STAT_CAP 10
 
 // Untyped mob, same reasoning as IconSelect() above — reused for reclass, not just
-// fresh creation.
-proc/StatAllocation(mob/M)
+// fresh creation. resetFromZero = TRUE (RunSageReclassFlow(), PlayerTemplate.dm) seeds
+// the scratch allocation from the base-1 starting stats a brand-new mob/player has
+// instead of M's own current (likely already-leveled, possibly already-capped) stats —
+// without it, a real character's stats block this screen's 10-cap almost immediately
+// and can leave every stat too full to spend the fresh CREATION_STAT_POINTS at all.
+// M's real vars are still untouched until "Finish" either way, so backing out
+// (returns STEP_ICON) never mutates them regardless of resetFromZero.
+proc/StatAllocation(mob/M, resetFromZero = FALSE)
     var/remainingStatPoints = CREATION_STAT_POINTS
     var/list/statCaps = list(
         "Strength"     = CREATION_STAT_CAP,
@@ -565,11 +615,11 @@ proc/StatAllocation(mob/M)
 
     // Temporary stat storage
     var/list/tempStatPoints = list(
-        "Strength"     = M.Strength,
-        "Vitality"     = M.Vitality,
-        "Agility"      = M.Agility,
-        "Intelligence" = M.Intelligence,
-        "Spirit"       = M.Spirit
+        "Strength"     = resetFromZero ? 1 : M.Strength,
+        "Vitality"     = resetFromZero ? 1 : M.Vitality,
+        "Agility"      = resetFromZero ? 1 : M.Agility,
+        "Intelligence" = resetFromZero ? 1 : M.Intelligence,
+        "Spirit"       = resetFromZero ? 1 : M.Spirit
     )
 
     while(TRUE)

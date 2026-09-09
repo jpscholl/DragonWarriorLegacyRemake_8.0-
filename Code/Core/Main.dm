@@ -47,11 +47,26 @@ var/global/allowMultiLogin = FALSE
 // (ApplyNightTint() below) — a remake-only idea, not OG behavior.
 var/global/isNight = FALSE
 
+// TRUE only on a night where the curse easter egg (NIGHT_CURSE_EASTEREGG_PERCENT below)
+// rolled — HUD.dm's GetHUDHealthColor() checks this to swap the HUD text red instead of
+// the usual night blue. Cleared the moment day breaks (SetWorldNight() below).
+var/global/isCurseNight = FALSE
+
 // Multiplied against a mob's sprite at night — darkens and slightly blue-shifts it
 // without going fully black. Doesn't touch player palette recoloring (RebuildIcon(),
 // SaveSystem.dm bakes colors into the icon itself, not the color var) or the glyph/
 // name-tag objects in HUD.dm that use color for their own unrelated purposes.
 #define NIGHT_TINT_COLOR rgb(130,130,170)
+
+// Easter egg (Castlevania's "What a horrible night to have a curse") — 1-in-20 odds
+// each time night actually falls (SetWorldNight() below), not every sunset, so it stays
+// a rare surprise rather than a flavor line players learn to expect.
+#define NIGHT_CURSE_EASTEREGG_PERCENT 5
+
+// Replaces the player's normal area music for the length of a curse night — takes over
+// channel 1 like PlayAreaMusic() (Area.dm) does, so area/Entered() below has to check
+// isCurseNight itself to avoid stomping this the moment someone walks into a new area.
+#define CURSE_NIGHT_MUSIC 'cursenight.wav'
 
 mob/proc/ApplyNightTint(toNight)
     color = toNight ? NIGHT_TINT_COLOR : null
@@ -89,16 +104,71 @@ proc/SetWorldNight(toNight, message)
     if(isNight == toNight) return
     isNight = toNight
 
+    // Rolled up front (rather than alongside the announcement below) so the HUD sweep
+    // just below already knows whether to color text curse-red vs. the normal night
+    // blue, instead of lagging a tick behind like the announcement doesn't need to.
+    // Cleared the instant day breaks — the curse is a one-night-only effect. wasCurseNight
+    // remembers the outgoing state so the mob loop below knows to restore normal area
+    // music on the sunrise that ends a curse night.
+    var/wasCurseNight = isCurseNight
+    isCurseNight = toNight && prob(NIGHT_CURSE_EASTEREGG_PERCENT)
+
     for(var/turf/T in world)
         ToggleNightIconState(T, isNight)
     for(var/obj/O in world)
         if(istype(O, /obj/StatLink)) continue
+        // `in world` walks every instantiated /obj regardless of loc, so this was also
+        // sweeping client.screen HUD objects (hudBackdrop/hudGlyph, HUD.dm) — appending
+        // "night" to a glyph's icon_state (e.g. "0" -> "0night") isn't a real text.dmi
+        // state, blanking the character until the next UpdateHUD() tick overwrote it
+        // back. That gap was the reported HUD flicker on every day/night toggle.
+        if(istype(O, /obj/screen)) continue
         ToggleNightIconState(O, isNight)
     for(var/mob/M in world)
         M.ApplyNightTint(isNight)
+        // Without this, the HUD's white->NIGHT_HUD_TEXT_COLOR swap (GetHUDHealthColor(),
+        // HUD.dm) only takes effect on that player's next Stat() tick — a noticeable lag
+        // behind the world's own tint/icon swap above, which applies immediately.
+        if(istype(M, /mob/player))
+            var/mob/player/P = M
+            P.UpdateHUD()
 
-    if(message)
+            // Curse night takes over channel 1 in place of the area's normal music
+            // (area/Entered(), Area.dm, checks isCurseNight too so walking into a new
+            // area mid-curse-night doesn't stomp this). Restored the moment the curse
+            // night ends — falls back to silence if the player's current area has no
+            // music of its own to return to.
+            if(isCurseNight)
+                P.PlayAreaMusic(CURSE_NIGHT_MUSIC)
+            else if(wasCurseNight)
+                var/area/currentArea = P.loc?.loc
+                if(currentArea && currentArea.areaMusic)
+                    P.PlayAreaMusic(currentArea.areaMusic)
+                else if(P.client)
+                    P.client << sound(null, channel = 1)
+                    P.current_music = null
+
+    // Rare easter egg (isCurseNight rolled above) — same big red banner styling as
+    // GM_Announce() (GMCommands.dm), minus the "so-and-so announces:" line since this
+    // isn't coming from a GM. Takes over FROM the normal flavor `message` on the nights
+    // it fires, rather than showing alongside it.
+    if(isCurseNight)
+        players << output("<font color='red' size='5'><b>What a horrible night to have a curse.</b></font>", "Messages")
+    else if(message)
         players << output("<center><b>[message]</b></center>", "Messages")
+
+// Forces the curse night event right now, bypassing NIGHT_CURSE_EASTEREGG_PERCENT's odds
+// entirely — GM_HorribleNight() (GMCommands.dm), a temp test verb so this doesn't need
+// dozens of GM_DayNight() toggles to see. First ensures the world is actually dark
+// (SetWorldNight() no-ops if it's already night, so isCurseNight is forced separately
+// afterward either way), then redoes the per-player HUD/music step and announcement.
+proc/TriggerCurseNight()
+    SetWorldNight(TRUE)
+    isCurseNight = TRUE
+    for(var/mob/player/P in world)
+        P.UpdateHUD()
+        P.PlayAreaMusic(CURSE_NIGHT_MUSIC)
+    players << output("<font color='red' size='5'><b>What a horrible night to have a curse.</b></font>", "Messages")
 
 // Advances the clock one tick and fires sunrise/sunset transitions as they're crossed.
 proc/WorldClockLoop()
@@ -383,3 +453,16 @@ mob/proc/DisableCommands()
 
 mob/proc/EnableCommands()
     src.verbs += typesof(/mob/verb)
+
+// Shared lock/unlock pair for any fade-and-teleport transition (stairs, falling
+// through sky, warp — Turfs.dm). SUPERSEDED the DisableCommands()/EnableCommands()
+// approach (2026-09-09): removing verbs from .verbs visibly blinked the whole menu
+// away and back for the transition's duration, most noticeable on the ~12.5s warp.
+// canAct alone already covers this now that every verb checks RequireCanAct()
+// (PlayerTemplate.dm) at its own top — verbs stay visible and just silently no-op
+// instead of disappearing.
+mob/proc/LockForTransition()
+    canAct = FALSE
+
+mob/proc/UnlockAfterTransition()
+    canAct = TRUE

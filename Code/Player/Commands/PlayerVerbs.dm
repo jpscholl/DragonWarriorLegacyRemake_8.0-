@@ -3,6 +3,7 @@
 mob/verb/Help()
     set hidden = 1
 
+    if(!RequireCanAct()) return
     src << browse("<h3>Dragon Warrior Legacy Remake</h3><p>Help content coming soon.</p>", "window=help;size=400x300")
 
 // Standing on the stairs and double-clicking your own tile hits your own mob sprite
@@ -26,6 +27,7 @@ mob/var/obj/item/quickItem = null
 mob/verb/ScrollQuickItem()
     set hidden = 1
 
+    if(!RequireCanAct()) return
     var/list/items = list()
     for(var/obj/item/I in contents)
         items += I
@@ -46,6 +48,7 @@ mob/verb/ScrollQuickItem()
 mob/verb/UseQuickItem()
     set hidden = 1
 
+    if(!RequireCanAct()) return
     if(!quickItem)
         src.ShowInfo("No quick item selected. Press * on your numpad to choose one.")
         return
@@ -69,6 +72,7 @@ mob/player/verb/SetQuickCast()
     set desc = "Assign a spell to one of the F5/F6/F7 hotkeys"
     set hidden = 1   // stays functional, just not shown in the Action tab
 
+    if(!RequireCanAct()) return
     var/list/castable = list()
     for(var/datum/skill/S in skills)
         if(S.isSpell) castable[S.skillName] = S
@@ -98,6 +102,7 @@ mob/player/verb/SetQuickCast()
 mob/verb/UseQuickSpell(slot as num)
     set hidden = 1
 
+    if(!RequireCanAct()) return
     var/datum/skill/S = quickSpells[slot]
     if(!S)
         src.ShowInfo("No spell assigned to F[slot].")
@@ -216,6 +221,11 @@ mob/verb/Interact()
         RespawnPlayer()
         return
 
+    // AFTER the isDead branch above, deliberately -- respawning via numpad 5 must stay
+    // usable even while canAct is FALSE (Die() locks it as part of the death itself),
+    // this only needs to block normal interaction.
+    if(!RequireCanAct()) return
+
     var/turf/target = get_step(src, src.dir)
     if(!target) return
 
@@ -252,6 +262,7 @@ mob/verb/Look()
     set category = "Action"
     set desc = "Shows players in view and their basic info"
 
+    if(!RequireCanAct()) return
     src.ShowInfo("<b>Players in view:</b>")
 
     var/found = FALSE
@@ -271,8 +282,71 @@ mob/verb/TurnWalk()
     set category = "Action"
     set desc = "Toggle: face a new direction before walking that way, instead of moving instantly"
 
+    if(!RequireCanAct()) return
     turnWalkMode = !turnWalkMode
     src.ShowInfo("Turn-then-walk is now [turnWalkMode ? "ON" : "OFF"].")
+
+// Returns to the character-select menu without disconnecting from the server. Named
+// LogoutToMenu, NOT Logout -- mob/player/Logout() (Main.dm) is BYOND's own disconnect
+// callback (fires on a real client disconnect); a verb literally named Logout() would
+// override that hook instead of adding a separate one, silently breaking save-on-
+// disconnect for everyone. `set name` below is what actually shows "Logout" in the
+// Action tab. Saves the character with the same call SaveAndLogout() makes on a real
+// disconnect, but skips its "has left the world"/LogChat lines since the player never
+// actually left the server.
+mob/player/verb/LogoutToMenu()
+    set name = "Logout"
+    set category = "Action"
+    set desc = "Save and return to the character select menu"
+
+    if(!client) return
+    if(!RequireCanAct()) return
+
+    var/confirm = alert(src, "Return to the character menu? Your character will be saved.", "Logout", "Yes", "No")
+    if(confirm != "Yes") return
+
+    var/client/C = client
+    // Would otherwise linger in C.screen and double up with whatever character loads
+    // next (HUD.dm) -- same reasoning as BecomeSage() (PlayerTemplate.dm).
+    DestroyHUD(C)
+
+    if(saveManager && !skipSaveOnLogout)
+        saveManager.SaveCharacter(src, saveSlot || 1)
+
+    players -= src
+
+    // Reopen the savefile fresh rather than reusing the same handle for the rest of
+    // this connection. RESTORED 2026-09-09 after being wrongly reverted: reusing one
+    // long-lived SaveManager across repeated create/logout cycles in a single session
+    // (create Hero, logout, create Soldier, logout, create Wizard, logout, ...) turned
+    // out to silently drop the later characters entirely -- confirmed live: only Hero
+    // (the very first character, first write) survived a disconnect/reconnect, Soldier
+    // and Wizard never made it to disk despite their own creation-time and logout-time
+    // SaveCharacter() calls each completing without error. A previous icon-loss report
+    // (characters 2/3 rendering with no sprite) was wrongly blamed on THIS reopen and
+    // used as the reason to revert it -- the real cause was an unrelated null-list
+    // crash in PaletteManager.New() (PaletteManager.dm, fixed separately) that had
+    // nothing to do with how many SaveManager instances existed. Each SaveCharacter()
+    // call already Flush()es before this runs, so the fresh reopen always sees
+    // everything saved so far.
+    if(saveManager) saveManager.Close()
+    C.saveManager = new /datum/SaveManager(C.ckey)
+
+    var/mob/playerTemp/M = new()
+    C.mob = M
+    C.SyncGMVerbs()
+
+    // Same login jingle mob/playerTemp/Login() (Main.dm) plays on a real connection --
+    // replaces whatever area music was still on channel 1 for the character just left.
+    C << sound('dw3conti.mid', repeat = 1, volume = C.ScaledVolume(isMusic = TRUE), channel = 1)
+
+    // MUST run before ShowLoginMenu() -- that call blocks on input() for the player's
+    // entire character-select/creation session, so del-ing src AFTER it (as originally
+    // written) left the old mob's body, icon and all, standing untouched in the world
+    // for as long as the menu stayed open. Confirmed 2026-09-09 ("leftover icons").
+    del src
+
+    ShowLoginMenu(M)
 
 // -----------------------------
 // Volume Control — Master/Music/SFX sliders (client/ScaledVolume(), Main.dm),
@@ -283,6 +357,7 @@ mob/verb/SetMasterVolume()
     set category = "Settings"
     set desc = "Overall volume, scales Music and SFX together"
     if(!client) return
+    if(!RequireCanAct()) return
 
     var/v = input(src, "Master volume (0-100):", "Settings", client.masterVolume) as num
     if(isnull(v)) return
@@ -298,6 +373,7 @@ mob/verb/SetMusicVolume()
     set category = "Settings"
     set desc = "Area background music volume"
     if(!client) return
+    if(!RequireCanAct()) return
 
     var/v = input(src, "Music volume (0-100):", "Settings", client.musicVolume) as num
     if(isnull(v)) return
@@ -310,6 +386,7 @@ mob/verb/SetSFXVolume()
     set category = "Settings"
     set desc = "Combat/event sound effect volume"
     if(!client) return
+    if(!RequireCanAct()) return
 
     var/v = input(src, "Sound effects volume (0-100):", "Settings", client.sfxVolume) as num
     if(isnull(v)) return

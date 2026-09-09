@@ -5,6 +5,7 @@ mob/verb/GM_Announce()
     set desc = "Broadcasts a big red announcement to every connected player"
 
     if(!RequireGMHost()) return
+    if(!RequireCanAct()) return
 
     var/msg = input(src, "Announcement:", "GM_Announce") as text|null
     if(isnull(msg) || !length(trimtext(msg))) return
@@ -57,6 +58,7 @@ mob/verb/GM_SwitchIcon()
     set desc = "Switch your own icon to a custom GM cosmetic, purely for flair"
 
     if(!RequireAdmin()) return
+    if(!RequireCanAct()) return
 
     var/list/icons = list(
         "Angel Blazer" = 'angelblazer.dmi',
@@ -102,6 +104,13 @@ mob/verb/GM_GhostForm()
     set category = "GM"
 
     if(!RequireAdmin()) return
+    // canAct is already FALSE for the whole mid-transit window of a warp (turf/warp,
+    // Turfs.dm) and every other action lock in the game -- this was the one thing that
+    // could still be toggled through one of those locks. Confirmed real bug 2026-09-09:
+    // toggling ghost form mid-warp let its density = 0 survive the warp's own
+    // restore-captured-density step at the end, leaving a no-longer-ghosted player able
+    // to walk through dense objects on arrival.
+    if(!RequireCanAct()) return
 
     ToggleGhostForm()
 
@@ -112,6 +121,7 @@ mob/verb/GM_ToggleProfanityFilter()
     set desc = "Turns the general-profanity filter (names/chat) on or off"
 
     if(!RequireAdmin()) return
+    if(!RequireCanAct()) return
 
     adultServer = !adultServer
     src.ShowInfo("Profanity filter is now [adultServer ? "OFF" : "ON"] (adultServer = [adultServer]).")
@@ -125,6 +135,7 @@ mob/verb/GM_ToggleMultiLogin()
     set desc = "Turns the same-IP double-login block on or off (for testing with two clients)"
 
     if(!RequireAdmin()) return
+    if(!RequireCanAct()) return
 
     allowMultiLogin = !allowMultiLogin
     src.ShowInfo("Multi-login is now [allowMultiLogin ? "ALLOWED" : "BLOCKED"] (allowMultiLogin = [allowMultiLogin]).")
@@ -138,6 +149,7 @@ mob/verb/GM_Ban()
     set desc = "Ban a connected player's character, or unban one from the ban list"
 
     if(!RequireAdmin()) return
+    if(!RequireCanAct()) return
 
     var/list/targets = GetModerationTargets()
 
@@ -241,6 +253,7 @@ mob/verb/GM_Boot()
     set desc = "Disconnects a connected player without saving their progress"
 
     if(!RequireAdmin()) return
+    if(!RequireCanAct()) return
 
     var/list/targets = GetModerationTargets()
     if(!targets.len)
@@ -279,6 +292,7 @@ mob/verb/GM_Mute()
     set desc = "Mute a connected player's chat, or unmute one from the mute list"
 
     if(!RequireAdmin()) return
+    if(!RequireCanAct()) return
 
     var/list/targets = GetModerationTargets()
     // Already-muted targets belong in the Mute List below, not the mute picker.
@@ -345,6 +359,7 @@ mob/verb/GM_Pwipe()
     set desc = "Permanently erase a connected player's character from their savefile"
 
     if(!RequireAdmin()) return
+    if(!RequireCanAct()) return
 
     var/list/targets = GetModerationTargets()
     if(!targets.len)
@@ -406,6 +421,7 @@ mob/verb/GM_NameChange()
     set desc = "Rename a connected player's character, or any NPC/monster in view"
 
     if(!RequireGMHost()) return
+    if(!RequireCanAct()) return
 
     var/list/targets = GetModerationTargets()
     for(var/mob/M in view(src))
@@ -489,6 +505,7 @@ mob/verb/GM_PlayerStatus()
     set desc = "Dumps a full character sheet for one player, or every connected player"
 
     if(!RequireGMHost()) return
+    if(!RequireCanAct()) return
 
     var/list/options = list()
     for(var/mob/player/P in players)
@@ -521,6 +538,7 @@ mob/verb/GM_PromoteBuilder()
     set desc = "Grant or revoke persistent Builder access for a connected player"
 
     if(!RequireGMHost()) return
+    if(!RequireCanAct()) return
 
     var/list/targets = GetModerationTargets()
     if(!targets.len)
@@ -551,6 +569,7 @@ mob/verb/GM_PromoteAdmin()
     set desc = "Grant or revoke persistent Admin access for a connected player"
 
     if(!RequireGMHost()) return
+    if(!RequireCanAct()) return
 
     var/list/targets = GetModerationTargets()
     if(!targets.len)
@@ -587,6 +606,7 @@ mob/verb/GM_CreateObj()
     set desc = "Creates a functional obj (or a placeholder NPC) at your location"
 
     if(!RequireBuilder()) return
+    if(!RequireCanAct()) return
 
     var/list/choices = list(
         "Door" = /obj/door,
@@ -732,6 +752,7 @@ mob/verb/GM_MakeItem()
     set desc = "Spawns a consumable or amulet directly into your inventory"
 
     if(!RequireBuilder()) return
+    if(!RequireCanAct()) return
 
     var/list/categories = list(
         "Consumable" = list(
@@ -844,10 +865,27 @@ mob/verb/GM_DayNight()
     set desc = "Toggles day/night for every turf, obj, and mob in the world"
 
     if(!RequireGMHost()) return
+    if(!RequireCanAct()) return
 
     SetWorldNight(!isNight)
 
     world << output("[src] has turned it to [isNight ? "night" : "day"].", "Info")
+
+// TEMP test verb — forces the curse night easter egg (TriggerCurseNight(), Main.dm) on
+// demand instead of gambling on its 1-in-20 odds every GM_DayNight() toggle. Remove once
+// the curse effect (HUD red, music takeover, banner) has actually been seen working.
+// hidden = 1 (same convention as SmoothMovement.dm/Inventory.dm/PlayerVerbs.dm) keeps it
+// out of the GM verb menu without stripping it from mob.verbs — still fully callable by
+// typing "GM_HorribleNight" directly, same as this project's other hidden verbs.
+mob/verb/GM_HorribleNight()
+    set category = "GM"
+    set desc = "TEMP: forces the curse night easter egg immediately"
+    set hidden = 1
+
+    if(!RequireGMHost()) return
+    if(!RequireCanAct()) return
+
+    TriggerCurseNight()
 
 // Flips loggingEnabled (TextFilter.dm) — gates LogChat()'s own lines (chat,
 // login/logout, double-login) only. world.log's automatic connect/disconnect/host
@@ -857,6 +895,7 @@ mob/verb/GM_ToggleLog()
     set desc = "Turns chat/login logging (server.log) on or off"
 
     if(!RequireGMHost()) return
+    if(!RequireCanAct()) return
 
     loggingEnabled = !loggingEnabled
     src.ShowInfo("Chat/login logging is now [loggingEnabled ? "ON" : "OFF"].")
@@ -868,6 +907,7 @@ mob/verb/GM_LevelIncrease()
     set desc = "Increases your level by a chosen amount, same as leveling up normally"
 
     if(!RequireGMHost()) return
+    if(!RequireCanAct()) return
 
     var/amount = input(src, "How many levels to add?", "GM_LevelIncrease", 1) as num
     if(isnull(amount) || amount < 1) return
@@ -880,6 +920,14 @@ mob/verb/GM_LevelIncrease()
         Level += 1
         StatPoints += 6   // matches LevelCheck()'s confirmed OG value
         RecalculateVitals()
+
+    // LevelCheck() also does this on every real level-up (CombatSystem.dm) -- without
+    // it, a level-gated skill (e.g. Goofoff's Classchange at 25, SkillUnlocks.dm) stays
+    // unlearned until something else happens to call CheckSkillUnlocks() later, like
+    // spending a stat point (ClickableStats.dm).
+    if(istype(src, /mob/player))
+        var/mob/player/P = src
+        P.CheckSkillUnlocks()
 
     src.ShowInfo("You are now Level [Level] (+[amount])")
     src << sound('levelup.wav', channel = 2, volume = client.ScaledVolume())
@@ -900,6 +948,7 @@ mob/verb/GM_BattleMode()
     set desc = "Toggles battle mode for one area, or every area at once"
 
     if(!RequireGMHost()) return
+    if(!RequireCanAct()) return
 
     var/list/areaChoices = AddAreaChoices(list("None" = null, "All Areas" = "ALL"))
 
@@ -928,6 +977,7 @@ mob/verb/GM_CoopMode()
     set desc = "Toggles player-vs-player damage for one area, or every area at once"
 
     if(!RequireGMHost()) return
+    if(!RequireCanAct()) return
 
     var/list/areaChoices = AddAreaChoices(list("None" = null, "All Areas" = "ALL"))
 
@@ -954,6 +1004,7 @@ mob/verb/GM_PlayMusic()
     set desc = "Sets or changes an area's background music, or every area at once"
 
     if(!RequireGMHost()) return
+    if(!RequireCanAct()) return
 
     var/list/areaChoices = AddAreaChoices(list("None" = null, "All Areas" = "ALL"))
 
@@ -1011,6 +1062,7 @@ mob/verb/GM_SaveLocation()
     set desc = "Toggles whether returning characters spawn at their last saved position"
 
     if(!RequireGMHost()) return
+    if(!RequireCanAct()) return
 
     saveLocationEnabled = !saveLocationEnabled
     world << output("[src] turned location saving [saveLocationEnabled ? "ON" : "OFF"] — returning characters now spawn at [saveLocationEnabled ? "their last saved position" : "the normal spawn point"].", "Info")
@@ -1083,6 +1135,7 @@ mob/verb/GM_GlobalRespawn()
     set desc = "Create, modify, or delete a one-shot monster spawn definition"
 
     if(!RequireGMHost()) return
+    if(!RequireCanAct()) return
 
     var/list/options = list("Create New Respawn" = "NEW")
     for(var/datum/RespawnDefinition/D in respawnDefinitions)
@@ -1128,6 +1181,7 @@ mob/verb/GM_KillMonsters()
     set desc = "Instantly kills monsters through the real death process, by type or all at once"
 
     if(!RequireGMHost()) return
+    if(!RequireCanAct()) return
 
     var/list/choices = list("All" = "all")
     var/list/monsterChoices = GetTypeChoices(/mob/enemy)
@@ -1161,6 +1215,7 @@ mob/verb/GM_WorldReboot()
     set desc = "Saves everyone, then reboots the world after a 10-second countdown"
 
     if(!RequireGMHost()) return
+    if(!RequireCanAct()) return
 
     var/confirm = alert(src, "Reboot the world? Everyone will be saved, then the map resets and the server restarts.", "Confirm World Reboot", "Yes", "No")
     if(confirm != "Yes") return
@@ -1200,6 +1255,7 @@ mob/verb/GM_SeeAreas()
     set desc = "Toggles a visual overlay showing which area each tile belongs to"
 
     if(!RequireBuilder()) return
+    if(!RequireCanAct()) return
 
     seeingAreas = !seeingAreas
 
