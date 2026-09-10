@@ -167,9 +167,42 @@ area
 		var
 			has_ceiling = 1
 
+		// This area IS the building's boundary shell, so every tile of it blocks light
+		// (= line of sight) -- walls and the door tile alike. Doing it by area rather
+		// than by turf type matters: the door is a turf/ground, and leaving it
+		// non-opaque left one gap that you could still see the outside world through.
+		// The inner footprint (visible, below) overrides this back to a no-op, since
+		// those are the floor tiles you're meant to see across while standing inside.
+		//
+		// Scoped to this area on purpose -- turf/wall itself stays non-opaque everywhere
+		// else in the game, which is deliberate: ordinary walls are meant to be
+		// see-through.
+		//
+		// Opacity is NOT per-viewer -- an opaque tile blocks light for everyone equally,
+		// and there's no way to change that. The one-way behaviour comes from the other
+		// side instead: outdoor mobs carry SEE_THRU (PlayerTemplate.dm) and see straight
+		// through this shell as though it weren't opaque at all, while Entered() below
+		// strips SEE_THRU from whoever is inside -- so the shell stops THEIR view outward
+		// and nobody else's. That's why this works on any building shape or size without
+		// tuning: it's the real wall geometry doing the work, via BYOND's own LOS.
+		proc/ApplyBoundaryOpacity(turf/T)
+			if(T) T.opacity = 1
+
+		New()
+			. = ..()
+			for(var/turf/T in contents)
+				ApplyBoundaryOpacity(T)
+
+		// Covers a GM painting a new tile into this area at runtime too --
+		// PlaceBuildSelection() (BuildTools.dm) calls AddedTurf() on the target area.
+		AddedTurf(turf/T)
+			. = ..()
+			ApplyBoundaryOpacity(T)
+
 		Entered(mob/M) //when you enter the house you will not see the roof any more
 			if(ismob(M)) //if your a mob
 				M.see_invisible = 0 //keep these variables here or this will not work
+				M.sight &= ~SEE_THRU  // normal sight: these walls now stop your view outward
 
 		// newloc matters here: the outer buffer (this area) and the inner roof
 		// footprint (visible, below) are separate area instances, so walking between
@@ -182,6 +215,7 @@ area
 				var/area/destArea = T ? T.loc : null
 				if(istype(destArea, /area/ceiling)) return
 				M.see_invisible = 1 //keep these variables here or this will not work
+				M.sight |= SEE_THRU   // back outside: roofed walls stop blocking you again
 
 		// The actual roof footprint. showAreaVisual+visualInvisibility (above) paint
 		// icon/icon_state's art on every turf here, visible outdoors and hidden the
@@ -193,6 +227,12 @@ area
 			icon_state = "ceiling"
 			showAreaVisual = TRUE
 			visualInvisibility = 1
+
+			// Opt out of the boundary opacity inherited from ceiling above -- these are
+			// the interior floor tiles, the ones you're supposed to see across while
+			// standing inside. Only the outer shell blocks.
+			ApplyBoundaryOpacity(turf/T)
+				return
 
 	wilderness
 		icon_state = "wilderness"

@@ -8,6 +8,17 @@ mob
     // would sit at 0 and see straight through every roof in the game.
     see_invisible = 1
 
+    // The other half of the ceiling system, and the reason it can block one way but not
+    // the other. area/ceiling makes its own wall turfs opaque, and opacity blocks light
+    // (= line of sight) for EVERY viewer equally -- there is no per-viewer opacity. But
+    // SEE_THRU is a per-MOB bypass ("can see through opaque objects"), so the asymmetry
+    // lives on the viewer instead of the wall: outdoors is SEE_THRU, so a roofed
+    // building's walls don't block anyone standing outside (they still see the interior
+    // tiles, which is what lets the roof art render at all). Entered() clears it, so
+    // someone standing INSIDE has normal sight and those same walls stop their view at
+    // the wall itself -- the walls stay visible, nothing beyond them does.
+    sight = SEE_THRU
+
     // Gates whether a mob can move or start a new action — checked by mob/proc/Step()
     // (Code/Core/SmoothMovement.dm). See Markdowns/CodeNotes.md for the full set of
     // cases this covers and how it interacts with attackRecoveryOnly below.
