@@ -14,9 +14,10 @@ mob/verb/GM_Announce()
     players << output("[src.name] announces:", "Messages")
     players << output("<font color='red' size='5'><b>[msg]</b></font>", "Messages")
 
-// Deliberately its own tier, ABOVE obj/ceiling's invisibility = 1 (Obj.dm's
-// roof-hiding system) — a regular player's see_invisible never exceeds 1, so this
-// keeps ghosts hidden regardless of indoor/outdoor. See Markdowns/CodeNotes.md.
+// Deliberately its own tier, ABOVE the roof overlay's invisibility = 1
+// (area/ceiling/visible's visualInvisibility, Area.dm) — a regular player's
+// see_invisible never exceeds 1, so this keeps ghosts hidden regardless of
+// indoor/outdoor. See Markdowns/CodeNotes.md.
 #define GHOST_INVISIBILITY 2
 
 mob

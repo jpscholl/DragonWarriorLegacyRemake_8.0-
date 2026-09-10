@@ -88,6 +88,16 @@ obj
 			density = 1
 // Storage behavior lives in /obj/storage at the bottom of this file (parent_type above).
 
+		// Flavor text for the bookcase's "Read" > "Quotes" option below — same list on
+		// every bookcase, unrelated to the per-instance player-written messages.
+		var/global/list/BOOKCASE_QUOTES = list(
+			"\"I would rather eat a sandwich than have sex\" - Makiten",
+			"\"If anyone here is more important than my ego, I want them caught and shot right now.\" - Seige",
+			"\"You wish your penis was as large as mine\" - Balzack",
+			"\"When did I realize I was God? Well I was praying, and I suddenly realized I was talking to myself.\" - Seige",
+			"\"If you worldsay loud enough, she'll be able to hear you while she's offline\" - Saro",
+		)
+
 		// CONFIRMED OG mechanic (OGGameStructure.md, string 1687): "player-writable
 		// shared book storage" — any player can add a message and read what everyone
 		// else has written to THIS bookcase. Session-only, like obj/storage's
@@ -100,24 +110,41 @@ obj
 			var/list/messages = list()
 
 			OnInteract(mob/user)
-				var/choice = input(user, "The bookcase is full of scribbled notes.", "Bookcase") in list("Write a message", "Read messages", "Cancel")
-				if(!choice || choice == "Cancel") return TRUE
+				// Confirmed OG wording/UI: alert()'s 3 buttons, not an input() dropdown.
+				var/choice = alert(user, "What would you like to do?", "The bookcase", "Add", "Read", "Leave")
+				if(!choice || choice == "Leave") return TRUE
 
-				if(choice == "Write a message")
+				if(choice == "Add")
 					var/msg = input(user, "What would you like to write?", "Bookcase") as text|null
 					if(isnull(msg) || !length(trimtext(msg))) return TRUE
 					messages += "[user.name]: [CensorText(trimtext(msg))]"
 					user.ShowInfo("You add your message to the bookcase.")
 					return TRUE
 
-				// "Read messages"
-				if(!messages.len)
-					user.ShowInfo("The bookcase is empty.")
+				// "Read"
+				var/readChoice = input(user, "What would you like to read?", "Read") in list("Messages", "Quotes", "Cancel")
+				if(!readChoice || readChoice == "Cancel") return TRUE
+
+				if(readChoice == "Messages")
+					if(!messages.len)
+						user.ShowInfo("The bookcase is empty.")
+						return TRUE
+					var/pageText = "<b>[name]</b><br>"
+					for(var/line in messages)
+						pageText += "[line]<br>"
+					user << browse(pageText, "window=bookcase;size=400x300")
 					return TRUE
-				var/pageText = "<b>[name]</b><br>"
-				for(var/line in messages)
-					pageText += "[line]<br>"
-				user << browse(pageText, "window=bookcase;size=400x300")
+
+				// "Quotes" — flavor text, not player-written. Hardcoded so it's the same
+				// on every bookcase, unlike the per-instance messages list above. Starts
+				// with a literal quote mark rather than a tag, so without the <html>
+				// wrapper the popup sniffs it as plain text and prints "<br>" literally
+				// instead of a line break.
+				var/quoteText = "<html><head><meta charset=\"utf-8\"></head><body style=\"font-family:sans-serif\">"
+				for(var/line in BOOKCASE_QUOTES)
+					quoteText += "[line]<br><br>"
+				quoteText += "</body></html>"
+				user << browse(quoteText, "window=quotes;size=400x300;title=Quotes")
 				return TRUE
 
 		chest
@@ -145,21 +172,6 @@ obj
 			icon = 'pots.dmi'
 			density = 1
 
-
-// Ceiling object
-obj/ceiling
-    icon = 'wall.dmi'
-    icon_state = "ceiling"
-    layer = 100
-    invisibility = 1   // hidden unless mob.see_invisible >= 1 — keep this below
-                         // GHOST_INVISIBILITY (GMCommands.dm, currently 2) or GM
-                         // ghost form stops being hidden from regular players again
-
-    Crossed(mob/M)
-        if(ismob(M) && M.client)
-            for(var/turf/T in oview(3, src))
-                if(istype(T, /turf/wall))
-                    T.opacity = 1
 
 // -----------------------------
 // Storage containers — see Markdowns/CodeNotes.md for OG-confirmation of the shape.
@@ -238,3 +250,14 @@ obj/storage
             return  // PickUpItem() already explained why (inventory full)
 
         user.ShowInfo("You take [I.name] from [name].")
+
+// Purely cosmetic decoration dropped onto a turf by area/AddedTurf() (Area.dm) --
+// never dense, never interacted with. A real obj rather than an /image specifically so
+// its invisibility is filtered per-mob against see_invisible, same as any other atom --
+// an overlay image's own invisibility does NOT get that per-viewer filtering (confirmed
+// 2026-09-09: the ceiling roof art kept showing even after see_invisible correctly
+// dropped to 0 on Entered()).
+obj/AreaVisual
+    name = ""
+    density = 0
+    mouse_opacity = 0

@@ -114,12 +114,13 @@ client
                     // type into existence rather than being limited to ones the
                     // original map already used somewhere.
                     target = new buildSelection()
-                // Clear whatever visible-to-everyone decoration the OLD area may have
-                // applied (area/AddedTurf(), Area.dm) before repainting — otherwise a
-                // tile repainted away from e.g. Rave would keep showing its old area's
-                // decoration forever.
+                // Clear whatever decoration the OLD area may have applied
+                // (area/AddedTurf(), Area.dm) before repainting — otherwise a tile
+                // repainted away from e.g. Rave would keep showing its old area's
+                // decoration forever. A real obj (obj/AreaVisual), so del it rather than
+                // pulling it out of overlays.
                 if(T.areaVisualOverlay)
-                    T.overlays -= T.areaVisualOverlay
+                    del T.areaVisualOverlay
                     T.areaVisualOverlay = null
                 // turf/loc isn't directly assignable (unlike a movable atom's) —
                 // adding the turf to the area's own contents is the real mechanism

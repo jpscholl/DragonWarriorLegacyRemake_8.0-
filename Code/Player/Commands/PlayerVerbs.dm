@@ -1,10 +1,88 @@
-// Placeholder popup, wired to the File menu (Interface.dmf) — real content is still
-// future work. Hidden from the verb panel since File > Help is the only entry point.
+// Reachable both from the Action tab and File > Help (Interface.dmf) — a menu command
+// still fires a verb regardless of its own hidden/category state, so no second verb is
+// needed to cover both entry points. Wrapped in a real <html><body> doc, not a bare
+// fragment — starting with plain text/a quote mark instead of a tag makes the popup
+// sniff the content as plain text and print literal tags instead of rendering them
+// (same issue fixed in obj/stat/bookcase's Quotes reader, Obj.dm).
 mob/verb/Help()
-    set hidden = 1
+    set category = "Action"
+    set desc = "How to play, what to do, and the general rules"
 
     if(!RequireCanAct()) return
-    src << browse("<h3>Dragon Warrior Legacy Remake</h3><p>Help content coming soon.</p>", "window=help;size=400x300")
+
+    var/helpText = {"
+<html><head><meta charset="utf-8"><style>h3{text-decoration:underline}</style></head><body style="font-family:sans-serif;font-size:13px">
+
+<p><b>Updated as of 9/9/26</b></p>
+
+<hr>
+
+<h3>Welcome to Dragon Warrior Legacy Remake!</h3>
+<p>Dragon Warrior Legacy is a remake of Tarq (key: WizDragon)'s original half-fan game, which used some of the ideas and most of the graphics of Dragon Warrior with gameplay very different from it. This remake keeps that spirit but rebuilds combat as real-time (Zelda-style), not turn-based. This help file will tell you how to play, what to do, and what the general rules are.</p>
+
+<hr>
+
+<h3>Creating a Character</h3>
+<p>After putting in your name, you'll be prompted to choose your class. Here's a quick overview:</p>
+<ul>
+<li><b>Hero</b>: Balanced in all areas. Use this class if you plan on soloing most of the time.</li>
+<li><b>Soldier</b>: Very strong physical power, defense, and HP. Soldiers are the best class at taking damage.</li>
+<li><b>Fighter</b>: This class attacks extremely quickly and can deal huge amounts of physical damage, but isn't so good at taking damage.</li>
+<li><b>Goof-off</b>: This odd class is weaker than the rest, but at level 25 they learn Classchange and can turn into the very powerful Sage class.</li>
+<li><b>Pilgrim</b>: Specializes in healing and defensive magic, but is also fair in physical combat.</li>
+<li><b>Wizard</b>: Very weak in physical combat, but has the most powerful offensive magic of any class.</li>
+</ul>
+<p>(Sage isn't a starting choice — you reach it by learning Classchange as a Goof-off at level 25, or by using a Dharma Scroll on any other class. Sage is a combination of Wizard and Pilgrim: it learns both offensive and defensive magic, but is horrible in physical combat.)</p>
+<p>After choosing a class, you'll be asked to choose and color your icon. Once that's done, your character will be made.</p>
+
+<hr>
+
+<h3>Battle</h3>
+<p>In certain areas, you'll be able to fight monsters, or sometimes other players. Your skills are listed in the Battle tab, and your vitals are listed in the HUD at the bottom of the screen.</p>
+<p>You have 5 skill slots, bound to Numpad 9/7/3/1/0 (<b>Numlock must be off</b>). To equip a skill, drag it from the Free Skills list onto one of these slots on the Battle tab; drag an equipped skill back to Free Skills (or double-click it) to unequip it. Pressing a slot's key uses whatever is equipped there, targeting whoever is on the tile directly in front of you.</p>
+<p>To target a spell on a specific player instead — for party healing, for instance — click them (if they're nearby) and choose <b>Cast Magic</b> from the menu, then pick the spell. That same menu also lets you give gold or an item directly to another player.</p>
+<p>You can also bind up to three spells you know to <b>F5/F6/F7</b> as quick-cast hotkeys (set via the Quick Cast Hotkeys menu) — these also target whoever's in front of you.</p>
+
+<hr>
+
+<h3>Leveling Up</h3>
+<p>Fighting monsters nets you EXP, and when you get enough EXP you'll level up, as in practically every other RPG on the planet. When you level up, your HP (and MP if you're a magic-user) will rise, you may learn a new skill, and you'll gain stat points. Stat points can be used to increase your stats by clicking on them. Here's a quick overview of what the stats do:</p>
+<ul>
+<li><b>Strength</b>: Increases physical damage and the number of items you can carry.</li>
+<li><b>Agility</b>: Increases attack speed, casting speed, and physical defense.</li>
+<li><b>Vitality</b>: Increases max HP, HP regeneration rate, physical defense, and magic defense.</li>
+<li><b>Intelligence</b>: Increases max MP, MP regeneration rate, magic power, and magic defense.</li>
+<li><b>Spirit</b>: Increases critical hit rate, and contributes to max MP alongside Intelligence.</li>
+</ul>
+<p>If you're in a party with EXP/gold sharing on, kills split evenly among the party instead of going only to whoever landed the hit.</p>
+
+<hr>
+
+<h3>Quick Item</h3>
+<p>Quick items are a way to use items without having to click on them in your inventory. Press * on your numpad to cycle through your items, and - to use whichever one is currently selected.</p>
+
+<hr>
+
+<p><i>Note: I don't feel like rewriting the rules right now, but I will make an effort to eliminate most of the issues the rules cover.</i></p>
+
+<h3>Rules</h3>
+<ul>
+<li><b>No racism, sexism, or anything else along those lines.</b> Swearing is fine, but don't go overboard on it.</li>
+<li><b>There's a language filter in place that filters out swearing (this can be turned off) and racist remarks (always filtered).</b> Racism and sexism (among other things) will be taken seriously. Any attempt to get around the filter will get you banned — even though the filter blocks what shows up in-game, the actual text you typed still shows up in the logs, so it'll tell on you either way.</li>
+<li><b>Don't flame or harass other players.</b> If you have a dispute, settle it like actual people instead of 2nd grade children, or take it to a GM.</li>
+<li><b>Listen to the GMs.</b> GMs are anyone with a fancier icon than normal. If they're telling you to do something, listen to them.</li>
+<li><b>Don't spam.</b> Spamming is filling up the chat with useless messages. Any kind of spamming will be dealt with very seriously.</li>
+<li><b>Don't steal kills or loot.</b> When someone else is fighting a monster, don't help unless they ask for it! You won't get any EXP or gold from it unless you're the one fighting it, anyway. Likewise, if a monster drops something and you didn't kill it, don't pick it up.</li>
+<li><b>Respect people so long as they deserve it.</b> Have courtesy in this game. Behind every little icon, there is an actual person with feelings and opinions. Don't pretend that person doesn't exist. I don't expect this to be a perfect little community of harmony and sunshine, but I don't want it to be a hellhole, either.</li>
+</ul>
+
+<hr>
+
+<p><i>By Aeon (Cerebella)</i></p>
+
+</body></html>
+"}
+    src << browse(helpText, "window=help;size=520x520")
 
 // Standing on the stairs and double-clicking your own tile hits your own mob sprite
 // (the topmost atom there), not the turf beneath it — turf/stairs/DblClick() never

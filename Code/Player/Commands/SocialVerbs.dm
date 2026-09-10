@@ -22,16 +22,35 @@ mob
             if(P.client && P.client.canAdmin)
                 P << output("<font color='gray'>(Muted)</font> [msg]", "Messages")
 
+    // Filters a view() list down to only mobs sharing src's indoor/outdoor state — the
+    // same area/ceiling boundary used by the roof-hiding system (Area.dm) and
+    // GM_GhostForm's see_invisible recompute (GMCommands.dm). Used by Say/Emote so a
+    // shout through a wall doesn't also carry through a ceiling.
+    proc/IndoorAudience(list/candidates)
+        var/turf/myTurf = loc
+        var/mySide = myTurf && istype(myTurf.loc, /area/ceiling)
+        var/list/matched = list()
+        for(var/mob/M in candidates)
+            var/turf/theirTurf = M.loc
+            var/theirSide = theirTurf && istype(theirTurf.loc, /area/ceiling)
+            if(theirSide == mySide) matched += M
+        return matched
+
 // -----------------------------
 // World chat rate limit
 // -----------------------------
 #define WORLD_CHAT_COOLDOWN 10  // world.time units (1 real second)
 
-// Say uses the client's own view (world.view is 13x13, i.e. 6 tiles out — Main.dm), so
-// these bracket it on either side. Placeholder distances — the OG's exact whisper/
-// shout radii aren't recovered, only that the three tiers existed and were ordered this way.
+// Say sits between these. Placeholder distances — the OG's exact whisper/shout radii
+// aren't recovered, only that the three tiers existed and were ordered this way.
 #define WHISPER_RANGE 1
 #define SHOUT_RANGE 12
+
+// Say/Emote reach further than the client's default view (13x13, world.view — Main.dm)
+// so nearby players don't need to be on-screen to hear normal chat. view(10) is 21x21,
+// the closest centered square to the requested 20x20 (view() is always odd-sized).
+#define SAY_RANGE 10
+#define EMOTE_RANGE 10
 
 mob/var/wsayLimit = 0
 
@@ -75,7 +94,7 @@ mob
             if(trimtext(msg) == "") return
             LogChat("<[src.name]([src.key]) [msg]>")
             msg = CensorText(msg)
-            DeliverChat(view(src), "<font color='black'> \icon[src]&lt;[src.name] [msg]&gt;</font>")
+            DeliverChat(IndoorAudience(view(EMOTE_RANGE, src)), "<font color='black'> \icon[src]&lt;[src.name] [msg]&gt;</font>")
 
         Say(msg as text)
             set category = "Social"
@@ -85,7 +104,7 @@ mob
             if(trimtext(msg) == "") return
             LogChat("<[src.name]([src.key]) says:> [msg]")
             msg = CensorText(msg)
-            DeliverChat(view(src), "<font color='blue'> \icon[src]&lt;[src.name] says:&gt; [msg]</font>")
+            DeliverChat(IndoorAudience(view(SAY_RANGE, src)), "<font color='blue'> \icon[src]&lt;[src.name] says:&gt; [msg]</font>")
 
         // Shorter range than Say — see Markdowns/CodeNotes.md for the OG's three-tier
         // whisper/say/shout confirmation.

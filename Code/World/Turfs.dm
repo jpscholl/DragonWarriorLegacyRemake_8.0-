@@ -21,10 +21,11 @@ mob/var/isSleeping = FALSE
 // link them — same name = same pair.
 turf/var/warpName = null
 
-// Tracks whichever visible-to-everyone area decoration (area/AddedTurf(), Area.dm) is
-// currently applied to this tile, if any — lets PlaceBuildSelection() (BuildTools.dm)
-// cleanly remove the old one before a GM repaints the tile into a different area.
-turf/var/image/areaVisualOverlay = null
+// Tracks whichever area decoration (area/AddedTurf(), Area.dm) is currently applied to
+// this tile, if any — lets PlaceBuildSelection() (BuildTools.dm) cleanly remove the old
+// one before a GM repaints the tile into a different area. A real /obj/AreaVisual, not
+// an /image — see AddedTurf()'s comment for why it has to be a real atom.
+turf/var/obj/AreaVisual/areaVisualOverlay = null
 
 // Areas always render on top of turfs — this is the one choke point that guarantees
 // every brand-new turf (not just a repainted existing one) gets its owning area's

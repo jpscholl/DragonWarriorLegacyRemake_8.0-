@@ -31,21 +31,34 @@ area
 	// for everyone, all the time, with no GM tool required.
 	var/showAreaVisual = FALSE
 
-	// Applies (or reapplies) this area's own icon/icon_state as a real, visible-to-
-	// everyone overlay on one of its turfs -- called for every turf already present
-	// when this area instance is created (New() below, covers a compiled map that
-	// starts with tiles already assigned) and again whenever a GM paints a new tile
-	// into this area at runtime (PlaceBuildSelection()'s "area" branch, BuildTools.dm).
-	// No-op unless showAreaVisual is set. A plain turf.overlays entry, not a
-	// client.images one like GM_SeeAreas uses -- overlays render to every client
-	// normally, which is the whole point here.
+	// 0 (default) means every client sees the decoration, same as before -- rave etc.
+	// don't set this. area/ceiling/visible sets it to 1 so the roof art itself
+	// respects the same see_invisible split as everything else in the ceiling system:
+	// visible outdoors (see_invisible 1), hidden the moment you cross into area/ceiling
+	// (see_invisible 0), which is what actually reveals the walls/floor/mobs beneath.
+	// MUST be a real standalone /obj (below), not a /image added to turf.overlays --
+	// tested 2026-09-09 and confirmed an overlay image's own invisibility is NOT
+	// filtered per-viewer against mob.see_invisible the way a real atom's is (the roof
+	// kept showing even after see_invisible correctly dropped to 0 on Entered()). A real
+	// obj gets the same per-mob invisibility filtering GM_GhostForm/GHOST_INVISIBILITY
+	// already rely on elsewhere (GMCommands.dm).
+	var/visualInvisibility = 0
+
+	// Applies (or reapplies) this area's own icon/icon_state as a real decoration on
+	// one of its turfs -- called for every turf already present when this area instance
+	// is created (New() below, covers a compiled map that starts with tiles already
+	// assigned) and again whenever a GM paints a new tile into this area at runtime
+	// (PlaceBuildSelection()'s "area" branch, BuildTools.dm). No-op unless
+	// showAreaVisual is set.
 	proc/AddedTurf(turf/T)
 		if(!showAreaVisual || !T || !icon_state) return
-		if(T.areaVisualOverlay) T.overlays -= T.areaVisualOverlay
-		var/image/I = image(icon, icon_state = icon_state)
-		I.layer = AREA_OVERLAY_LAYER
-		T.overlays += I
-		T.areaVisualOverlay = I
+		if(T.areaVisualOverlay) del T.areaVisualOverlay
+		var/obj/AreaVisual/V = new(T)
+		V.icon = icon
+		V.icon_state = icon_state
+		V.layer = AREA_OVERLAY_LAYER
+		V.invisibility = visualInvisibility
+		T.areaVisualOverlay = V
 
 	New()
 		. = ..()
@@ -139,6 +152,16 @@ area
 	rainnight
 		icon_state = "rainnight"
 
+	// The OG roof trick uses two nested areas: "ceiling" is the outer buffer (painted
+	// ~1 tile past the walls, no roof art on it) and "ceiling/visible" is the inner
+	// footprint where the roof art actually renders (via showAreaVisual/AddedTurf
+	// above). Being a subtype, "visible" inherits Entered()/Exited() below for free —
+	// stepping into the outer buffer already flips see_invisible, so every roof overlay
+	// still in view (even tiles you haven't physically reached yet) disappears for you
+	// at once, revealing the walls/floor/mobs beneath. istype(A, /area/ceiling)
+	// elsewhere in the codebase (GMCommands.dm's ghost toggle, DeliverChat's
+	// indoor/outdoor chat split) matches both this area and "visible", since istype()
+	// includes subtypes.
 	ceiling
 		icon_state = "ceiling"
 		var
@@ -148,12 +171,28 @@ area
 			if(ismob(M)) //if your a mob
 				M.see_invisible = 0 //keep these variables here or this will not work
 
-		Exited(mob/M) //when you exit the house you will see the roof
+		// newloc matters here: the outer buffer (this area) and the inner roof
+		// footprint (visible, below) are separate area instances, so walking between
+		// them -- e.g. off the interior floor and onto the door tile -- fires this
+		// Exited() even though you're still fully inside the building. Only actually
+		// treat it as leaving if the destination isn't ceiling territory either.
+		Exited(mob/M, atom/newloc)
 			if(ismob(M)) //if your a mob
+				var/turf/T = newloc
+				var/area/destArea = T ? T.loc : null
+				if(istype(destArea, /area/ceiling)) return
 				M.see_invisible = 1 //keep these variables here or this will not work
 
-	visible
-		icon_state = "visible"
+		// The actual roof footprint. showAreaVisual+visualInvisibility (above) paint
+		// icon/icon_state's art on every turf here, visible outdoors and hidden the
+		// instant a viewer's own see_invisible drops to 0 (Entered() above). icon is
+		// overridden to wall.dmi -- environment.dmi (the area default) has no real roof
+		// art, it's only ever used as GM_SeeAreas debug data on other area types.
+		visible
+			icon = 'wall.dmi'
+			icon_state = "ceiling"
+			showAreaVisual = TRUE
+			visualInvisibility = 1
 
 	wilderness
 		icon_state = "wilderness"

@@ -2,7 +2,11 @@
 // Base Mob
 // -----------------------------
 mob
-    see_invisible = 0
+    // Outdoor baseline — matches area/ceiling's Entered()/Exited() (Area.dm), which
+    // flips this to 0 while standing under a roof and back to 1 on the way out. Without
+    // this default, a mob that spawns outdoors and has never crossed a ceiling boundary
+    // would sit at 0 and see straight through every roof in the game.
+    see_invisible = 1
 
     // Gates whether a mob can move or start a new action — checked by mob/proc/Step()
     // (Code/Core/SmoothMovement.dm). See Markdowns/CodeNotes.md for the full set of

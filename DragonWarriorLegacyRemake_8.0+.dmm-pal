@@ -5,7 +5,6 @@
 /turf/furniture/bedhead{icon_state="woodbedright"}
 /turf/ground{name="flowers"; icon_state="flowers"}
 /turf/ground{name="sand"; icon_state="sand"}
-/area/playerStart
 /turf/ground{name="path"; icon='floor.dmi'; icon_state="path"}
 /turf/furniture{name="plant"; icon_state="plant"}
 /turf/furniture{name="table"; icon_state="table"}
