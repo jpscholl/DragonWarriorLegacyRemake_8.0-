@@ -15,6 +15,13 @@ datum/DefaultIconColors
             "Main"   = rgb(0,124,255),
             "Accent" = rgb(255,255,255)
         )
+        // "Hair" also covers the headgear pixels on this sprite — they share one color.
+        colors_by_class["Hero"]["dw1hero.dmi"] = list(
+            "Hair"   = rgb(0,93,255),
+            "Eyes"   = rgb(0,92,254),
+            "Main"   = rgb(0,92,255),
+            "Accent" = rgb(255,255,255)
+        )
         // Soldier/Wizard's DW3 icons only use ONE real costume color in the actual
         // pixel data, so only "Main" is populated — a real property of these sprites,
         // not a shortcut. See Markdowns/CodeNotes.md.

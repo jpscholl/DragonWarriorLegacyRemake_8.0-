@@ -5,17 +5,78 @@
 //In depth list of colors
 var/list/color_swatches = list(
 		"Red" = rgb(255,0,0),
+		"Light Red" = rgb(255,102,102),
+		"Dark Red" = rgb(139,0,0),
+
 		"Green" = rgb(0,140,0),
+		"Light Green" = rgb(144,238,144),
+		"Dark Green" = rgb(0,80,0),
+
 		"Cyan" = rgb(0,255,255),
+		"Light Cyan" = rgb(153,255,255),
+		"Dark Cyan" = rgb(0,139,139),
+
 		"Blue" = rgb(0,0,255),
+		"Light Blue" = rgb(135,206,250),
+		"Dark Blue" = rgb(0,0,139),
+
 		"Yellow" = rgb(255,255,0),
+		"Light Yellow" = rgb(255,255,153),
+		"Dark Yellow" = rgb(204,204,0),
+
 		"Orange" = rgb(255,128,0),
+		"Light Orange" = rgb(255,178,102),
+		"Dark Orange" = rgb(204,85,0),
+
 		"Magenta" = rgb(255,0,255),
+		"Light Magenta" = rgb(255,153,255),
+		"Dark Magenta" = rgb(139,0,139),
+
 		"Purple" = rgb(128,0,128),
+		"Light Purple" = rgb(186,85,211),
+		"Dark Purple" = rgb(75,0,130),
+
 		"White" = rgb(255,255,255),
+		"Dark White" = rgb(224,224,224),
+
 		"Gray" = rgb(128,128,128),
+		"Light Gray" = rgb(192,192,192),
+		"Dark Gray" = rgb(64,64,64),
+
 		"Black" = rgb(0,0,0),
-		"Brown" = rgb(88,57,39))
+		"Light Black" = rgb(40,40,40),
+
+		"Brown" = rgb(88,57,39),
+		"Light Brown" = rgb(150,111,80),
+		"Dark Brown" = rgb(59,38,26),
+
+		"Pink" = rgb(255,175,200),
+		"Light Pink" = rgb(255,214,228),
+		"Dark Pink" = rgb(199,90,130),
+
+		"Teal" = rgb(0,128,128),
+		"Light Teal" = rgb(102,205,205),
+		"Dark Teal" = rgb(0,77,77),
+
+		"Navy" = rgb(0,0,128),
+		"Light Navy" = rgb(70,70,160),
+		"Dark Navy" = rgb(0,0,80),
+
+		"Maroon" = rgb(128,0,32),
+		"Light Maroon" = rgb(176,82,109),
+		"Dark Maroon" = rgb(80,0,20),
+
+		"Tan" = rgb(210,180,140),
+		"Light Tan" = rgb(235,216,190),
+		"Dark Tan" = rgb(150,121,90),
+
+		"Gold" = rgb(255,215,0),
+		"Light Gold" = rgb(255,236,140),
+		"Dark Gold" = rgb(184,134,11),
+
+		"Silver" = rgb(210,210,220),
+		"Light Silver" = rgb(235,235,240),
+		"Dark Silver" = rgb(140,140,150))
 
 // Repaints the LIVE character-creation preview object (newCharPreview) using the
 // current palette. Only meaningful during creation — a loaded/finalized character
