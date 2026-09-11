@@ -7,6 +7,24 @@
 
 // BEGIN_FILE_DIR
 #define FILE_DIR .
+// END_FILE_DIR
+
+// Every folder that holds a resource (.dmi/.wav/.mid) has to be declared here, because a
+// bare literal like 'floor.dmi' is ONLY searched for in the directories FILE_DIR names —
+// DM does not walk subfolders looking for it. The block above declares just "." (the
+// project root), which holds no assets at all, so before this list existed NOTHING nested
+// was findable from source.
+//
+// The project still compiled anyway, which is what hid this for so long: a resource that
+// can't be found on disk falls back to whatever copy is already baked into the existing
+// .rsc from an earlier build, reported as "file found only in .rsc". That made .rsc a
+// load-bearing build input rather than build output — delete it and a clean build failed
+// with 128 "cannot find file" errors, and a fresh clone of the repo could not build the
+// game at all. Confirmed and fixed 2026-09-11.
+//
+// Deliberately OUTSIDE the BEGIN_/END_FILE_DIR block above, per this file's own header
+// note — DreamMaker regenerates the contents of its own managed blocks, which would drop
+// these. Add a line here whenever a new asset folder is created.
 #define FILE_DIR "Mob Icons"
 #define FILE_DIR "Mob Icons/Custom GM"
 #define FILE_DIR "Mob Icons/Monsters"
@@ -23,7 +41,6 @@
 #define FILE_DIR "UI & Effects"
 #define FILE_DIR "World Icons"
 #define FILE_DIR "World Icons/Items"
-// END_FILE_DIR
 
 // BEGIN_PREFERENCES
 // END_PREFERENCES
