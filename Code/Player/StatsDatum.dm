@@ -68,11 +68,14 @@ mob/proc
 #define MP_REGEN_PER_INTELLIGENCE 0.5
 
 mob/proc
+    // GetEffective*(), not the raw stats — a Vitality amulet already raises MaxHP, so
+    // having it not also speed up regen made equipment behave unlike the real points it
+    // is otherwise meant to be indistinguishable from.
     GetHPRegen()
-        return max(1, round(HP_REGEN_BASE + Vitality * HP_REGEN_PER_VITALITY))
+        return max(1, round(HP_REGEN_BASE + GetEffectiveVitality() * HP_REGEN_PER_VITALITY))
 
     GetMPRegen()
-        return max(1, round(MP_REGEN_BASE + Intelligence * MP_REGEN_PER_INTELLIGENCE))
+        return max(1, round(MP_REGEN_BASE + GetEffectiveIntelligence() * MP_REGEN_PER_INTELLIGENCE))
 
     // Runs for the life of the mob, started from mob/player/New(). Does nothing while
     // dead — a corpse shouldn't heal its way out of the respawn wait.

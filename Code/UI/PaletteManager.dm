@@ -1,45 +1,51 @@
+// Working state for the color-customization menu: which portrait is being edited, and
+// which zones the player has explicitly chosen a color for so far.
+//
+// Only OVERRIDES are tracked. A zone the player never touched -- or reset back to
+// default -- has no entry here at all, and that absence is the whole point: nothing gets
+// painted over it, so it renders exactly as the art draws it and keeps following any
+// later change to that art. Storing the default's literal color instead (what this used
+// to do) froze the zone at whatever the default happened to be the moment the character
+// was created, which no later fix could reach.
 datum/PaletteManager
-    var/class
-    var/icon_id               // bare icon filename (e.g. "dw3hero.dmi") — NOT an /icon object,
-                               // must match a key in DefaultIconColors.colors_by_class
-    var/list/originalColors   // defaults
-    var/list/colors           // current/custom
+    var/icon_id                     // bare icon filename, e.g. "dw3hero.dmi"
+    var/datum/PlayerIcon/entry      // registry entry (PlayerIconColorPalette.dm)
+    var/list/overrides              // zone -> chosen color; a zone absent here uses the art as drawn
 
-    New(_class, _icon_id, mob/M)
-        class = _class
+    New(_icon_id, list/_overrides, mob/M)
         icon_id = _icon_id
+        entry = GetPlayerIcon(_icon_id)
+        overrides = list()
 
-        // Always valid (if possibly empty) lists, regardless of whether real defaults
-        // exist below -- confirmed 2026-09-09: the earlier version of this proc only
-        // initialized these AFTER the no-defaults check, leaving them null on an early
-        // return. RebuildIcon() (SaveSystem.dm) indexes palette.originalColors[zone]
-        // unconditionally, and indexing a null list runtime-errors, aborting the whole
-        // icon rebuild before `icon = playerIcon` ever ran -- a character whose icon
-        // has no colors_by_class entry (e.g. Hero's dw1hero.dmi, Wizard's dw1wizard.dmi
-        // -- only the dw3 variants are populated) loaded with NO sprite at all.
-        originalColors = list()
-        colors = list()
-
-        var/list/defaults = new /datum/DefaultIconColors().GetIconColors(class, icon_id, M)
-        // GetIconColors() returns list() (empty, not null) for a class/icon with no
-        // entry yet in colors_by_class (PlayerIconColorPalette.dm) -- an empty list is
-        // still truthy in DM, so `if(!defaults)` alone never caught this case. Without
-        // the .len check, this warning never fired and every SetZoneColor() call
-        // afterward failed with a much less obvious "Invalid zone" instead of pointing
-        // at the real cause.
-        if(!defaults || !defaults.len)
-            if(M) M.ShowInfo("No base icon colors for [class]/[icon_id]")
+        if(!entry)
+            if(M) M.ShowInfo("No registered art for icon [_icon_id]")
             return
 
-        for(var/zone in defaults)
-            originalColors[zone] = defaults[zone]
-            colors[zone] = defaults[zone]
+        // Carry in existing picks (a loaded character's saved colors), dropping anything
+        // for a zone this icon doesn't actually have -- a leftover color nothing can
+        // paint would otherwise sit in the save forever.
+        if(_overrides)
+            for(var/zone in _overrides)
+                if(_overrides[zone] && (zone in entry.zoneDefaults))
+                    overrides[zone] = _overrides[zone]
 
+    // Zone names this icon has, in the order the menu should offer them.
+    proc/Zones()
+        return entry ? entry.zoneDefaults : list()
+
+    // The player's explicit pick, or null if this zone is still following the art.
     proc/GetZoneColor(zone)
-        return colors[zone]
+        return overrides[zone]
 
+    // A null newColor clears the override, handing the zone back to the art.
     proc/SetZoneColor(zone, newColor, mob/M)
-        if(!(zone in colors))
+        if(!entry || !(zone in entry.zoneDefaults))
             if(M) M.ShowInfo("Invalid zone: [zone]")
             return
-        colors[zone] = newColor
+        if(newColor)
+            overrides[zone] = newColor
+        else
+            overrides -= zone
+
+    proc/ClearAll()
+        overrides = list()

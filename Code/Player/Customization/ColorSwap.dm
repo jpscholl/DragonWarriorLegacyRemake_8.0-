@@ -78,6 +78,24 @@ var/list/color_swatches = list(
 		"Light Silver" = rgb(235,235,240),
 		"Dark Silver" = rgb(140,140,150))
 
+// Paints a portrait: for every zone the player explicitly chose a color for, swap that
+// zone's as-drawn color for the chosen one. A zone with no chosen color is left
+// untouched, so it keeps whatever the art itself says — that's what lets a repainted
+// .dmi reach characters who never customized that zone.
+//
+// Shared by the creation preview (UpdateAppearance(), below) and the real login repaint
+// (RebuildIcon(), SaveSystem.dm) so a character can never look different in the preview
+// than they do in the world.
+proc/ApplyZoneColors(icon/target, datum/PlayerIcon/entry, list/overrides)
+    if(!target || !entry || !overrides)
+        return
+
+    for(var/zone in overrides)
+        var/baseColor = entry.zoneDefaults[zone]
+        var/newColor  = overrides[zone]
+        if(baseColor && newColor)
+            target.SwapColor(baseColor, newColor)
+
 // Repaints the LIVE character-creation preview object (newCharPreview) using the
 // current palette. Only meaningful during creation — a loaded/finalized character
 // never has newCharPreview/baseIconPreview set, so this is a no-op for them; their
@@ -88,27 +106,22 @@ mob/proc/UpdateAppearance()
 
     // ALWAYS start from pristine base icon
     var/icon/base = icon(baseIconPreview)
-
-    for(var/zone in palette.colors)
-        var/original = palette.originalColors[zone]
-        var/custom   = palette.colors[zone]
-        if(original && custom)
-            base.SwapColor(original, custom)
+    ApplyZoneColors(base, palette.entry, palette.overrides)
 
     newCharPreview.icon = base
 
-// Prompts for a color and applies it to the given palette zone ("Main"/"Accent"/
-// "Hair"/"Eyes") — was four separate, otherwise-identical Set_Main()/Set_Accent()/
-// Set_Eyes()/Set_Hair() procs differing only by that zone name.
+// Prompts for a color and applies it to the given palette zone — whichever zones this
+// icon declares (PlayerIconColorPalette.dm), commonly Main/Accent/Hair/Eyes. Was four
+// separate, otherwise-identical Set_Main()/Set_Accent()/Set_Eyes()/Set_Hair() procs
+// differing only by that zone name.
 //
 // Stays on this zone (previewing each pick live) until the player explicitly
 // confirms or cancels, instead of returning to the zone-select menu after a
-// single pick. Cancel reverts to whatever this zone's color was when the menu
-// was entered — a previously-confirmed custom color if there is one, the class
-// default otherwise — not necessarily the icon's default.
+// single pick. Cancel reverts to whatever this zone was when the menu was
+// entered — a previously-confirmed custom color if there is one, otherwise back
+// to following the art.
 mob/proc/SetZoneColorPrompt(zone)
-    var/revertColor = palette.GetZoneColor(zone)
-    var/defaultColor = palette.originalColors[zone]
+    var/revertColor = palette.GetZoneColor(zone)   // null = currently following the art
 
     var/list/options = list()
     for(var/swatchName in color_swatches)
@@ -117,10 +130,9 @@ mob/proc/SetZoneColorPrompt(zone)
 
     // Re-highlights whichever swatch matches the color currently previewing —
     // same lastStat/defaultLabel idea as StatAllocation() (LoginMenu.dm), one
-    // level deeper. Only meaningful if the current color happens to BE one of
-    // the named swatches; a color reached via "Default Color" (or a save file
-    // predating color_swatches) usually won't match any name, so this stays
-    // null and the dialog just opens with nothing pre-highlighted.
+    // level deeper. A zone still following the art has no color of its own to
+    // match, so this stays null and the dialog just opens with nothing
+    // pre-highlighted.
     var/lastSwatch = null
     for(var/swatchName in color_swatches)
         if(color_swatches[swatchName] == palette.GetZoneColor(zone))
@@ -138,7 +150,10 @@ mob/proc/SetZoneColorPrompt(zone)
                 UpdateAppearance()
                 return
             if("Default Color")
-                palette.SetZoneColor(zone, defaultColor, src)
+                // Clears the override instead of storing the default's current color,
+                // so this zone goes back to tracking the art rather than freezing at
+                // whatever the default happens to be today.
+                palette.SetZoneColor(zone, null, src)
                 UpdateAppearance()
                 lastSwatch = null
             else

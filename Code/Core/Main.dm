@@ -384,13 +384,18 @@ client
 obj
     step_size = 32
 
+// This game is 4-directional only (see SmoothMovement.dm). Hoisted to a global instead of
+// being rebuilt inline on every Move(): enemy pathing runs on step_to(), which produces
+// diagonals constantly, so this check sits on essentially every mob step in the world.
+var/list/DIAGONAL_DIRS = list(NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST)
+
 mob
     var/isCharacter = FALSE   // TRUE once a mob is a real, finalized/loaded character (vs. a temp/GM mob)
 
     step_size = 32
 
     Move(loc, dir = 0)
-        if(dir in list(NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST))
+        if(dir in DIAGONAL_DIRS)
             return
         return ..()
 
@@ -435,6 +440,7 @@ mob/proc/SaveAndLogout()
             if(!P.skipSaveOnLogout)
                 P.saveManager.SaveCharacter(P, P.saveSlot || 1)
             P.saveManager.Close()
+        P.LeavePartyIfAny()  // before the del() below — see the proc's own note (Party.dm)
 
     players << output("[src.name] has left the world!!", "Messages")
     LogChat("[src.name]([src.key]) logs out at [client ? client.address : "unknown"].")

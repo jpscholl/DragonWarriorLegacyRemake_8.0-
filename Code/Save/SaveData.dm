@@ -2,7 +2,10 @@
 // Character Save Snapshot Datum
 // ------------------------------------
 datum/CharacterSaveData
-    var/save_version = 1   // bump if the save format changes, to gate future migrations
+    // 1 -> 2: appearance stopped storing a painted sprite and now stores the icon's
+    // registry id plus only the zone colors the player explicitly picked.
+    // MigrateLegacyAppearance() below converts a version-1 blob on load.
+    var/save_version = 2
     var/name
 
     // Basic character info
@@ -35,9 +38,19 @@ datum/CharacterSaveData
     var/savedY
     var/savedZ
 
-    // Appearance
-    var/baseIcon         // the actual /icon resource (template sprite)
-    var/basePlayerIcon   // that icon's bare filename, e.g. "dw3hero.dmi" — used to look up default zone colors
+    // Appearance — the sprite itself is never stored, only which registered portrait
+    // this character wears and which zones they explicitly recolored. RebuildIcon()
+    // (SaveSystem.dm) repaints from the live art every login, so repainting a .dmi or
+    // correcting a zone's color reaches characters that already exist.
+    var/basePlayerIcon   // registry id, e.g. "dw3hero.dmi" (PlayerIconColorPalette.dm)
+    var/list/zoneColors  // zone -> explicitly chosen color; a zone absent here uses the art as drawn
+
+    // Legacy (save_version 1) — read by MigrateLegacyAppearance() below, never written
+    // again. baseIcon is the reason for this whole rework: it held a frozen COPY of the
+    // sprite's pixels, so a character kept whatever the art looked like the day they were
+    // made no matter how the .dmi changed afterward. Kept declared so an existing save
+    // still loads; new saves leave all five null.
+    var/icon/baseIcon
     var/hairColor
     var/eyeColor
     var/mainColor
@@ -82,12 +95,8 @@ datum/CharacterSaveData/proc/BuildFromCharacter(mob/player/P)
     savedY = P.y
     savedZ = P.z
 
-    baseIcon = P.baseIcon        // <- save the base icon here
     basePlayerIcon = P.basePlayerIcon
-    hairColor = P.hairColor
-    eyeColor = P.eyeColor
-    mainColor = P.mainColor
-    accentColor = P.accentColor
+    zoneColors = P.zoneColors ? P.zoneColors.Copy() : null
 
     equippedSkillTypes = alist(9 = null, 7 = null, 3 = null, 1 = null, 0 = null)
     for(var/slotNum in P.skillSlots)
@@ -126,13 +135,46 @@ datum/CharacterSaveData/proc/ApplyToCharacter(mob/player/P)
     P.Spirit = Spirit
     P.StatPoints = StatPoints
 
-    P.baseIcon = baseIcon       // <- restore the base icon
     P.basePlayerIcon = basePlayerIcon
-    P.hairColor = hairColor
-    P.eyeColor = eyeColor
-    P.mainColor = mainColor
-    P.accentColor = accentColor
+    P.zoneColors = zoneColors ? zoneColors.Copy() : null
+    if(save_version < 2)
+        MigrateLegacyAppearance(P)
     // Icon is rebuilt by LoadCharacter() once the palette is set up (see SaveSystem.dm)
+
+// Converts a save_version 1 appearance to the current one.
+//
+// Version 1 wrote a color for every zone unconditionally, including zones the player
+// never touched — for those it captured whatever that icon's default happened to be the
+// day the character was made. Those baked-in defaults are precisely what stopped a
+// corrected zone color (or repainted art) from ever reaching an existing character, so
+// carrying them forward verbatim would preserve the bug rather than fix it.
+//
+// They can be told apart: a color the player actually PICKED always came from
+// color_swatches (ColorSwap.dm), while "Default Color" wrote the icon's own sampled art
+// color, which is never one of those named swatches. So a saved color matching a swatch
+// is a real choice and is kept; anything else was a default, and dropping it hands that
+// zone back to the art — which is what makes an existing character pick up a fixed color
+// on their next login instead of needing to be recreated.
+datum/CharacterSaveData/proc/MigrateLegacyAppearance(mob/player/P)
+    var/list/legacy = list("Main" = mainColor, "Accent" = accentColor, "Hair" = hairColor, "Eyes" = eyeColor)
+    var/list/migrated = list()
+
+    for(var/zone in legacy)
+        var/color = legacy[zone]
+        if(!color) continue
+        for(var/swatchName in color_swatches)
+            if(color_swatches[swatchName] == color)
+                migrated[zone] = color
+                break
+
+    P.zoneColors = migrated.len ? migrated : null
+
+    // Last resort for a save whose icon id doesn't resolve at all (an icon renamed or
+    // dropped from the registry since): the frozen sprite is the only thing left to
+    // render them with, and a visible character beats an invisible one. RebuildIcon()
+    // only falls back to this when the lookup fails.
+    if(!GetPlayerIcon(P.basePlayerIcon) && baseIcon)
+        P.baseIcon = baseIcon
 
 // Restores the saved numpad slot arrangement — separate from ApplyToCharacter() above
 // because it has to run LAST in LoadCharacter() (SaveSystem.dm), after every skill the

@@ -103,15 +103,15 @@ mob
         capIntelligence = 10
         capSpirit = 10
 
-// Appearance
+// Appearance — a character's look is only ever these two things: WHICH registered
+// portrait they chose, and which zones they explicitly recolored. RebuildIcon()
+// (SaveSystem.dm) turns them back into a sprite on every login, so nothing here stores
+// pixels and edits to the art reach existing characters.
 mob
     var
-        icon/baseIcon        // template sprite used for save/load recoloring
-        basePlayerIcon
-        hairColor
-        eyeColor
-        mainColor
-        accentColor
+        icon/baseIcon        // live art resolved from basePlayerIcon — derived, never saved
+        basePlayerIcon       // registry id, e.g. "dw3hero.dmi" (PlayerIconColorPalette.dm)
+        list/zoneColors      // zone -> explicitly chosen color; a zone absent here uses the art as drawn
 
 // Save slot this character occupies (1-4)
 mob
@@ -376,7 +376,8 @@ mob/player/proc/EnterReclassPreview()
 // Reverses EnterReclassPreview() — only needed on a canceled reclass; a completed one
 // deletes P in BecomeSage() below instead of ever un-hiding it.
 mob/player/proc/ExitReclassPreview()
-    icon = icon(baseIcon)
+    RebuildIcon()   // repaints their zone colors back on; icon(baseIcon) alone would
+                    // hand back the unpainted art
     icon_state = "world"
     ShowFloatingHPBar()
     ShowFloatingMPBar()
@@ -460,15 +461,11 @@ mob/player/proc/BecomeSage()
     // Appearance from the FRESH picks RunSageReclassFlow() just staged on P, not the
     // old character's own icon/baseIcon/basePlayerIcon.
     newMob.name = name
-    newMob.icon = icon(selectedIcon)
     newMob.icon_state = "world"
-    newMob.baseIcon = selectedIcon
     newMob.basePlayerIcon = selectedIconName
-    newMob.hairColor = hairColor
-    newMob.eyeColor = eyeColor
-    newMob.mainColor = mainColor
-    newMob.accentColor = accentColor
+    newMob.zoneColors = zoneColors ? zoneColors.Copy() : null
     newMob.palette = palette
+    newMob.RebuildIcon()   // paints from the registry's live art, same as a login does
     if(newCharPreview) del newCharPreview  // would otherwise sit orphaned forever
 
     // Progress resets like a genuinely fresh character (CONFIRMED OG behavior — the
@@ -499,6 +496,21 @@ mob/player/proc/BecomeSage()
     newMob.isCharacter = isCharacter
     newMob.saveSlot = saveSlot
     newMob.saveManager = saveManager
+
+    // Party membership follows the character across the swap, same as items and skills —
+    // changing class isn't leaving your party. Has to be handed over explicitly: the
+    // del at the end of this proc nulls Party.leader if it pointed here, and leaves a
+    // dead null in members rather than removing it.
+    if(Party)
+        var/datum/party/oldParty = Party
+        oldParty.members -= src
+        oldParty.members += newMob
+        newMob.Party = oldParty
+        newMob.ShowPartyVerbs()
+        if(oldParty.leader == src)
+            oldParty.leader = newMob
+            newMob.isPartyLeader = TRUE
+        Party = null
 
     // Recomputed fresh and topped off to full, same as any new character
     // (FinalizePlayer()) — not carried over and clamped down from the old HP/MP.

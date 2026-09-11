@@ -110,18 +110,8 @@ datum/SaveManager
         // Full mana on login, every time — not just whatever was saved.
         newPlayer.MP = newPlayer.MaxMP
 
-        // Rebuild palette & apply saved colors
-        newPlayer.palette = new /datum/PaletteManager(
-            newPlayer.class,
-            newPlayer.basePlayerIcon
-        )
-
-        if(newPlayer.hairColor)   newPlayer.palette.SetZoneColor("Hair", newPlayer.hairColor)
-        if(newPlayer.eyeColor)    newPlayer.palette.SetZoneColor("Eyes", newPlayer.eyeColor)
-        if(newPlayer.mainColor)   newPlayer.palette.SetZoneColor("Main", newPlayer.mainColor)
-        if(newPlayer.accentColor) newPlayer.palette.SetZoneColor("Accent", newPlayer.accentColor)
-
-        // Finally, rebuild the icon with applied palette/colors
+        // Rebuild palette from the saved picks, then repaint from the live art
+        newPlayer.palette = new /datum/PaletteManager(newPlayer.basePlayerIcon, newPlayer.zoneColors)
         newPlayer.RebuildIcon()
 
         // Stop the login-menu music before handing control to the real character
@@ -253,8 +243,22 @@ datum/SaveManager
 // -----------------------------
 // Rebuild the player's icon after loading or recoloring
 // -----------------------------
+// Rebuilds this character's sprite from scratch: resolve the saved icon id back to its
+// LIVE art (PlayerIconColorPalette.dm), then paint on only the zone colors this player
+// actually chose. Nothing here reads a stored sprite, so repainting a .dmi — or fixing a
+// zone's color in the registry — shows up on the next login for every character wearing
+// that icon, instead of only for ones created afterward.
 mob/player/proc/RebuildIcon()
+    var/datum/PlayerIcon/entry = GetPlayerIcon(basePlayerIcon)
+
+    // Re-resolved every time rather than trusted from before, so the art is always
+    // whatever the registry points at today. baseIcon keeps its previous value only as
+    // the pre-rework fallback MigrateLegacyAppearance() (SaveData.dm) may have set.
+    if(entry)
+        baseIcon = entry.file
+
     if(!baseIcon)
+        src.ShowInfo("ERROR: no registered art for icon [basePlayerIcon]")
         return src
 
     // NOTE: must be "new /icon(...)" with the leading slash, not "new icon(...)".
@@ -265,33 +269,12 @@ mob/player/proc/RebuildIcon()
     var/icon/playerIcon = new /icon(baseIcon)
 
     if(!playerIcon)
-        src.ShowInfo("ERROR: Failed to load icon [baseIcon]")
+        src.ShowInfo("ERROR: Failed to load icon [basePlayerIcon]")
         return src
 
-    // Recoloring only takes effect for icons that have real default-color data in
-    // DefaultIconColors (Code/Player/Customization/PlayerIconColorPalette.dm) — right
-    // now that's just Hero's dw3hero.dmi. Everything else just shows its plain sprite.
-    var/list/zones = list("Hair", "Eyes", "Main", "Accent")
-
-    for(var/zone in zones)
-        var/baseColor = palette?.originalColors[zone]
-        var/replaceColor = null
-
-        switch(zone)
-            if("Hair")
-                replaceColor = hairColor
-
-            if("Eyes")
-                replaceColor = eyeColor
-
-            if("Main")
-                replaceColor = mainColor
-
-            if("Accent")
-                replaceColor = accentColor
-
-        if(baseColor && replaceColor)
-            playerIcon.SwapColor(baseColor, replaceColor)
+    // Same painter the creation preview uses (ColorSwap.dm), so what a player sees while
+    // customizing is exactly what they get in the world.
+    ApplyZoneColors(playerIcon, entry, zoneColors)
 
     icon = playerIcon
     UpdateAppearance()

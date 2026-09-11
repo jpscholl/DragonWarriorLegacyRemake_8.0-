@@ -418,6 +418,8 @@ mob/player/verb/LogoutToMenu()
     // replaces whatever area music was still on channel 1 for the character just left.
     C << sound('dw3conti.mid', repeat = 1, volume = C.ScaledVolume(isMusic = TRUE), channel = 1)
 
+    LeavePartyIfAny()  // before the del() below — see the proc's own note (Party.dm)
+
     // MUST run before ShowLoginMenu() -- that call blocks on input() for the player's
     // entire character-select/creation session, so del-ing src AFTER it (as originally
     // written) left the old mob's body, icon and all, standing untouched in the world

@@ -139,7 +139,8 @@ mob/player
         UpdateHUD()
 
     // Reverses BuildHUD() — needed anywhere a mob stops controlling its client without
-    // a real disconnect (BecomeSage(), PlayerTemplate.dm, is the only case today).
+    // a real disconnect: BecomeSage() (PlayerTemplate.dm) and LogoutToMenu()
+    // (PlayerVerbs.dm), both of which reassign client.mob and delete the old one.
     // hudBackdrop/every hudGlyph live in client.screen, NOT on this mob itself, so
     // swapping client.mob to a different mob and just deleting the old one leaves them
     // behind forever — the new mob's own BuildHUD() then adds a second, independent set

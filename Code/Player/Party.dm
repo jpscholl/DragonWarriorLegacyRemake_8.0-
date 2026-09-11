@@ -45,3 +45,15 @@ datum/party
             leader = members[1]
             leader.isPartyLeader = TRUE
             Broadcast("[leader.name] is now the party leader.")
+
+// Must be called by every path that deletes a player mob — logging out, and returning to
+// the character-select screen. Deleting a mob nulls variables that point at it but does
+// NOT drop it from lists (verified 2026-09-10), so a member deleted while still in a
+// party leaves a dead null sitting in members — inflating the count Die()'s exp split
+// divides by, and never letting the party empty — while leader goes null with nobody
+// promoted, stranding everyone else with no one able to kick or toggle exp sharing.
+//
+// Reclass (BecomeSage(), PlayerTemplate.dm) deliberately does NOT use this: it hands
+// membership to the new mob instead, since changing class isn't leaving your party.
+mob/player/proc/LeavePartyIfAny()
+    if(Party) Party.RemoveMember(src)

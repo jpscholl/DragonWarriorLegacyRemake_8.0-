@@ -46,12 +46,12 @@ mob/proc/sortByCount(list/keys, list/counts)
 
 // Samples a chosen class icon's raw "world" pixel data directly via GetPixel() and
 // reports every distinct color found, most-common first. This is the actual tool for
-// figuring out what colors to hand-author into
-// colors_by_class (PlayerIconColorPalette.dm) for a class that doesn't have entries
-// yet — reading palette/hairColor etc. back (the old version of this verb) is useless
-// for that: those only ever reflect colors ALREADY wired up, never new ones. Reuses
-// GetClassIcons() (LoginMenu.dm) so every icon already in character creation is
-// pickable here without needing to actually be wearing it first.
+// figuring out what colors to hand-author into an icon's zoneDefaults
+// (PlayerIconColorPalette.dm) for art that doesn't have zones wired up yet — reading a
+// character's own colors back (the old version of this verb) is useless for that: those
+// only ever reflect colors ALREADY wired up, never new ones. Reuses GetClassIcons()
+// (LoginMenu.dm) so every icon already in character creation is pickable here without
+// needing to actually be wearing it first.
 mob
     verb
         Debug_ShowZoneColors()
@@ -89,9 +89,9 @@ mob
             for(var/c in sortedColors)
                 usr.ShowInfo("[HexToRGBString(c)]  x[colorCounts[c]]")
 
-// GetPixel() returns "#rrggbb" (or "#rrggbbaa") — colors_by_class (PlayerIconColorPalette.dm)
+// GetPixel() returns "#rrggbb" (or "#rrggbbaa") — zoneDefaults (PlayerIconColorPalette.dm)
 // entries are written as rgb(r,g,b) literals, so this converts to that exact format,
-// copy-pasteable straight into a colors_by_class entry with no manual hex math.
+// copy-pasteable straight into an icon's zoneDefaults with no manual hex math.
 mob/proc/HexToRGBString(hex)
     var/r = text2num(copytext(hex, 2, 4), 16)
     var/g = text2num(copytext(hex, 4, 6), 16)

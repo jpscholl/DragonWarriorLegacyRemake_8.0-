@@ -320,15 +320,26 @@ obj/item/amulet
 
         user.ShowInfo("You remove [initial(name)].")
 
-    // A worn amulet has to strip its bonus before leaving, or the stats stay behind on
-    // a player who no longer owns it.
+    // A worn amulet has to strip its bonus when it leaves, or the stats stay behind on a
+    // player who no longer owns it — but ONLY if it actually left. Stripping up front
+    // (what this used to do) also fired on the paths where the parent verb bails out and
+    // the amulet never moves: a Drop refused by RequireCanAct(), or a Give the target's
+    // full inventory rejects. Both silently took the bonuses off a player still wearing
+    // it. Unequip() takes its target as an argument rather than reading loc, so the
+    // original owner can be handed in after the move has already happened.
     Drop()
-        if(worn && ismob(loc)) Unequip(loc)
+        var/mob/owner = ismob(loc) ? loc : null
+        var/wasWorn = worn
         ..()
+        if(wasWorn && owner && loc != owner)
+            Unequip(owner)
 
     Give(mob/player/target in view(5, usr))
-        if(worn && ismob(loc)) Unequip(loc)
+        var/mob/owner = ismob(loc) ? loc : null
+        var/wasWorn = worn
         ..()
+        if(wasWorn && owner && loc != owner)
+            Unequip(owner)
 
 // --- Raw stat amulets -------------------------------------------------------
 obj/item/amulet/strength

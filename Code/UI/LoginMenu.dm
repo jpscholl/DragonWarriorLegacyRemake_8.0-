@@ -226,111 +226,23 @@ proc/ApplyClassSelection(mob/M, selectedClass)
 // Icon Handling
 // -----------------------------
 
-// Label used both as Archsage's custom-portrait list entry (GetClassIcons() below) and
-// as IconSelect()'s check for when to skip color customization entirely — the art is
-// already finished/precolored, running it through the Main/Accent/Hair/Eyes palette
-// loop would just break it.
-#define ARCHSAGE_CUSTOM_ICON_LABEL "My Own Portrait (precolored)"
-
 //fetch list based on the class player chooses
+// Built straight from the icon registry (PlayerIconColorPalette.dm) rather than a
+// hand-written list per class. The registry already has to name every icon file in order
+// to carry its zone colors, and keeping a second copy of that here is exactly what let
+// Archsage's picker (which offers every other class's portraits) drift out of sync with
+// the per-class ones — it used to carry a "keep in sync by hand" warning. Archsage sees
+// every entry, its own precolored portrait included; every other class sees only its own.
 proc/GetClassIcons(mob/M, selectedClass)
-    switch(selectedClass)
-        if("Hero")
-            return list("Dragon Warrior 1 Hero"='Mob Icons/Player/Hero/dw1hero.dmi',
-                        "Dragon Warrior 2 Hero"='Mob Icons/Player/Hero/dw2hero.dmi',
-                        "Dragon Warrior 3 Hero"='Mob Icons/Player/Hero/dw3hero.dmi',
-                        "Dragon Warrior 4 Hero (Male)"='Mob Icons/Player/Hero/dw4malehero.dmi',
-                        "Dragon Warrior 4 Hero (Female)"='Mob Icons/Player/Hero/dw4femalehero.dmi',
-                        "Dragon Warrior 4 Elf"='Mob Icons/Player/Hero/dw4elf.dmi',
-                        "Back")
-        if("Soldier")
-            return list("Dragon Warrior 1 Soldier"='Mob Icons/Player/Soldier/dw1soldier.dmi',
-                        "Dragon Warrior 2 Soldier"='Mob Icons/Player/Soldier/dw2soldier.dmi',
-                        "Dragon Warrior 3 Guard"='Mob Icons/Player/Soldier/dw3guard.dmi',
-                        "Dragon Warrior 3 Soldier (Male)"='Mob Icons/Player/Soldier/dw3malesoldier.dmi',
-                        "Dragon Warrior 3 Soldier (Female)"='Mob Icons/Player/Soldier/dw3femalesoldier.dmi',
-                        "Dragon Warrior 4 Guard (Female)"='Mob Icons/Player/Soldier/dw4femaleguard.dmi',
-                        "Dragon Warrior 4 Ragnar"='Mob Icons/Player/Soldier/dw4ragnar.dmi',
-                        "Dragon Warrior 4 Adventurer"='Mob Icons/Player/Soldier/dw4adventurer.dmi',
-                        "Back")
-        if("Wizard")
-            return list("Dragon Warrior 1 Wizard"='Mob Icons/Player/Wizard/dw1wizard.dmi',
-                        "Dragon Warrior 2 Wizard"='Mob Icons/Player/Wizard/dw2wizard.dmi',
-                        "Dragon Warrior 2 Princess"='Mob Icons/Player/Wizard/dw2princess.dmi',
-                        "Dragon Warrior 3 Wizard (Male)"='Mob Icons/Player/Wizard/dw3malewizard.dmi',
-                        "Dragon Warrior 3 Wizard (Female)"='Mob Icons/Player/Wizard/dw3femalewizard.dmi',
-                        "Dragon Warrior 4 Brey"='Mob Icons/Player/Wizard/dw4brey.dmi',
-                        "Dragon Warrior 4 Nara"='Mob Icons/Player/Wizard/dw4nara.dmi',
-                        "Dragon Warrior 4 Mara"='Mob Icons/Player/Wizard/dw4mara.dmi',
-                        "Back")
-        if("Fighter")
-            return list("Dragon Warrior 1 Fighter"='Mob Icons/Player/Fighter/dw1fighter.dmi',
-                        "Dragon Warrior 2 Fighter"='Mob Icons/Player/Fighter/dw2fighter.dmi',
-                        "Dragon Warrior 3 Fighter (Male)"='Mob Icons/Player/Fighter/dw3malefighter.dmi',
-                        "Dragon Warrior 3 Fighter (Female)"='Mob Icons/Player/Fighter/dw3femalefighter.dmi',
-                        "Dragon Warrior 4 Alena"='Mob Icons/Player/Fighter/dw4alena.dmi',
-                        "Back")
-        if("Pilgrim")
-            return list("Dragon Warrior 2 Pilgrim"='Mob Icons/Player/Pilgrim/dw2pilgrim.dmi',
-                        "Dragon Warrior 3 Pilgrim (Male)"='Mob Icons/Player/Pilgrim/dw3malepilgrim.dmi',
-                        "Dragon Warrior 3 Pilgrim (Female)"='Mob Icons/Player/Pilgrim/dw3femalepilgrim.dmi',
-                        "Dragon Warrior 4 Cristo"='Mob Icons/Player/Pilgrim/dw4cristo.dmi',
-                        "Back")
-        if("Goof-off")
-            return list("Dragon Warrior 3 Goof-off (Male)"='Mob Icons/Player/Goof-off/dw3malegoofoff.dmi',
-                        "Dragon Warrior 3 Goof-off (Female)"='Mob Icons/Player/Goof-off/dw3femalegoofoff.dmi',
-                        "Dragon Warrior 3 Bard"='Mob Icons/Player/Goof-off/dw3bard.dmi',
-                        "Dragon Warrior 4 Bard"='Mob Icons/Player/Goof-off/dw4bard.dmi',
-                        "Back")
-        if("Sage")
-            return list("Dragon Warrior 3 Sage (Male)"='Mob Icons/Player/Sage/dw3malesage.dmi',
-                        "Dragon Warrior 3 Sage (Female)"='Mob Icons/Player/Sage/dw3femalesage.dmi',
-                        "Back")
-        if("Archsage")
-            // Custom portrait first (IconSelect() matches ARCHSAGE_CUSTOM_ICON_LABEL
-            // to skip color customization for it), then every other class's icon
-            // options. Hand-listed, not built from the cases above — keep in sync by
-            // hand if a class's icon options ever change.
-            return list(ARCHSAGE_CUSTOM_ICON_LABEL = 'Mob Icons/Cere.dmi',
-                        "Dragon Warrior 1 Hero"='Mob Icons/Player/Hero/dw1hero.dmi',
-                        "Dragon Warrior 2 Hero"='Mob Icons/Player/Hero/dw2hero.dmi',
-                        "Dragon Warrior 3 Hero"='Mob Icons/Player/Hero/dw3hero.dmi',
-                        "Dragon Warrior 4 Hero (Male)"='Mob Icons/Player/Hero/dw4malehero.dmi',
-                        "Dragon Warrior 4 Hero (Female)"='Mob Icons/Player/Hero/dw4femalehero.dmi',
-                        "Dragon Warrior 4 Elf"='Mob Icons/Player/Hero/dw4elf.dmi',
-                        "Dragon Warrior 1 Soldier"='Mob Icons/Player/Soldier/dw1soldier.dmi',
-                        "Dragon Warrior 2 Soldier"='Mob Icons/Player/Soldier/dw2soldier.dmi',
-                        "Dragon Warrior 3 Guard"='Mob Icons/Player/Soldier/dw3guard.dmi',
-                        "Dragon Warrior 3 Soldier (Male)"='Mob Icons/Player/Soldier/dw3malesoldier.dmi',
-                        "Dragon Warrior 3 Soldier (Female)"='Mob Icons/Player/Soldier/dw3femalesoldier.dmi',
-                        "Dragon Warrior 4 Guard (Female)"='Mob Icons/Player/Soldier/dw4femaleguard.dmi',
-                        "Dragon Warrior 4 Ragnar"='Mob Icons/Player/Soldier/dw4ragnar.dmi',
-                        "Dragon Warrior 4 Adventurer"='Mob Icons/Player/Soldier/dw4adventurer.dmi',
-                        "Dragon Warrior 1 Wizard"='Mob Icons/Player/Wizard/dw1wizard.dmi',
-                        "Dragon Warrior 2 Wizard"='Mob Icons/Player/Wizard/dw2wizard.dmi',
-                        "Dragon Warrior 2 Princess"='Mob Icons/Player/Wizard/dw2princess.dmi',
-                        "Dragon Warrior 3 Wizard (Male)"='Mob Icons/Player/Wizard/dw3malewizard.dmi',
-                        "Dragon Warrior 3 Wizard (Female)"='Mob Icons/Player/Wizard/dw3femalewizard.dmi',
-                        "Dragon Warrior 4 Brey"='Mob Icons/Player/Wizard/dw4brey.dmi',
-                        "Dragon Warrior 4 Nara"='Mob Icons/Player/Wizard/dw4nara.dmi',
-                        "Dragon Warrior 4 Mara"='Mob Icons/Player/Wizard/dw4mara.dmi',
-                        "Dragon Warrior 1 Fighter"='Mob Icons/Player/Fighter/dw1fighter.dmi',
-                        "Dragon Warrior 2 Fighter"='Mob Icons/Player/Fighter/dw2fighter.dmi',
-                        "Dragon Warrior 3 Fighter (Male)"='Mob Icons/Player/Fighter/dw3malefighter.dmi',
-                        "Dragon Warrior 3 Fighter (Female)"='Mob Icons/Player/Fighter/dw3femalefighter.dmi',
-                        "Dragon Warrior 4 Alena"='Mob Icons/Player/Fighter/dw4alena.dmi',
-                        "Dragon Warrior 2 Pilgrim"='Mob Icons/Player/Pilgrim/dw2pilgrim.dmi',
-                        "Dragon Warrior 3 Pilgrim (Male)"='Mob Icons/Player/Pilgrim/dw3malepilgrim.dmi',
-                        "Dragon Warrior 3 Pilgrim (Female)"='Mob Icons/Player/Pilgrim/dw3femalepilgrim.dmi',
-                        "Dragon Warrior 4 Cristo"='Mob Icons/Player/Pilgrim/dw4cristo.dmi',
-                        "Dragon Warrior 3 Goof-off (Male)"='Mob Icons/Player/Goof-off/dw3malegoofoff.dmi',
-                        "Dragon Warrior 3 Goof-off (Female)"='Mob Icons/Player/Goof-off/dw3femalegoofoff.dmi',
-                        "Dragon Warrior 3 Bard"='Mob Icons/Player/Goof-off/dw3bard.dmi',
-                        "Dragon Warrior 4 Bard"='Mob Icons/Player/Goof-off/dw4bard.dmi',
-                        "Dragon Warrior 3 Sage (Male)"='Mob Icons/Player/Sage/dw3malesage.dmi',
-                        "Dragon Warrior 3 Sage (Female)"='Mob Icons/Player/Sage/dw3femalesage.dmi',
-                        "Back")
-    return list()
+    var/list/out = list()
+
+    for(var/id in playerIconRegistry)
+        var/datum/PlayerIcon/entry = playerIconRegistry[id]
+        if(selectedClass == "Archsage" || entry.class == selectedClass)
+            out[entry.label] = entry.file
+
+    out += "Back"
+    return out
 
 //icon selection and storage
 // Untyped mob (not mob/playerTemp) — the vars this touches (selectedClass/selectedIcon/
@@ -350,14 +262,23 @@ proc/IconSelect(mob/M)
 
     M.ShowInfo("You've selected [M.selectedIconName]")
 
-    // Precolored custom portrait — skip the Main/Accent/Hair/Eyes loop entirely and go
-    // straight to stats. Runs IconPreview() itself (STEP_CUSTOM's own call never
-    // happens otherwise) and resets client.eye back to M immediately after — skipping
-    // CustomizeColors() means its "Finish" branch (which normally does that reset)
-    // never runs, and IconPreview() leaves eye on the temporary preview object, which
-    // would otherwise leave the new character never rendering in-world until the next
-    // relog forces a fresh eye. See Markdowns/CodeNotes.md.
-    if(iconChoice == ARCHSAGE_CUSTOM_ICON_LABEL)
+    // Nothing to customize — skip the color loop entirely and go straight to stats.
+    // That's either art that's already finished (Archsage's own portrait: running it
+    // through the palette would just break it) or an icon whose zone colors aren't
+    // authored yet, which used to reach the color menu and answer every pick with
+    // "Invalid zone" instead of saying so up front.
+    //
+    // Runs IconPreview() itself (STEP_CUSTOM's own call never happens otherwise) and
+    // resets client.eye back to M immediately after — skipping CustomizeColors() means
+    // its "Finish" branch (which normally does that reset) never runs, and IconPreview()
+    // leaves eye on the temporary preview object, which would otherwise leave the new
+    // character never rendering in-world until the next relog forces a fresh eye. See
+    // Markdowns/CodeNotes.md.
+    var/datum/PlayerIcon/entry = GetPlayerIcon(M.selectedIconName)
+    if(!entry || !entry.IsRecolorable())
+        // Reclass reuses this flow on an already-playing mob, so clear any colors the
+        // old portrait had rather than carrying them onto art that can't use them.
+        M.zoneColors = null
         M.IconPreview()
         M.client.eye = M
         return STEP_STATS
@@ -392,35 +313,40 @@ mob/proc/IconPreview(turf/T = CREATION_PREVIEW_TURF)
 // Icon Customization
 // -----------------------------
 mob/proc/CustomizeColors()
-    // Build palette ONCE
-    palette = new /datum/PaletteManager(selectedClass, selectedIconName, src)
+    // Build palette ONCE. Deliberately NOT seeded from this mob's existing zoneColors:
+    // reclass runs this same flow on an already-playing character who is picking a whole
+    // new portrait, and starting that from the new art's own colors (rather than the old
+    // character's picks) is the behavior this has always had.
+    palette = new /datum/PaletteManager(selectedIconName, null, src)
 
     var/lastZone = null // which zone was picked last, so the dialog re-highlights it (same pattern as StatAllocation()'s lastStat)
 
     while(TRUE)
-        var/list/options = list("Main", "Accent", "Hair", "Eyes", "Reset All to Default", "Finish", "Back")
+        // Zones come from the icon's own registry entry (PlayerIconColorPalette.dm), so
+        // an icon that only has a costume color offers only that, and adding a zone to
+        // an icon needs no change here.
+        var/list/options = list()
+        for(var/zone in palette.Zones())
+            options += zone
+        options += list("Reset All to Default", "Finish", "Back")
+
         var/zone_choice = input(src, "Choose a zone to change or Finish", "Color Customization", lastZone) in options
+        if(isnull(zone_choice))
+            continue
         lastZone = zone_choice // harmless for "Finish"/"Back"/"Reset All to Default" too, see below
 
         switch(zone_choice)
-            if("Main")   SetZoneColorPrompt("Main")
-            if("Accent") SetZoneColorPrompt("Accent")
-            if("Hair")   SetZoneColorPrompt("Hair")
-            if("Eyes")   SetZoneColorPrompt("Eyes")
-
             if("Reset All to Default")
-                // Same per-zone default each zone's own "Default Color" option uses,
-                // just applied to every zone at once instead of one at a time.
-                for(var/zone in palette.colors)
-                    palette.SetZoneColor(zone, palette.originalColors[zone], src)
+                // Drops every override at once — same thing each zone's own "Default
+                // Color" option does, just applied to all of them.
+                palette.ClearAll()
                 UpdateAppearance()
                 src.ShowInfo("All zones reset to default colors.")
 
             if("Finish")
-                src.hairColor   = palette.GetZoneColor("Hair")
-                src.eyeColor    = palette.GetZoneColor("Eyes")
-                src.mainColor   = palette.GetZoneColor("Main")
-                src.accentColor = palette.GetZoneColor("Accent")
+                // Only the zones actually picked. A zone left alone stays absent, which
+                // is what keeps it following the art instead of pinning today's default.
+                src.zoneColors = palette.overrides.len ? palette.overrides.Copy() : null
 
                 client.eye = src
                 src.ShowInfo("Icon colors applied!")
@@ -435,6 +361,10 @@ mob/proc/CustomizeColors()
                 newCharPreview = null
 
                 return STEP_ICON
+
+            else
+                // Anything else in the list is one of this icon's own zone names.
+                SetZoneColorPrompt(zone_choice)
 
 // -----------------------------
 // Finalize Player
@@ -571,20 +501,16 @@ proc/ApplyCustomStats(mob/playerTemp/src, mob/player/dst)
 
 
 //copy player appearance from preview
+// Records the two things a character's look is actually made of — which registry icon
+// they picked and which zones they chose a color for — then repaints through the exact
+// same RebuildIcon() a login uses, instead of copying the preview object's already-
+// painted pixels onto the mob. Those copied pixels were what got written into the save
+// blob, freezing the sprite at creation time.
 proc/ApplyCustomColors(mob/playerTemp/src, mob/player/dst)
-    if(src.newCharPreview)
-        dst.icon = icon(src.newCharPreview.icon)
-        dst.icon_state = src.newCharPreview.icon_state
-    else
-        dst.icon = icon(src.selectedIcon)
-        dst.icon_state = "world"
-
-    dst.baseIcon        = src.selectedIcon
-    dst.basePlayerIcon  = src.selectedIconName
-    dst.hairColor   = "[src.hairColor]"
-    dst.eyeColor    = "[src.eyeColor]"
-    dst.mainColor   = "[src.mainColor]"
-    dst.accentColor = "[src.accentColor]"
+    dst.basePlayerIcon = src.selectedIconName
+    dst.zoneColors     = src.zoneColors ? src.zoneColors.Copy() : null
+    dst.icon_state     = "world"
+    dst.RebuildIcon()
 
 // -----------------------------
 // Stat Allocation — confirmed 2026-08-10: 12 points to allocate, each capped at 10 for

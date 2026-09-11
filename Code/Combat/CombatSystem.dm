@@ -256,6 +256,10 @@ mob/proc
         density = 1
         icon_state = "world"
         isDefending = FALSE
+        // Cleared with the rest of the death state — it's only meaningful for the fight
+        // that just ended. Left set, Die() would keep crediting whoever opened THAT
+        // fight for every later death, handing a second killer's exp to the first one.
+        firstAttacker = null
         ClearStatusEffects()
         loc = GetRespawnTurf()
         canAct = TRUE
@@ -270,11 +274,13 @@ mob/proc
 #define MAX_LEVEL 99
 
 mob/proc
+    // Loops rather than leveling at most once per call, and carries the leftover into
+    // the next level instead of zeroing it. Awarding a lump of exp worth several levels
+    // (a high-value monster at low level, or a shared party kill) used to grant exactly
+    // one level and silently bin the entire remainder.
     LevelCheck()
-        if(src.Level >= MAX_LEVEL) return
-
-        if(src.Exp >= src.Nexp)
-            src.Exp = 0
+        while(src.Level < MAX_LEVEL && src.Exp >= src.Nexp)
+            src.Exp -= src.Nexp
             src.Level += 1
             src.Nexp = BASE_EXP * src.Level * src.Level
             src.StatPoints += 6
@@ -422,21 +428,36 @@ mob/proc
 // -----------------------------
 mob/var/animAlternate = FALSE  // flipped once per swing by PlayAttackAnimation()
 
-// icon_states() builds a fresh list per call and this runs on every swing — cached
-// per icon instead.
+// icon_states() builds a fresh list per call and this runs on every swing — cached per
+// icon FILE instead.
+//
+// The cache key is the icon's path, so the ref handed in has to be file-backed. A
+// runtime-built /icon — which is what every player wears, since RebuildIcon() paints a
+// fresh copy — stringifies to the bare literal "/icon" regardless of which art it came
+// from (verified 2026-09-10). Caching under that key handed the FIRST player's state list
+// back for every portrait in the game afterward, so e.g. a Fighter (whose art splits
+// "attack" into "rightattack"/"leftattack") resolved against a Hero's states and lost its
+// swing animation. An unidentifiable ref is now read fresh rather than cached under a key
+// that isn't actually unique.
 var/list/iconStateCache = list()
 
 proc/GetCachedIconStates(icon_ref)
     if(!icon_ref) return list()
     var/key = "[icon_ref]"
+    if(key == "/icon") return icon_states(icon_ref)
     if(key in iconStateCache)
         return iconStateCache[key]
     var/list/states = icon_states(icon_ref)
     iconStateCache[key] = states
     return states
 
+// Reads states off baseIcon — the registry's source art (PlayerIconColorPalette.dm) —
+// rather than `icon`, which for a player is the recolored copy. SwapColor() doesn't
+// rename states, so the source lists exactly the same ones, and unlike the copy it's a
+// real file that caches correctly per portrait. Enemies have no baseIcon and fall through
+// to their own file-backed `icon`.
 mob/proc/ResolveAnimState(baseName)
-    var/list/states = GetCachedIconStates(icon)
+    var/list/states = GetCachedIconStates(baseIcon || icon)
     if(!states.len) return baseName  // no readable states — let the caller try anyway
     if(baseName in states) return baseName
 
