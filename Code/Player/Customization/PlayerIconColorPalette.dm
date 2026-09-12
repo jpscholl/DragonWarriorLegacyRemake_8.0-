@@ -73,7 +73,12 @@ proc/BuildPlayerIconRegistry()
         "Accent" = rgb(255,255,255),
         "Hair"   = rgb(0,93,255),   // also covers the headgear pixels -- they share one color
         "Eyes"   = rgb(0,92,254)))
-    AddPlayerIcon(reg, "Dragon Warrior 2 Hero", "Hero", 'Mob Icons/Player/Hero/dw2hero.dmi')
+    // "Hair" also covers the headgear pixels on this sprite -- they share one color.
+    AddPlayerIcon(reg, "Dragon Warrior 2 Hero", "Hero", 'Mob Icons/Player/Hero/dw2hero.dmi', list(
+        "Main"   = rgb(0,124,255),
+        "Accent" = rgb(255,255,255),
+        "Hair"   = rgb(0,124,254),
+        "Eyes"   = rgb(0,123,255)))
     AddPlayerIcon(reg, "Dragon Warrior 3 Hero", "Hero", 'Mob Icons/Player/Hero/dw3hero.dmi', list(
         "Main"   = rgb(0,124,255),
         "Accent" = rgb(255,255,255),
