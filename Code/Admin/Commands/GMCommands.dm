@@ -919,7 +919,7 @@ mob/verb/GM_LevelIncrease()
     // equivalent to a real level-up chain, not a single jump.
     for(var/i = 1 to amount)
         Level += 1
-        StatPoints += 6   // matches LevelCheck()'s confirmed OG value
+        StatPoints += round(Level / 2) + 5   // matches LevelCheck()'s OG formula (not a flat +6 past level 1->2)
         RecalculateVitals()
 
     // LevelCheck() also does this on every real level-up (CombatSystem.dm) -- without

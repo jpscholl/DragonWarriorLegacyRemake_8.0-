@@ -476,13 +476,19 @@ obj/item/amulet/gold
     name = "Amulet of Wealth"
     description = "Increases Gold gained from kills."
     icon_state = "gold"
-    bonusGoldPercent = 10
+    // OG-confirmed (unsorted.dm:6899, KillReward()) — 50%, applied to the killer's own
+    // kill-reward pool before any party split (CombatSystem.dm's Die()). OG compounds
+    // this per amulet worn; Die() approximates it as a summed percent via the existing
+    // equipGoldBonusPercent total instead — see the comment there for why.
+    bonusGoldPercent = 50
 
 obj/item/amulet/exp
     name = "Amulet of Experience"
     description = "Increases EXP gained from kills."
     icon_state = "exp"
-    bonusExpPercent = 10
+    // OG-confirmed (unsorted.dm:6899, KillReward()) — 25%, same killer-only rule and
+    // summed-not-compounded approximation as Amulet of Wealth above.
+    bonusExpPercent = 25
 
 obj/item/amulet/luck
     name = "Amulet of Luck"

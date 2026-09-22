@@ -86,7 +86,6 @@ proc/BuildPlayerIconRegistry()
         "Eyes"   = rgb(0,124,250)))
     AddPlayerIcon(reg, "Dragon Warrior 4 Hero (Male)", "Hero", 'Mob Icons/Player/Hero/dw4malehero.dmi')
     AddPlayerIcon(reg, "Dragon Warrior 4 Hero (Female)", "Hero", 'Mob Icons/Player/Hero/dw4femalehero.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 4 Elf", "Hero", 'Mob Icons/Player/Hero/dw4elf.dmi')
 
     // Soldier -- dw3guard is PARTIALLY authored: only "Main" has been sampled so far, so
     // that's the only zone its color menu offers. Not a statement about the art; the rest
@@ -109,8 +108,17 @@ proc/BuildPlayerIconRegistry()
         "Main" = rgb(0,172,64)))
     AddPlayerIcon(reg, "Dragon Warrior 3 Wizard (Female)", "Wizard", 'Mob Icons/Player/Wizard/dw3femalewizard.dmi')
     AddPlayerIcon(reg, "Dragon Warrior 4 Brey", "Wizard", 'Mob Icons/Player/Wizard/dw4brey.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 4 Nara", "Wizard", 'Mob Icons/Player/Wizard/dw4nara.dmi')
     AddPlayerIcon(reg, "Dragon Warrior 4 Mara", "Wizard", 'Mob Icons/Player/Wizard/dw4mara.dmi')
+    // Icon states (world, hit, sleep, attack, weapon -- no "defend") match this project's
+    // Wizard pattern exactly, not Hero/Soldier's -- confirmed 2026-09-14 via icon_states()
+    // on the actual file. Moved out of Hero for that reason. "Hair" also covers the
+    // headgear pixels here, and the arms share pixels with Accent -- an Accent recolor
+    // visibly tints the arms too, a real property of the art, not a zone-split bug.
+    AddPlayerIcon(reg, "Dragon Warrior 4 Elf", "Wizard", 'Mob Icons/Player/Wizard/dw4elf.dmi', list(
+        "Main"   = rgb(0,88,248),
+        "Accent" = rgb(254,254,254),
+        "Hair"   = rgb(0,184,0),
+        "Eyes"   = rgb(0,88,249)))
 
     // Fighter
     AddPlayerIcon(reg, "Dragon Warrior 1 Fighter", "Fighter", 'Mob Icons/Player/Fighter/dw1fighter.dmi')
@@ -124,6 +132,7 @@ proc/BuildPlayerIconRegistry()
     AddPlayerIcon(reg, "Dragon Warrior 3 Pilgrim (Male)", "Pilgrim", 'Mob Icons/Player/Pilgrim/dw3malepilgrim.dmi')
     AddPlayerIcon(reg, "Dragon Warrior 3 Pilgrim (Female)", "Pilgrim", 'Mob Icons/Player/Pilgrim/dw3femalepilgrim.dmi')
     AddPlayerIcon(reg, "Dragon Warrior 4 Cristo", "Pilgrim", 'Mob Icons/Player/Pilgrim/dw4cristo.dmi')
+    AddPlayerIcon(reg, "Dragon Warrior 4 Nara", "Pilgrim", 'Mob Icons/Player/Pilgrim/dw4nara.dmi')
 
     // Goof-off
     AddPlayerIcon(reg, "Dragon Warrior 3 Goof-off (Male)", "Goof-off", 'Mob Icons/Player/Goof-off/dw3malegoofoff.dmi')

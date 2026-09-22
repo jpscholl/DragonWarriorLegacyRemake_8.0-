@@ -111,8 +111,8 @@ mob/enemy
 	New()
 		..()
 		attackSkill = new
-		ResolveElementalDefense()  // turns real OG mobElement (MonsterRoster.dm) into
-		                           // an actual elementalResistance (CombatSystem.dm)
+		// mobElement (MonsterRoster.dm, real OG data) feeds GetElementalMultiplier()
+		// (CombatSystem.dm) directly now — no precomputed resistance step needed.
 		BuildSpellInstances()
 		AILoop()
 		MovementLoop()

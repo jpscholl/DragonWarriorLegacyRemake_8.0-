@@ -162,6 +162,83 @@ datum/status_effect/poison
 			holder.ShowInfo("<font color='green'>The poison wears off.</font>")
 
 // -----------------------------
+// Burn — OG-confirmed formula (unsorted.dm:625, castburn()): mitigated by the TARGET's
+// own Intelligence (not Vitality/Defense or the flat GetDefense()/GetMagicDefense()
+// math everything else uses), and the mitigation is a RANDOM roll between B/3 and
+// B*2/3, not a flat subtraction. power/element aren't set here — the base
+// datum/status_effect framework only takes a type, so a caller uses ApplyBurn() below
+// to grab the created datum and set them. Reuses GetElementalMultiplier() (CombatSystem.dm)
+// so a burn reacts to the same real elemental matrix a direct spell hit does.
+//
+// Currently DORMANT — nothing calls ApplyBurn() yet. An earlier pass wired it to fire
+// so it'd fire on every fire-spell hit, but that trigger was invented, not OG, and got
+// pulled once it became clear the real OG mechanic was residual flame left behind by an
+// AoE spell (Explodet), not instant ignition on a direct hit — a real feature (dynamic
+// turf spawn/expiry) not built yet. Formula's ready for whenever that lands.
+// -----------------------------
+#define BURN_TICK_INTERVAL 20         // deciseconds between ticks — same cadence as Poison
+#define BURN_DURATION 60              // deciseconds — a handful of ticks per application
+#define BURN_BARRIER_AMULET_BONUS 18  // OG-confirmed: added to the mitigation stat per worn Amulet of Barrier
+
+datum/status_effect/burn
+	parent_type = /datum/status_effect
+	var/power = 0       // D0 in the OG formula — the "supplied" damage this burn hits for
+	var/element = null  // fed into the same elemental matrix a direct hit uses
+
+	New()
+		..()
+		effectName = "Burn"
+		duration = BURN_DURATION
+		tickInterval = BURN_TICK_INTERVAL
+
+	OnApply()
+		if(holder)
+			holder.ShowInfo("<font color='orange'>You catch fire!</font>")
+
+	OnTick()
+		if(!holder) return
+
+		var/B = holder.GetEffectiveIntelligence()
+		for(var/obj/item/amulet/barrier/A in holder.contents)
+			if(A.worn) B += BURN_BARRIER_AMULET_BONUS
+
+		var/reduction = rand(round(B / 3), round(B * 2 / 3))
+		var/dmg = max(1, round(power * GetElementalMultiplier(element, holder.mobElement)) - reduction)
+
+		// Direct HP change, not TakeDamage() — same reasoning as Poison above, fire
+		// already caught you, dodging isn't in the picture anymore.
+		holder.HP -= dmg
+
+		flick("hit", holder)
+		var/isEnemy = istype(holder, /mob/enemy)
+		PlaySFXAt(holder, isEnemy ? 'enemyhit.wav' : 'hit.wav')
+
+		holder.ShowInfo("<font color='orange'>The burn sears you! (-[dmg] HP)</font>")
+		ShowCombatNumber(holder, "[dmg]", DAMAGE_NUMBER_COLOR)
+		holder.ShowFloatingHPBar()
+
+		if(holder.HP <= 0)
+			var/mob/dying = holder
+			dying.Die(null)        // no attacker to credit — burn isn't a mob
+			dying.CleanUpDead()
+
+	OnExpire()
+		if(holder && !holder.isDead)
+			holder.ShowInfo("<font color='orange'>The burning stops.</font>")
+
+// Applies Burn with a specific power/element — set after creation since the base
+// ApplyStatusEffect() only takes a type. NOTE: if the target is already burning,
+// ApplyStatusEffect() just refreshes the existing duration (see its own comment) and
+// this does NOT update its power/element — a second, weaker ignition won't downgrade an
+// existing stronger burn mid-tick. Simple tradeoff, revisit if that ever matters.
+mob/proc/ApplyBurn(power, element)
+	var/datum/status_effect/burn/B = ApplyStatusEffect(/datum/status_effect/burn)
+	if(B && B.power == 0)
+		B.power = power
+		B.element = element
+	return B
+
+// -----------------------------
 // Sleep — locks canAct until it expires. No wake-on-hit yet (classic Dragon Warrior
 // sleep breaks when the sleeper is attacked).
 // -----------------------------

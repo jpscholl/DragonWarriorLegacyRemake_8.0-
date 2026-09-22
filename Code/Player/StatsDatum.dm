@@ -3,8 +3,9 @@
 // MP_PER_SPIRIT, see Markdowns/CodeNotes.md.
 // -----------------------------
 #define BASE_MAX_HP 30
-#define HP_PER_VITALITY 5
-#define HP_PER_LEVEL 3
+#define MAXHP_LEVEL_EXPONENT 1.65
+#define MAXHP_VITALITY_EXPONENT 1.55
+#define MAXHP_CAP 9999
 #define BASE_MAX_MP 10
 #define MP_PER_INTELLIGENCE 4
 #define MP_PER_SPIRIT 2
@@ -28,7 +29,13 @@ mob/proc/RecalculateVitals()
     // class multiplier on the base+level portion too is what makes a Soldier's early
     // HP already feel tankier, not just its per-point scaling. GetEffective*()
     // includes equipment bonuses, so a Vitality amulet raises MaxHP like real Vitality.
-    MaxHP = round((BASE_MAX_HP + (GetEffectiveVitality() * HP_PER_VITALITY) + (Level * HP_PER_LEVEL)) * HPfactor) + equipMaxHP
+    // OG-confirmed (unsorted.dm:7061, SetMaxHP()): power-law growth on both Level and
+    // Vitality (exponents 1.65/1.55), not linear terms — a structurally different curve
+    // from the old one, though both share the same +30 base and per-class HPfactor.
+    // SetMaxMP() immediately follows in the OG source with the same shape expected
+    // (MPfactor/Intelligence/Spirit), but wasn't traced far enough to confirm — MaxMP
+    // below is untouched pending that.
+    MaxHP = min(MAXHP_CAP, round(HPfactor * (Level ** MAXHP_LEVEL_EXPONENT + GetEffectiveVitality() ** MAXHP_VITALITY_EXPONENT + BASE_MAX_HP))) + equipMaxHP
     HP += max(0, MaxHP - oldMaxHP)
 
     if(hasMana)

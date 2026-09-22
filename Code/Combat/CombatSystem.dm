@@ -47,13 +47,17 @@ mob/proc
             isDefending = TRUE
             icon_state = "defend"
 
+// OG-confirmed (unsorted.dm:625, hit()): dodgeChance = min(75, round(agility * 0.75)).
+// Only the dodge-chance roll itself is confirmed — hit()'s trace falls into
+// un-reconstructed bytecode right after this, so whether anything downstream still
+// modifies the roll (e.g. a class or status-effect adjustment) is unknown.
 #define DODGE_BASE_PERCENT 0
-#define DODGE_AGILITY_SCALE 1
-#define DODGE_MAX_PERCENT 30
+#define DODGE_AGILITY_SCALE 0.75
+#define DODGE_MAX_PERCENT 75
 
 mob/proc
     RollDodge()
-        var/dodgeChance = min(DODGE_MAX_PERCENT, DODGE_BASE_PERCENT + GetEffectiveAgility() * DODGE_AGILITY_SCALE)
+        var/dodgeChance = min(DODGE_MAX_PERCENT, round(DODGE_BASE_PERCENT + GetEffectiveAgility() * DODGE_AGILITY_SCALE))
         return prob(dodgeChance)
 
 // Flat subtraction rather than percentage reduction — lets a heavily-invested tank
@@ -185,28 +189,58 @@ mob/proc
         ClearStatusEffects()
 
         if(attacker)
-            var/reward = src.expReward
-            var/goldDrop = src.goldReward
+            // OG-confirmed (unsorted.dm:6899, KillReward()). Three structural
+            // differences from the old split-evenly version, all real findings, not
+            // just number tweaks:
+            //   1. ×5 base multiplier before anything else. (expReward/goldReward on
+            //      MonsterRoster.dm are small placeholder guesses, not pre-scaled — a
+            //      Level-1 monster's 3 exp × 5 = 15 = exactly Nexp's level-1 threshold,
+            //      which lines up with "one kill dings you to level 2" as an intended
+            //      early beat, not a coincidence.)
+            //   2. Only the KILLER's own amulets apply, to the pool BEFORE any split —
+            //      not each member's own amulets applied to their own share.
+            //   3. A party's shared pool GROWS (doesn't just redivide the solo total),
+            //      and each eligible member gets that inflated pool's per-member share.
+            // Reuses the existing equipExpBonusPercent/equipGoldBonusPercent totals
+            // (Inventory.dm's ApplyAmuletBonuses) as an approximation of the OG's true
+            // per-amulet compounding — identical when 0 or 1 relevant amulet is worn,
+            // slightly low only in the rare case of two of the exact same amulet type
+            // (e.g. two Amulets of Wealth: +100% summed here vs. OG's ×1.5×1.5 = +125%
+            // compounded). Not worth new bookkeeping just for that edge case.
+            var/baseExp = round(src.expReward * 5 * (100 + attacker.equipExpBonusPercent) / 100)
+            var/baseGold = round(src.goldReward * 5 * (100 + attacker.equipGoldBonusPercent) / 100)
+
             var/attackerGoldGained = 0
+
             if(attacker.Party && attacker.Party.shareExp)
-                // Split evenly among the party — gold splits on the same shareExp
-                // flag rather than its own toggle.
-                var/memberCount = attacker.Party.members.len
-                var/share = max(1, round(reward / memberCount))
-                var/goldShare = goldDrop ? max(1, round(goldDrop / memberCount)) : 0
+                // Eligible = same party, alive, within 8 levels of the killer.
+                var/list/mob/player/eligible = list()
                 for(var/mob/player/M in attacker.Party.members)
-                    // Each member's own Amulet of Experience/Wealth boosts only their
-                    // own share, not the shared pool before split.
-                    var/expGained = round(share * (100 + M.equipExpBonusPercent) / 100)
-                    var/goldGained = round(goldShare * (100 + M.equipGoldBonusPercent) / 100)
-                    M.Exp += expGained
-                    M.Gold += goldGained
-                    M.LevelCheck()
-                    if(M == attacker) attackerGoldGained = goldGained
+                    if(M.isDead) continue
+                    if(abs(M.Level - attacker.Level) > 8) continue
+                    eligible += M
+
+                if(eligible.len <= 1)
+                    attackerGoldGained = baseGold
+                    attacker.Exp += baseExp
+                    attacker.Gold += baseGold
+                    attacker.LevelCheck()
+                else
+                    var/n = eligible.len
+                    // (n-1)*0.25 + 1: solo pool = 100%, a 2-person party shares 125% of
+                    // it, 3-person 150%, etc — and each member gets that share, not a
+                    // further split. "+ 0.99" rounds the per-member share UP.
+                    var/expShare = round(baseExp * ((n - 1) * 0.25 + 1) / n + 0.99)
+                    var/goldShare = round(baseGold * ((n - 1) * 0.25 + 1) / n + 0.99)
+                    for(var/mob/player/M in eligible)
+                        M.Exp += expShare
+                        M.Gold += goldShare
+                        M.LevelCheck()
+                        if(M == attacker) attackerGoldGained = goldShare
             else
-                attackerGoldGained = round(goldDrop * (100 + attacker.equipGoldBonusPercent) / 100)
-                attacker.Exp += round(reward * (100 + attacker.equipExpBonusPercent) / 100)
-                attacker.Gold += attackerGoldGained
+                attackerGoldGained = baseGold
+                attacker.Exp += baseExp
+                attacker.Gold += baseGold
                 attacker.LevelCheck()
 
             if(attackerGoldGained)
@@ -283,7 +317,10 @@ mob/proc
             src.Exp -= src.Nexp
             src.Level += 1
             src.Nexp = BASE_EXP * src.Level * src.Level
-            src.StatPoints += 6
+            // OG-confirmed (unsorted.dm:6777, LevelCheck()): round(level/2) + 5, using
+            // the level just incremented to above — NOT a flat +6 past the very first
+            // level-up (that's only true for level 1->2: round(2/2)+5 = 6).
+            src.StatPoints += round(src.Level / 2) + 5
             src.RecalculateVitals()  // Level affects MaxHP/MaxMP too
             src.ShowInfo("You are now Level [src.Level]")
             src << sound('levelup.wav', channel = 2, volume = client ? client.ScaledVolume() : 100)
@@ -325,27 +362,31 @@ mob/proc
         if(isCrit) damage = round(damage * CRIT_DAMAGE_PERCENT / 100)
         return target.TakeDamage(damage, src, isMagic = FALSE, isCrit = isCrit)
 
-// Elemental scaffolding — real, working code, but currently inert: nothing yet sets
-// elementalWeakness/elementalResistance on a player or monster, so these checks never
-// trigger until something does.
-mob/var/elementalWeakness = null    // e.g. "ice" — takes bonus damage from that element
-mob/var/elementalResistance = null  // e.g. "fire" — takes reduced damage from that element
-#define ELEMENTAL_WEAKNESS_BONUS_PERCENT 50
-#define ELEMENTAL_RESISTANCE_REDUCTION_PERCENT 50
+// OG-confirmed (unsorted.dm:1412, Element()): a real multiplier matrix between the
+// spell's element and the TARGET's own elemental type — not a flat single-string
+// weakness/resistance. Target types are the same 8 the OG uses; spell elements are
+// whatever SkillDatum.dm/SkillCatalog.dm already assign ("fire"/"ice"/"lightning"/null
+// for physical). "holy" is unused by any current DWLR spell but kept for a future one.
+// Every number here is the real OG value, not a guess — see Markdowns/OGCombatFormulas.md §3/§11.
+proc/GetElementalMultiplier(spellElement, targetType)
+    if(!spellElement) return 1  // physical — OG: flat 1, no target-type check at all
+    if(!targetType) targetType = "Normal"
 
-// A mob's OWN elemental affinity, distinct from what it's weak/resistant TO — real OG
-// data for monsters (MonsterRoster.dm). Players leave this null.
+    var/static/list/matrix = list(
+        "fire" = list("Normal" = 1, "Fire" = 0.5, "Water" = 0.5, "Ice" = 1.5, "Air" = 1, "Iron" = 1, "Plant" = 1.5, "Darkness" = 1),
+        "ice" = list("Normal" = 1, "Fire" = 1.5, "Water" = 1, "Ice" = 0.5, "Air" = 1.5, "Iron" = 0.5, "Plant" = 1, "Darkness" = 1),
+        "lightning" = list("Normal" = 1, "Fire" = 1, "Water" = 1.5, "Ice" = 1, "Air" = 0.5, "Iron" = 1.5, "Plant" = 0.5, "Darkness" = 1),
+        "holy" = list("Normal" = 1, "Fire" = 1, "Water" = 1, "Ice" = 1, "Air" = 1, "Iron" = 1, "Plant" = 1, "Darkness" = 1.5),
+    )
+
+    var/list/row = matrix[spellElement]
+    if(!row) return 1
+    return row[targetType] || 1
+
+// A mob's own elemental type — REAL OG data for monsters (MonsterRoster.dm's
+// mobElement column, CERTAIN confidence per Markdowns/CodeNotes.md), fed straight into
+// GetElementalMultiplier() as the target side. Players leave this null (= "Normal").
 mob/var/mobElement = null
-
-mob/proc
-    // Called from New() on every mob with an affinity. Sets elementalResistance from
-    // mobElement unless something already set it explicitly. Self-element resistance
-    // only — weakness stays null on purpose (no opposition table exists, see
-    // Markdowns/CodeNotes.md).
-    ResolveElementalDefense()
-        if(!mobElement) return
-        if(isnull(elementalResistance))
-            elementalResistance = mobElement
 
 mob/proc
     // Returns TakeDamage()'s landed/dodged result — Projectiles.dm's Impact() passes
@@ -353,11 +394,7 @@ mob/proc
     ApplySpellDamage(mob/target, damage, element)
         if(!target) return FALSE
 
-        if(element)
-            if(target.elementalWeakness == element)
-                damage = round(damage * (100 + ELEMENTAL_WEAKNESS_BONUS_PERCENT) / 100)
-            else if(target.elementalResistance == element)
-                damage = round(damage * (100 - ELEMENTAL_RESISTANCE_REDUCTION_PERCENT) / 100)
+        damage = round(damage * GetElementalMultiplier(element, target.mobElement))
 
         var/isCrit = RollCrit()
         if(isCrit) damage = round(damage * CRIT_DAMAGE_PERCENT / 100)
@@ -379,25 +416,21 @@ mob/proc
 #define MELEE_ATK_MIN_DELAY 4
 #define SPELL_ATK_BASE_DELAY 14
 #define SPELL_ATK_MIN_DELAY 6
-// Scales WITH Intelligence rather than a flat add, so Agility barely helps a low-INT
-// character's cast speed but meaningfully helps a high-INT one.
-#define SPELL_AGI_SYNERGY_DIVISOR 40
 #define DEFEND_ATTACK_SPEED_PENALTY 3
 
 mob/proc
-    // Deliberately NOT gated by class — physical vs. magic speed falls out purely from
-    // stat allocation (ClickableStats.dm).
+    // OG-confirmed (unsorted.dm:5302, AttackDelay()): one flat term — Agility ÷ 10,
+    // rounded to the nearest 0.5 — subtracted from a base delay. No Vitality/
+    // Intelligence blending and no melee-vs-spell split in the OG; BASE/MIN still
+    // differ per skill type since those constants aren't OG-recovered, just the shape
+    // of the formula applied to them is.
     GetAttackDelay(datum/skill/S, wasDefending = FALSE)
         var/delay
+        var/agiTerm = round(GetEffectiveAgility() / 10, 0.5)
         if(S.isMelee)
-            // Geometric mean of Agility and whichever of Vitality/Intelligence is
-            // higher — needs Agility plus a real secondary investment, but doesn't
-            // force that secondary to be Vitality specifically.
-            var/meleeSpeedStat = sqrt(GetEffectiveAgility() * max(GetEffectiveVitality(), GetEffectiveIntelligence()))
-            delay = max(MELEE_ATK_MIN_DELAY, MELEE_ATK_BASE_DELAY - meleeSpeedStat)
+            delay = max(MELEE_ATK_MIN_DELAY, MELEE_ATK_BASE_DELAY - agiTerm)
         else if(S.isSpell)
-            var/spellSpeedStat = GetEffectiveIntelligence() + (GetEffectiveAgility() * GetEffectiveIntelligence() / SPELL_AGI_SYNERGY_DIVISOR)
-            delay = max(SPELL_ATK_MIN_DELAY, SPELL_ATK_BASE_DELAY - spellSpeedStat)
+            delay = max(SPELL_ATK_MIN_DELAY, SPELL_ATK_BASE_DELAY - agiTerm)
         else
             delay = 10
 
