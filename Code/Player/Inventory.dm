@@ -499,10 +499,13 @@ obj/item/amulet/luck
 // -----------------------------
 // Mob-side inventory helpers
 // -----------------------------
+// GetEffectiveStrength(), not raw Strength — an Amulet of Strength already raises
+// MaxHP, regen and melee damage, so having it not also raise carry capacity made
+// equipment behave unlike the real stat points it's otherwise meant to be
+// indistinguishable from (the same reasoning already applied to HP/MP regen,
+// StatsDatum.dm). round() with one arg floors in DM.
 mob/proc/GetInventoryCapacity()
-    return BASE_INVENTORY_CAPACITY + round(Strength / STR_PER_CAPACITY)  // round() with
-                                                                            // one arg
-                                                                            // floors in DM
+    return BASE_INVENTORY_CAPACITY + round(GetEffectiveStrength() / STR_PER_CAPACITY)
 
 mob/proc/GetInventoryCount()
     var/count = 0
@@ -560,8 +563,13 @@ mob/verb/DropItem()
         src.ShowInfo("You have nothing to drop.")
         return
 
-    var/choice = input(src, "Drop which item?", "Drop Item") in items
+    // Closing the picker returns null, which used to fall straight through to
+    // toDrop.loc on a null item. obj/storage's own pickers (Obj.dm) already guard this.
+    var/choice = input(src, "Drop which item?", "Drop Item") in items + "Cancel"
+    if(!choice || choice == "Cancel") return
+
     var/obj/item/toDrop = items[choice]
+    if(!toDrop) return
 
     toDrop.loc = loc   // falls on the turf you're standing on
     src.ShowInfo("You drop [toDrop.name].")

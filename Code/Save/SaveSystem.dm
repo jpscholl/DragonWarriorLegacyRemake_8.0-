@@ -107,6 +107,19 @@ datum/SaveManager
         // could reference is actually known.
         D.ApplySkillSlots(newPlayer)
 
+        // Recompute the maxima from the loaded stats instead of trusting the ones in the
+        // save. ApplyToCharacter() restores MaxHP/MaxMP verbatim, so a returning
+        // character kept whatever those were the day they logged out — which goes stale
+        // the moment the HP formula changes, as it did when SetMaxHP()'s real power-law
+        // curve replaced the old linear one. This only happened to work before for
+        // characters wearing an amulet, since equipping one calls RecalculateVitals() as
+        // a side effect; everyone else kept the old numbers indefinitely.
+        //
+        // RecalculateVitals() tops current HP up by however much the max GREW but never
+        // trims it, so the clamp below covers a recompute that shrank the max instead.
+        newPlayer.RecalculateVitals()
+        newPlayer.HP = min(newPlayer.HP, newPlayer.MaxHP)
+
         // Full mana on login, every time — not just whatever was saved.
         newPlayer.MP = newPlayer.MaxMP
 

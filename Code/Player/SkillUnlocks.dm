@@ -75,6 +75,11 @@ mob/player
         for(var/datum/skillUnlock/U in cachedSkillUnlocks)
             if(HasSkillType(U.skillType)) continue
             if(Level < U.requiredLevel) continue
+            // Deliberately the RAW stat, not GetEffective*() — unlike every combat
+            // formula, which reads the effective value so amulets count. Learning a
+            // skill is permanent and unequipping isn't unlearning, so gating it on a
+            // value equipment can inflate would let a player borrow an amulet, clear
+            // the threshold, hand it back and keep the skill.
             if(U.requiredStat && vars[U.requiredStat] < U.requiredStatValue) continue
 
             var/datum/skill/S = EquipSkill(U.skillType)

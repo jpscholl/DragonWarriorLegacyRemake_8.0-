@@ -147,5 +147,15 @@ mob/npc/merchant
             if(A.worn) A.Unequip(P)
 
         P.Gold += round(stock[I.type] * buybackPercent / 100)
-        del I
+
+        // Sells ONE unit, not the whole stack. `del I` alone paid a single item's
+        // buyback and then destroyed every item in the stack with it — selling a stack
+        // of 20 herbs handed over 20 herbs for the price of one. Mirrors
+        // obj/item/consumable/UseItem() (Inventory.dm).
+        if(I.amount > 1)
+            I.amount--
+            I.UpdateStackName()
+        else
+            del I
+
         P.ShowInfo("Thank you for shopping. Please come again soon!")

@@ -115,9 +115,18 @@ client
             del camera
         ..()
 
-    // MoveLoop() is started from client/New() in Code/Core/Main.dm — DM doesn't merge
-    // duplicate proc definitions across files, so a second New() override here would
-    // silently replace (or be replaced by) that one instead of both running.
+    // MoveLoop() is started from client/New() in Code/Core/Main.dm rather than here, to
+    // keep client setup in one place.
+    //
+    // This used to claim a second New() override in this file would silently replace
+    // that one. That's wrong — measured against DM 516.1687 (2026-09-22): two
+    // definitions of the same proc on the same type in different files compile without
+    // even a warning and form a normal override CHAIN, later-included first, with ..()
+    // reaching the earlier one. Both run as long as the later one calls ..(); omitting
+    // ..() is what skips the earlier one, exactly like any subtype override.
+    //
+    // The live example is mob/New(), defined in BOTH Code/Core/Main.dm (night tint) and
+    // Code/UI/HUD.dm (floating HP/MP bars). Both do run, because HUD.dm's calls ..().
 
     // Continuously move mob while a direction is pressed
     proc

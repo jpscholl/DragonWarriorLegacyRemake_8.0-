@@ -200,6 +200,9 @@ area
 			ApplyBoundaryOpacity(T)
 
 		Entered(mob/M) //when you enter the house you will not see the roof any more
+			..()  // area/Entered()'s music handling — without this, walking into any
+			      // roofed building skipped the areaMusic/curse-night switch entirely,
+			      // since this override replaced it rather than extending it
 			if(ismob(M)) //if your a mob
 				M.see_invisible = 0 //keep these variables here or this will not work
 				M.sight &= ~SEE_THRU  // normal sight: these walls now stop your view outward
@@ -210,6 +213,7 @@ area
 		// Exited() even though you're still fully inside the building. Only actually
 		// treat it as leaving if the destination isn't ceiling territory either.
 		Exited(mob/M, atom/newloc)
+			..()
 			if(ismob(M)) //if your a mob
 				var/turf/T = newloc
 				var/area/destArea = T ? T.loc : null

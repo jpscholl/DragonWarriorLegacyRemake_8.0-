@@ -106,6 +106,12 @@ datum/CharacterSaveData/proc/BuildFromCharacter(mob/player/P)
     inventorySnapshot = list()
     for(var/obj/item/I in P.contents)
         var/list/entry = list("type" = I.type)
+        // Stack size, for anything stackable (obj/item/consumable, Inventory.dm).
+        // Without this a stack of 20 herbs came back as a single herb on the next
+        // login — the snapshot recorded the type and nothing else, and ApplyInventory()
+        // rebuilt it with the type's default amount of 1.
+        if(I.maxStack > 1)
+            entry["amount"] = I.amount
         if(istype(I, /obj/item/amulet))
             var/obj/item/amulet/A = I
             entry["worn"] = A.worn
@@ -210,6 +216,13 @@ datum/CharacterSaveData/proc/ApplyInventory(mob/player/P)
 
         var/obj/item/I = new itemType
         I.loc = P
+
+        // Restore a saved stack size, clamped to the type's current maxStack in case
+        // that value has been lowered since the save was written. A pre-existing save
+        // from before amount was recorded has no entry here and keeps the default of 1.
+        if(I.maxStack > 1 && entry["amount"])
+            I.amount = min(entry["amount"], I.maxStack)
+            I.UpdateStackName()
 
         if(istype(I, /obj/item/amulet) && entry["worn"])
             var/obj/item/amulet/A = I

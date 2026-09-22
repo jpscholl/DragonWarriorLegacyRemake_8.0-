@@ -164,6 +164,11 @@ proc/SetWorldNight(toNight, message)
 // afterward either way), then redoes the per-player HUD/music step and announcement.
 proc/TriggerCurseNight()
     SetWorldNight(TRUE)
+    // SetWorldNight() rolls the easter egg itself when it actually transitions to night,
+    // and announces it if the roll won — so skip the rest rather than forcing a state
+    // that's already set and banner-ing it a second time.
+    if(isCurseNight) return
+
     isCurseNight = TRUE
     for(var/mob/player/P in world)
         P.UpdateHUD()

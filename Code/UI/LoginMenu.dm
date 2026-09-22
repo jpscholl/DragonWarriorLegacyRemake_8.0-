@@ -47,6 +47,14 @@ proc/ShowLoginMenu(mob/playerTemp/M)
 
     var/choice = input(M, "Welcome to Dragon Warrior Legacy", "Login Menu v[GAME_VERSION]") in options
 
+    // Closing the dialog instead of picking returns null, which matched neither the
+    // "Load " test below nor any switch branch — so this proc just returned, leaving the
+    // player controlling the temp mob at BYOND's (1,1,1) origin with no menu and no way
+    // to get one back. Same softlock the failed-load branch below was already fixed for.
+    if(isnull(choice))
+        ShowLoginMenu(M)
+        return
+
     if(findtext(choice, "Load "))
         var/slot = text2num(copytext(choice, findtext(choice, "Slot ") + 5))
         if(M.client.saveManager.IsCharacterBanned(slot))
@@ -139,7 +147,7 @@ proc/DeleteCharacterMenu(mob/playerTemp/M)
     options += "Cancel"
 
     var/choice = input(M, "Delete which character?") in options
-    if(choice == "Cancel")
+    if(isnull(choice) || choice == "Cancel")  // closing the dialog means Cancel
         ShowLoginMenu(M)
         return
 
@@ -254,7 +262,10 @@ proc/IconSelect(mob/M)
     // CONFIRMED OG wording: "Who will you look like?", title "Icon".
     var/iconChoice = input(M, "Who will you look like?", "Icon") in iconChoices
 
-    if(iconChoice == "Back")
+    // Closing the dialog is treated as Back. Left unguarded, iconChoices[null] resolved
+    // to null and creation carried on with no icon at all, producing an invisible
+    // character.
+    if(isnull(iconChoice) || iconChoice == "Back")
         return STEP_CLASS
 
     M.selectedIcon = iconChoices[iconChoice]
