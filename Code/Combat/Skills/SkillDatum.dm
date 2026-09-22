@@ -22,6 +22,18 @@ datum/skill
         // rather than being hardcoded at the ApplySpellDamage() call site.
         element = null
 
+        // spells.dmi effect art — the spell burst, the swung axe, the whip. A SEPARATE
+        // layer from icon_state above, which names a state on the user's own portrait
+        // .dmi (their held weapon / swing pose). Resolved by ResolveSkillFXState()
+        // (SkillFX.dm), which supports the directional ("thordainns"/"thordainew") and
+        // handed ("leftclaw"/"rightclaw") variant pairs that spells.dmi already uses,
+        // and draws nothing at all when the named state doesn't exist — so fx_state can
+        // be filled in before the art is.
+        fx_state = null
+        // The burst drawn where the hit lands, when the art ships as a matched pair
+        // ("blaze"/"blazehit"). Falls back to fx_state when unset.
+        impact_fx_state = null
+
     proc/OnUse(mob/user, mob/target = null)
         return
 
@@ -41,6 +53,8 @@ datum/skill/Attack
     icon_state = "weapon"
     isMelee = TRUE
     cast_time = 2
+    // No fx_state on purpose. A plain attack is the portrait's own swing pose plus its
+    // "weapon" overlay (icon_state above) — there's no spell effect to draw over it.
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
@@ -117,6 +131,11 @@ datum/skill/Blaze
 
     skillName = "Blaze"
     icon_state = "blaze"  // spells.dmi — also the projectile's own sprite
+    // Set for consistency with the rest of the roster, though Blaze never draws through
+    // PlaySkillFX(): its art travels with obj/projectile/blaze (Projectiles.dm), which
+    // carries its own icon_state/impactIconState.
+    fx_state = "blaze"
+    impact_fx_state = "blazehit"
     isSpell = TRUE
     element = "fire"
     mana_cost = 5  // low, placeholder — tune once seen in action
@@ -188,6 +207,8 @@ datum/skill/Fireball
 
     skillName = "Fireball"
     icon_state = "fireball"
+    fx_state = "blaze"  // no "fireball" art — borrows Blaze's, since this whole skill
+                         // is the pre-projectile placeholder anyway
     isSpell = TRUE
     cast_time = 6
     element = "fire"
@@ -202,9 +223,12 @@ datum/skill/Fireball
         user.ShowInfo("You cast Fireball!")
 
         user.PlayAttackAnimation(user, src, target)
+        user.PlaySkillFX(src, target)  // SkillFX.dm — PlayAttackAnimation() no longer
+                                        // draws spell art itself
 
         spawn(cast_time)
-            user.ApplySpellDamage(target, 10, src.element)
+            if(user.ApplySpellDamage(target, 10, src.element))
+                user.PlaySkillImpactFX(src, target)
 
         // Fireball doesn't drop isDefending the way Attack does — no class currently
         // has both Defend and Fireball equipped — so user.isDefending is still

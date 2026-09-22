@@ -218,17 +218,31 @@ uses a flat `%` of MaxHP per tick instead, unrelated mechanism).
 target's Intelligence (+18 per worn Amulet of Barrier), `rand(B/3, B*2/3)` mitigation,
 reuses `GetElementalMultiplier()` (§3) for the elemental term.
 
-**Currently dormant — nothing triggers it.** First pass wired it to fire on every
-fire-element hit landing (invented trigger, flagged as such at the time), but the user
-recalled the real OG mechanic directly: Explodet does impact damage, then leaves a
+**Trigger built 2026-09-22 — no longer dormant.** The first pass wired this to fire on
+every fire-element hit landing (invented trigger, flagged as such at the time), but the
+user recalled the real OG mechanic directly: Explodet does impact damage, then leaves a
 residual "circle" of flame on the ground, and standing in THAT is what causes the DOT —
-not getting hit by the spell itself. Pulled the direct-hit trigger since it was
-confirmed wrong-shaped, not just unconfirmed. The real feature is a dynamically-spawned
-temporary hazard turf (`turf/hazard` already exists, `Turfs.dm:386`, for static
-lava/swamp — this would need the same shape but spawned in a blob at a spell's impact
-point and reverted after a duration, which nothing in the codebase does yet) — not built,
-deferred by the user as a later improvement. `ApplyBurn()`/the status effect itself are
-ready to call from wherever that lands.
+not getting hit by the spell itself. That direct-hit trigger was pulled as confirmed
+wrong-shaped rather than merely unconfirmed.
+
+The residual-flame feature now exists as `obj/hazard_field` (`Code/Combat/HazardFields.dm`):
+a runtime-spawned, self-expiring ground hazard that ticks on whoever is *standing* in it,
+laid down in a diamond blob by `SpawnHazardBlob()`. Built as an `/obj` layered over the
+ground rather than by swapping turf types — turf replacement would have to snapshot and
+restore every var on the original, and the map is full of turfs whose identity is
+load-bearing (warp pairs, doors that toggle density, ceiling boundaries).
+`obj/hazard_field/flame` re-applies `ApplyBurn()` every tick, so the burn refreshes while
+you stand in the fire and runs out shortly after you step clear.
+
+`datum/skill/Explodet` is now an `AoESpell` (it was never single-target in the original)
+that deals its blast damage and then spawns that blob. Art for both halves already
+existed unused in `spells.dmi`: `"explodet"` for the blast, `"explodetflame"` for the
+residual fire.
+
+Still invented, for tuning: the field's duration (80 deciseconds), its radius (1), and
+`hazard_power_multiplier` (0.5 — the burn's power is scaled off the damage the cast
+actually rolled, so residual fire from a strong caster keeps pace with the spell that
+made it). Only the burn formula itself is OG.
 
 ---
 
@@ -261,9 +275,25 @@ change lands.
 
 **Applied 2026-09-21** (parts 2 and 3): `StatPoints` now reads
 `round(Level/2) + 5` in both `LevelCheck()` and `GMCommands.dm`'s `GM_LevelIncrease()`;
-the stale "confirmed" comment on the latter is corrected. **Not applied** (part 1): the
-`Nexp` curve itself is still `BASE_EXP * Level * Level` — still blocked on each class's
-real `exp_start` value, per-class exp_start data.
+the stale "confirmed" comment on the latter is corrected.
+
+**Applied 2026-09-22** (part 1), with an invented constant: the curve's real shape is now
+in `GetNexpForLevel()` (`CombatSystem.dm`), and `exp_start` is a per-class var on the
+player (`PlayerTemplate.dm`). The OG's own `exp_start` values remain unrecoverable, so
+the per-class numbers are guesses — Hero/Soldier 15, Fighter 14, Pilgrim 16, Wizard 17,
+Sage 20, Goof-off 12 (deliberately the fastest, since reaching Classchange's level 25
+gate is the whole point of the class), Archsage 1 (test-bed pace).
+
+Two things make these easy to tune by feel rather than by arithmetic. The formula
+collapses to exactly `exp_start` at level 1 — `(1 + 14)/15 = 1` — so the number is
+literally "exp needed for level 2". And because the OG tracks exp cumulatively while
+DWLR resets `Exp` on every level-up, the OG's per-level *increment* maps onto DWLR's
+`Nexp` with no conversion at all.
+
+⚠️ This is a **much steeper** curve than the old `Nexp = 15 × Level²` past the low
+levels — level 50 wants ~126k for that level instead of ~37k — and has never been
+balanced against DWLR's actual monster exp values. It is the original's shape, but the
+pacing is untested.
 
 ---
 

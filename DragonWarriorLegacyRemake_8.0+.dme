@@ -124,6 +124,14 @@
 // off early or leaving a dead pause after.
 #define HEAL_ANIM_DURATION 8
 
+// Skill effect art (Code\Combat\SkillFX.dm owns the resolution procs; these two are up
+// here because Code\Combat\CombatSystem.dm's PlayHealCastSequence() and
+// Code\Combat\StatusEffects.dm's ShowActiveFX() both need them, and CombatSystem.dm
+// compiles before SkillFX.dm alphabetically). spells.dmi holds every spell burst,
+// swung-weapon and buff-active sprite in the game.
+#define SKILL_FX_FILE 'spells.dmi'
+#define SKILL_FX_DURATION 4
+
 // Character-creation step constants (originally only in Code\UI\LoginMenu.dm, which
 // still owns the real creation flow). Same #include-order reason as the others above —
 // Code\Player\PlayerTemplate.dm's RunSageReclassFlow() needs these too (it reuses
@@ -150,7 +158,10 @@
 #include "Code\Admin\Commands\GMCommands.dm"
 #include "Code\Admin\Debug\DebugTools.dm"
 #include "Code\Combat\CombatSystem.dm"
+#include "Code\Combat\DamageFormula.dm"
+#include "Code\Combat\HazardFields.dm"
 #include "Code\Combat\Projectiles.dm"
+#include "Code\Combat\SkillFX.dm"
 #include "Code\Combat\StatusEffects.dm"
 #include "Code\Combat\NPCs\EnemyNPCs.dm"
 #include "Code\Combat\NPCs\MonsterRoster.dm"

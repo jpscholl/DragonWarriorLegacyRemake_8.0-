@@ -150,7 +150,13 @@ mob/enemy
 		canAct = FALSE
 		view(src) << output("[src] casts [S.skillName]!", "Info")
 		PlayAttackAnimation(src, S, M)
-		ApplySpellDamage(M, round(Intelligence * S.damage_multiplier), S.element)
+		PlaySkillFX(S, M)  // SkillFX.dm — PlayAttackAnimation() no longer draws spell art
+		// Monsters read Intelligence directly rather than going through
+		// ComputeSpellDamage() (DamageFormula.dm): that proc folds in equipSpellPower and
+		// the variance roll, both of which are player-facing concepts, and monster damage
+		// is meant to be tuned from the roster (MonsterRoster.dm), not from player stats.
+		if(ApplySpellDamage(M, round(Intelligence * S.damage_multiplier), S.element))
+			PlaySkillImpactFX(S, M)
 		spawn(spellCooldown)
 			canAct = TRUE
 		return TRUE
@@ -188,6 +194,7 @@ mob/enemy
 		canAct = FALSE
 		view(src) << output("[src] casts [S.skillName] on [patient == src ? "itself" : "[patient]"]!", "Info")
 		PlayAttackAnimation(src, S, patient)
+		PlaySkillFX(S, patient)  // SkillFX.dm
 		ApplyHeal(patient, S.heal_amount)
 		spawn(spellCooldown)
 			canAct = TRUE
@@ -262,6 +269,9 @@ mob/enemy
 		if(!canAct) return
 		canAct = FALSE
 		PlayAttackAnimation(src, attackSkill, M)
+		PlaySkillFX(attackSkill, M)  // SkillFX.dm — nothing for a plain Attack (no
+		                              // fx_state), real art for a monster whose
+		                              // attackSkill is a named one like Chainsickle
 		PerformMeleeHit(attackSkill, M)
 		spawn(attackCooldown)
 			canAct = TRUE

@@ -47,15 +47,10 @@ obj/projectile
 	                       // TRUE instead of needing a whole separate projectile type
 	var/impactIconState = null
 
-	// A dense turf blocks on its own (walls), but dense OBJS sitting on a non-dense
-	// turf — closed doors, signs — didn't stop anything, since only turf.density was
-	// ever checked. Doors also toggle density at runtime (open/close), so this has to
-	// check live obj state each pass rather than anything static.
+	// Shared with SpawnHazardBlob() (HazardFields.dm) — the real check lives in
+	// IsTurfBlocked() (CombatSystem.dm) so "what stops a spell" is defined once.
 	proc/IsTileBlocked(turf/T)
-		if(T.density) return TRUE
-		for(var/obj/O in T.contents)
-			if(O.density) return TRUE
-		return FALSE
+		return IsTurfBlocked(T)
 
 	proc/Launch()
 		set waitfor = 0

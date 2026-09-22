@@ -41,8 +41,19 @@ mob
         class = null
         Level = 1
         Exp = 0
-        Nexp = 100
+        Nexp = BASE_EXP
         Gold = 30
+
+    // Per-class exp curve steepness, consumed by GetNexpForLevel() (CombatSystem.dm).
+    // The curve's SHAPE is OG-confirmed; these multipliers are not — the real ones live
+    // in unrecoverable types.dm chunks. Because the formula collapses to exactly
+    // exp_start at level 1, this number is also literally "exp needed for level 2",
+    // which makes it easy to sanity-check by playing.
+    //
+    // Higher = slower leveling. Set per class below on the same logic the HPfactor/
+    // MPfactor spread already uses: the classes with the strongest late-game ceilings
+    // pay for it in pace. Overridden per class further down; this is the default.
+    var/exp_start = BASE_EXP
 
     // Exp/Gold granted to whoever kills this mob (Die(), CombatSystem.dm). Live on the
     // base mob (not mob/enemy) so PvP kills have defined values too; real per-tier
@@ -234,6 +245,7 @@ mob/player/Hero
     class = "Hero"
     HPfactor = 1.0
     MPfactor = 1.0
+    exp_start = 15  // the baseline every other class is set relative to
     capStrength = 60
     capAgility = 60
     capVitality = 80
@@ -244,6 +256,7 @@ mob/player/Soldier
     class = "Soldier"
     hasMana = FALSE
     HPfactor = 1.3
+    exp_start = 15  // as the Hero — a straightforward frontliner, no pace penalty
     capStrength = 100
     capAgility = 60
     capVitality = 100
@@ -254,6 +267,7 @@ mob/player/Wizard
     class = "Wizard"
     HPfactor = 0.7
     MPfactor = 1.3
+    exp_start = 17  // slower — the offensive spell list is the strongest scaling in the game
     capStrength = 40
     capAgility = 40
     capVitality = 60
@@ -264,6 +278,7 @@ mob/player/Fighter
     class = "Fighter"
     hasMana = FALSE
     HPfactor = 0.85
+    exp_start = 14  // slightly faster — no spell list to grow into, so it levels to keep up
     capStrength = 100
     capAgility = 100
     capVitality = 80
@@ -273,6 +288,7 @@ mob/player/Fighter
 mob/player/Pilgrim
     class = "Pilgrim"
     MPfactor = 1.1
+    exp_start = 16  // between the Hero and the Wizard, matching its mixed kit
     capStrength = 80
     capAgility = 60
     capVitality = 60
@@ -283,6 +299,9 @@ mob/player/Goofoff
     class = "Goof-off"
     hasMana = FALSE
     HPfactor = 0.9
+    // Fastest in the game, and deliberately so: the whole point of the class is
+    // reaching Classchange's level 25 gate (SkillCatalog.dm) and becoming a Sage.
+    exp_start = 12
     capStrength = 80
     capAgility = 60
     capVitality = 60
@@ -293,6 +312,9 @@ mob/player/Sage
     class = "Sage"
     HPfactor = 0.7
     MPfactor = 1.3
+    // Slowest of the real classes. Its spell list is the Hero+Wizard+Pilgrim union and
+    // it restarts at level 1 on reclass, so the pace is the cost of the ceiling.
+    exp_start = 20
     capStrength = 40
     capAgility = 40
     capVitality = 60
@@ -305,6 +327,10 @@ mob/player/Sage
 // skill/spell is never gated by stats, level, or running out of mana.
 mob/player/Archsage
     class = "Archsage"
+    // Test-bed pace to match the test-bed stats: 1 exp for level 2 and a curve that
+    // stays trivial, so reaching a level that unlocks a skill is never what's in the way
+    // of testing that skill.
+    exp_start = 1
     capStrength = 300
     capAgility = 300
     capVitality = 300
@@ -472,7 +498,9 @@ mob/player/proc/BecomeSage()
     // classchange prompt itself says "you will be set back to level 1").
     newMob.Level = 1
     newMob.Exp = 0
-    newMob.Nexp = BASE_EXP
+    // Sage's own curve, not the old class's — GetNexpForLevel() at level 1 returns
+    // exactly exp_start (CombatSystem.dm).
+    newMob.Nexp = GetNexpForLevel(1, newMob.exp_start)
     newMob.Gold = Gold
     // Not copied from the OLD character — P's own Strength/etc were already
     // overwritten in place by StatAllocation() inside RunSageReclassFlow(), so reading

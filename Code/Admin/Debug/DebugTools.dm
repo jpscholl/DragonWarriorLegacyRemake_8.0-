@@ -89,6 +89,82 @@ mob
             for(var/c in sortedColors)
                 usr.ShowInfo("[HexToRGBString(c)]  x[colorCounts[c]]")
 
+// -----------------------------
+// Skill FX audit — which skills have art, which don't, and what art nothing claims
+// -----------------------------
+// The counterpart to Debug_ShowZoneColors() above, for the spells.dmi side. Every skill
+// names its effect art in fx_state (SkillCatalog.dm) and ResolveSkillFXState()
+// (SkillFX.dm) draws nothing when that state doesn't exist, which is deliberate but
+// means a typo or a wrong guess is invisible in play — it just silently looks like a
+// plain swing. This prints the whole mapping so it can be checked without hunting.
+//
+// The UNCLAIMED list is the useful half in the other direction: spells.dmi holds art
+// for things the skill roster doesn't cover at all, which is a list of skills that could
+// exist.
+mob
+    verb
+        Debug_SkillFXReport()
+            set category = "Debug"
+            if(!usr.RequireBuilder()) return
+
+            var/list/states = GetCachedIconStates(SKILL_FX_FILE)
+            var/list/wired = list()
+            var/list/missing = list()
+            var/list/claimed = list()
+            var/unnamed = 0
+
+            for(var/skillType in typesof(/datum/skill))
+                var/fxState = initial(skillType:fx_state)
+                var/sName = initial(skillType:skillName)
+                if(!fxState)
+                    unnamed++
+                    continue
+
+                var/resolved = ResolveSkillFXState(fxState)
+                if(resolved)
+                    wired += "[sName] — [fxState] &rarr; [resolved]"
+                    claimed[resolved] = TRUE
+                    // Record the variant siblings too, so a skill using the handed or
+                    // directional form doesn't leave its partners looking unclaimed.
+                    for(var/variant in list("[fxState]", "left[fxState]", "right[fxState]", "[fxState]ns", "[fxState]ew"))
+                        if(variant in states) claimed[variant] = TRUE
+                else
+                    missing += "[sName] — [fxState]"
+
+                var/impactState = initial(skillType:impact_fx_state)
+                if(impactState)
+                    var/resolvedImpact = ResolveSkillFXState(impactState)
+                    if(resolvedImpact) claimed[resolvedImpact] = TRUE
+                    else missing += "[sName] (impact) — [impactState]"
+
+            usr.ShowInfo("<b>Skill FX report — [states.len] states in spells.dmi</b>")
+
+            usr.ShowInfo("<b>Wired ([wired.len]):</b>")
+            for(var/line in wired)
+                usr.ShowInfo(line)
+
+            usr.ShowInfo("<b>Named but no art yet ([missing.len]):</b>")
+            for(var/line in missing)
+                usr.ShowInfo(line)
+
+            var/list/unclaimed = list()
+            for(var/s in states)
+                if(!claimed[s]) unclaimed += s
+            usr.ShowInfo("<b>Art nothing claims ([unclaimed.len]):</b> [jointext(unclaimed, ", ")]")
+            usr.ShowInfo("Skills with no fx_state at all: [unnamed]")
+
+        // obj/hazard_field (HazardFields.dm) is only reachable in play by casting
+        // Explodet, which needs the level and MP for it. This drops the same flame blob
+        // at your feet so the field, its expiry, and the burn it applies can be tested
+        // directly. Unowned, so it burns whoever stands in it — including you.
+        Test_SpawnFlame()
+            set category = "Debug"
+            if(!usr.RequireBuilder()) return
+            if(!usr.RequireCanAct()) return
+
+            var/placed = SpawnHazardBlob(usr.loc, /obj/hazard_field/flame, 1, null, 20, "fire", 80)
+            usr.ShowInfo("Spawned [placed] flame tile(s). Stand in one to take burn damage.")
+
 // GetPixel() returns "#rrggbb" (or "#rrggbbaa") — zoneDefaults (PlayerIconColorPalette.dm)
 // entries are written as rgb(r,g,b) literals, so this converts to that exact format,
 // copy-pasteable straight into an icon's zoneDefaults with no manual hex math.

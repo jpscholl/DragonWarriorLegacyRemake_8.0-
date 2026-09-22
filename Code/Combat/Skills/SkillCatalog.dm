@@ -38,6 +38,12 @@ datum/skill/GenericPhysical
         var/atkDelay = user.GetAttackDelay(src, wasDefending)
 
         user.PlayAttackAnimation(user, src, target)
+        // The skill's spells.dmi art (SkillFX.dm), on top of the portrait's own swing
+        // pose that PlayAttackAnimation() just played. Drawn on the target when there is
+        // one, otherwise on the tile being swung at — same placement as the weapon
+        // overlay. PlayAttackAnimation() flips animAlternate first, so a handed FX pair
+        // ("leftclaw"/"rightclaw") always agrees with the hand in the pose.
+        user.PlaySkillFX(src, target || get_step(user, user.dir))
 
         spawn(cast_time)
             PerformHit(user, target)
@@ -96,12 +102,106 @@ datum/skill/GenericSpell
             return
 
         user.PlayAttackAnimation(user, src, actualTarget)
+        user.PlaySkillFX(src, actualTarget)  // spells.dmi effect art (SkillFX.dm)
 
         spawn(cast_time)
             if(isHealing)
                 user.ApplyHeal(actualTarget, heal_amount)
             else
-                user.ApplySpellDamage(target, round(user.GetEffectiveIntelligence() * damage_multiplier), src.element)
+                // Base number from ComputeSpellDamage() (DamageFormula.dm), which owns
+                // every offensive coefficient. The impact burst is gated on the hit
+                // actually landing — a dodged spell shouldn't visibly detonate on the
+                // target (same rule obj/projectile/Impact() follows).
+                if(user.ApplySpellDamage(target, user.ComputeSpellDamage(damage_multiplier), src.element))
+                    user.PlaySkillImpactFX(src, target)
+
+        spawn(user.GetAttackDelay(src, wasDefending))
+            if(user.isDead) return
+            user.canAct = TRUE
+            user.RestoreDefendIfUntouched(wasDefending, mySession)
+
+// -----------------------------
+// AoE Spell — hits everything in a blob instead of one target, and optionally leaves a
+// hazard field on the ground afterwards (HazardFields.dm).
+// -----------------------------
+// Needs its own OnUse() rather than a PerformHit()-style hook because GenericSpell's
+// whole shape assumes a single target (the heal branch, the "already at full HP" check,
+// the one ApplySpellDamage() call).
+datum/skill/AoESpell
+    parent_type = /datum/skill/GenericSpell
+
+    var
+        aoe_radius = 1   // Manhattan radius of the blast
+        aoe_range = 3    // how far ahead the blast centers when nothing is being faced
+
+        // Residual ground hazard left behind. null = none.
+        hazardFieldType = null
+        hazard_radius = 1
+        hazard_duration = 60
+        // The field's power is scaled off the damage this cast actually rolled rather
+        // than being a flat number, so residual fire from a high-Intelligence caster
+        // keeps pace with the spell that made it.
+        hazard_power_multiplier = 0.5
+
+    // The target's own tile when facing something, otherwise the furthest unblocked
+    // tile up to aoe_range ahead — so casting into open ground puts the blast out in
+    // front of the caster instead of on top of them.
+    proc/FindBlastCenter(mob/user, mob/target)
+        if(target && target.loc) return target.loc
+
+        var/turf/T = user.loc
+        for(var/i = 1 to aoe_range)
+            var/turf/next = get_step(T, user.dir)
+            if(!next || IsTurfBlocked(next)) break
+            T = next
+        return T
+
+    // One damage roll shared by everyone caught in the blast, not a separate roll per
+    // victim — an explosion should read as a single event.
+    proc/ApplyBlast(mob/user, turf/center, damage)
+        var/casterIsEnemy = istype(user, /mob/enemy)
+        var/fxState = ResolveSkillFXState(fx_state, user.dir, user.animAlternate)
+
+        for(var/turf/T in GetDiamondTurfs(center, aoe_radius))
+            if(fxState) FlashSkillFX(T, fxState)
+
+            for(var/mob/M in T)
+                if(M == user) continue
+                // Same no-friendly-fire rule the projectiles use (Projectiles.dm).
+                if(istype(M, /mob/enemy) == casterIsEnemy) continue
+                if(M.HP <= 0) continue
+                user.ApplySpellDamage(M, damage, element)
+
+        if(hazardFieldType)
+            SpawnHazardBlob(center, hazardFieldType, hazard_radius, user,
+                            round(damage * hazard_power_multiplier), element, hazard_duration)
+
+    OnUse(mob/user, mob/target = null)
+        if(!user.canAct) return
+        if(!user.InBattleArea()) return
+
+        var/cost = GetManaCost()
+        if(user.MP < cost)
+            user.ShowInfo("Not enough MP to cast [skillName]! (need [cost])")
+            return
+
+        user.MP -= cost
+        user.ShowFloatingMPBar()
+        user.canAct = FALSE
+        user.ShowInfo("You cast [skillName]!")
+
+        var/mySession = user.defendToggleSession
+        var/wasDefending = user.DropDefendForAction()
+
+        user.PlayAttackAnimation(user, src, target)
+
+        // Aim locks now, at cast start — the blast shouldn't re-aim itself if the
+        // caster turns during the windup.
+        var/turf/center = FindBlastCenter(user, target)
+
+        spawn(cast_time)
+            if(user.isDead) return
+            ApplyBlast(user, center, user.ComputeSpellDamage(damage_multiplier))
 
         spawn(user.GetAttackDelay(src, wasDefending))
             if(user.isDead) return
@@ -111,72 +211,98 @@ datum/skill/GenericSpell
 // =============================================================================
 // PHYSICAL SKILLS (Str/Agi gated) — damage_multiplier scales Strength
 // =============================================================================
+// fx_state names a state in spells.dmi (SkillFX.dm). Most of these are unambiguous —
+// spells.dmi literally contains "club", "thornwhip", "battleaxe" and so on, and they
+// went unused for a long time only because every skill inherited the generic "weapon".
+// Where a skill has NO matching art, fx_state is still set to the name the art would
+// have: nothing is drawn today, and dropping a state by that name into spells.dmi is the
+// only step needed to light it up. Those are marked "no art yet".
+//
+// "claw"/"fireclaw"/"goldclaw" have no bare state at all — the art ships as
+// "leftclaw"/"rightclaw" pairs, which ResolveSkillFXState() picks between using the same
+// swing alternation as the portrait's pose.
 datum/skill/Punch
     parent_type = /datum/skill/GenericPhysical
     skillName = "Punch"
     damage_multiplier = 1.0
+    // Deliberately null, not a placeholder name: a bare-fisted punch is fully
+    // described by the portrait's own swing pose and wants no spells.dmi overlay.
 
 datum/skill/Club
     parent_type = /datum/skill/GenericPhysical
     skillName = "Club"
+    fx_state = "club"
     damage_multiplier = 1.1
 
 datum/skill/IronClaw
     parent_type = /datum/skill/GenericPhysical
     skillName = "Iron Claw"
+    fx_state = "claw"  // -> leftclaw/rightclaw
     damage_multiplier = 1.2
 
 datum/skill/Jump
     parent_type = /datum/skill/GenericPhysical
     skillName = "Jump"
+    fx_state = "jump"  // no art yet
     damage_multiplier = 1.1
 
 datum/skill/Hide
     parent_type = /datum/skill/GenericPhysical
     skillName = "Hide"
     damage_multiplier = 1.0
+    // No fx_state — Hide isn't a strike, so there's nothing to flash.
 
 datum/skill/Magicknife
     parent_type = /datum/skill/GenericPhysical
     skillName = "Magicknife"
+    fx_state = "magicknife"
     damage_multiplier = 1.2
 
 datum/skill/Boomerang
     parent_type = /datum/skill/GenericPhysical
     skillName = "Boomerang"
+    fx_state = "boomerang"
     damage_multiplier = 1.3
     isRanged = TRUE
 
 datum/skill/Morningstar
     parent_type = /datum/skill/GenericPhysical
     skillName = "Morningstar"
+    fx_state = "morningstar"
     damage_multiplier = 1.3
 
 datum/skill/Dash
     parent_type = /datum/skill/GenericPhysical
     skillName = "Dash"
+    fx_state = "dash"
     damage_multiplier = 1.3
 
 datum/skill/Quakejump
     parent_type = /datum/skill/GenericPhysical
     skillName = "Quakejump"
+    fx_state = "quakejump"
     damage_multiplier = 1.4
 
 datum/skill/Fireclaw
     parent_type = /datum/skill/GenericPhysical
     skillName = "Fireclaw"
+    fx_state = "fireclaw"  // -> leftfireclaw/rightfireclaw
     damage_multiplier = 1.4
 
 datum/skill/Iceclaw
     parent_type = /datum/skill/GenericPhysical
     skillName = "Iceclaw"
+    fx_state = "iceclaw"  // no art yet — a left/right pair would resolve automatically
     damage_multiplier = 1.4
 
 // A 3-tile line attack in the facing direction, not a single-tile hit — overrides
 // only PerformHit(), inheriting the rest of GenericPhysical's swing sequence as-is.
+// The FX still draws on the tile directly ahead rather than along the whole line;
+// worth revisiting once the art is seen in motion.
 datum/skill/Thornwhip
     parent_type = /datum/skill/GenericPhysical
     skillName = "Thornwhip"
+    fx_state = "thornwhip"
     damage_multiplier = 0.8
     var/reach = 3
 
@@ -186,65 +312,87 @@ datum/skill/Thornwhip
 datum/skill/Lightsword
     parent_type = /datum/skill/GenericPhysical
     skillName = "Lightsword"
+    fx_state = "lightsword"
+    impact_fx_state = "lightswordblast"
     damage_multiplier = 1.5
 
 datum/skill/Battleaxe
     parent_type = /datum/skill/GenericPhysical
     skillName = "Battleaxe"
+    fx_state = "battleaxe"
     damage_multiplier = 1.5
 
 datum/skill/Flamesword
     parent_type = /datum/skill/GenericPhysical
     skillName = "Flamesword"
+    fx_state = "flamesword"
     damage_multiplier = 1.6
 
 datum/skill/Falconsword
     parent_type = /datum/skill/GenericPhysical
     skillName = "Falconsword"
+    fx_state = "falconsword"
     damage_multiplier = 1.7
 
 datum/skill/Goldclaw
     parent_type = /datum/skill/GenericPhysical
     skillName = "Goldclaw"
+    fx_state = "goldclaw"  // -> leftgoldclaw/rightgoldclaw
     damage_multiplier = 1.7
 
+// spells.dmi has BOTH "chain" and "sickle" for this one skill. Which is the swing and
+// which is the trailing half is a guess — swap them if it looks wrong in motion.
 datum/skill/Chainsickle
     parent_type = /datum/skill/GenericPhysical
     skillName = "Chainsickle"
+    fx_state = "sickle"
+    impact_fx_state = "chain"
     damage_multiplier = 1.8
 
 datum/skill/SwordOfLethargy
     parent_type = /datum/skill/GenericPhysical
     skillName = "Sword Of Lethargy"
+    fx_state = "swordoflethargy"
     damage_multiplier = 1.9
 
 datum/skill/IceSaber
     parent_type = /datum/skill/GenericPhysical
     skillName = "Ice Saber"
+    fx_state = "icesaber"
     damage_multiplier = 1.9
 
 datum/skill/Demonhammer
     parent_type = /datum/skill/GenericPhysical
     skillName = "Demonhammer"
+    fx_state = "demonhammer"
     damage_multiplier = 2.0
 
 datum/skill/DragonKiller
     parent_type = /datum/skill/GenericPhysical
     skillName = "DragonKiller"
+    fx_state = "dragonkiller"
     damage_multiplier = 2.3
 
 datum/skill/ThunderSword
     parent_type = /datum/skill/GenericPhysical
     skillName = "ThunderSword"
+    fx_state = "thundersword"
     damage_multiplier = 2.6
 
 // =============================================================================
 // OFFENSIVE SPELLS (Int gated) — damage_multiplier scales Intelligence
 // =============================================================================
+// Same fx_state rules as the physical block above. A few of these assignments are
+// GUESSES where spells.dmi's state names don't map one-to-one onto the skill roster —
+// marked inline. The "flameblast"/"iceblast"/"thunderblast" trio in particular looks
+// like one matched set of big elemental bursts, so they're handed to the top tier of
+// each element, but which exact skill each belongs to isn't established.
 datum/skill/Icebolt
     parent_type = /datum/skill/GenericSpell
     skillName = "Icebolt"
     element = "ice"
+    fx_state = "icespear"
+    impact_fx_state = "icespearhit"
     damage_multiplier = 0.7
     mana_cost = 4
 
@@ -252,6 +400,8 @@ datum/skill/Lightning
     parent_type = /datum/skill/GenericSpell
     skillName = "Lightning"
     element = "lightning"
+    fx_state = "lightning"
+    impact_fx_state = "lightninghit"
     damage_multiplier = 0.9
     mana_cost = 5
 
@@ -259,6 +409,7 @@ datum/skill/Infernos
     parent_type = /datum/skill/GenericSpell
     skillName = "Infernos"
     element = "fire"
+    fx_state = "infernos"
     damage_multiplier = 1.0
     mana_cost = 5
 
@@ -266,6 +417,7 @@ datum/skill/Icespears
     parent_type = /datum/skill/GenericSpell
     skillName = "Icespears"
     element = "ice"
+    fx_state = "iceblast"  // GUESS — "icespear" is taken by Icebolt above
     damage_multiplier = 1.1
     mana_cost = 6
 
@@ -273,6 +425,8 @@ datum/skill/Blazemore
     parent_type = /datum/skill/GenericSpell
     skillName = "Blazemore"
     element = "fire"
+    fx_state = "blazemore"
+    impact_fx_state = "blazemorehit"
     damage_multiplier = 1.2
     mana_cost = 7
 
@@ -280,6 +434,7 @@ datum/skill/Blizzard
     parent_type = /datum/skill/GenericSpell
     skillName = "Blizzard"
     element = "ice"
+    fx_state = "blizzard"
     damage_multiplier = 1.3
     mana_cost = 8
 
@@ -287,6 +442,7 @@ datum/skill/Boom
     parent_type = /datum/skill/GenericSpell
     skillName = "Boom"
     element = "fire"
+    fx_state = "boom"  // no art yet — "bang" belongs to Bang, "explodet" to Explodet
     damage_multiplier = 1.5
     mana_cost = 9
 
@@ -294,6 +450,7 @@ datum/skill/Bang
     parent_type = /datum/skill/GenericSpell
     skillName = "Bang"
     element = "fire"
+    fx_state = "bang"
     damage_multiplier = 1.5
     mana_cost = 9
 
@@ -301,13 +458,19 @@ datum/skill/Infermore
     parent_type = /datum/skill/GenericSpell
     skillName = "Infermore"
     element = "fire"
+    fx_state = "infermore"
     damage_multiplier = 1.5
     mana_cost = 9
 
+// spells.dmi also ships "thordainns"/"thordainew" — ResolveSkillFXState() prefers the
+// directional pair over the bare state automatically, so a vertical cast draws the
+// vertical beam with no extra wiring. ("darkthordain" and "darklightning" exist too,
+// presumably a monster-cast variant; no skill uses them yet.)
 datum/skill/Thordain
     parent_type = /datum/skill/GenericSpell
     skillName = "Thordain"
     element = "lightning"
+    fx_state = "thordain"
     damage_multiplier = 1.6
     mana_cost = 10
 
@@ -315,6 +478,8 @@ datum/skill/Firevolt
     parent_type = /datum/skill/GenericSpell
     skillName = "Firevolt"
     element = "fire"
+    fx_state = "flamespear"  // GUESS — unused fire-projectile art, fits a "volt"
+    impact_fx_state = "flamespearhit"
     damage_multiplier = 1.6
     mana_cost = 10
 
@@ -322,6 +487,7 @@ datum/skill/Firebane
     parent_type = /datum/skill/GenericSpell
     skillName = "Firebane"
     element = "fire"
+    fx_state = "firebane"
     damage_multiplier = 1.7
     mana_cost = 11
 
@@ -329,6 +495,7 @@ datum/skill/Snowstorm
     parent_type = /datum/skill/GenericSpell
     skillName = "Snowstorm"
     element = "ice"
+    fx_state = "snowstorm"
     damage_multiplier = 1.8
     mana_cost = 12
 
@@ -336,23 +503,41 @@ datum/skill/Blazemost
     parent_type = /datum/skill/GenericSpell
     skillName = "Blazemost"
     element = "fire"
+    fx_state = "flameblast"  // GUESS — no "blazemost" state exists
     damage_multiplier = 1.9
     mana_cost = 13
 
+// The one skill that makes datum/status_effect/burn reachable. Recalled OG behavior:
+// Explodet deals its impact damage and leaves a circle of flame on the ground, and
+// standing in THAT circle is what burns you — the direct hit doesn't ignite anyone.
+// spells.dmi ships both halves of the art: "explodet" for the blast, "explodetflame"
+// for the residual fire (obj/hazard_field/flame's own icon_state, HazardFields.dm).
+//
+// Now an AoESpell rather than a single-target GenericSpell, which is the other half of
+// matching the original — it was never a one-target spell.
 datum/skill/Explodet
-    parent_type = /datum/skill/GenericSpell
+    parent_type = /datum/skill/AoESpell
     skillName = "Explodet"
     element = "fire"
+    fx_state = "explodet"
     damage_multiplier = 2.2
     mana_cost = 16
+    aoe_radius = 1
+    hazardFieldType = /obj/hazard_field/flame
+    hazard_radius = 1
+    hazard_duration = 80  // deciseconds the fire stays on the ground
 
 // =============================================================================
 // HEALING SPELLS (Int gated) — heal_amount is flat, not stat-scaled
 // =============================================================================
+// These four were the only skills in the game already using real spells.dmi art, and
+// they named it through icon_state — the var that everywhere else means "a state on the
+// caster's own portrait". Moved onto fx_state with the rest of the roster;
+// PlayHealCastSequence() (CombatSystem.dm) reads it from there now.
 datum/skill/Heal
     parent_type = /datum/skill/GenericSpell
     skillName = "Heal"
-    icon_state = "heal"
+    fx_state = "heal"
     isHealing = TRUE
     hasHealAnimation = TRUE
     heal_amount = 60
@@ -361,17 +546,17 @@ datum/skill/Heal
 datum/skill/Healmore
     parent_type = /datum/skill/GenericSpell
     skillName = "Healmore"
-    icon_state = "healmore"
+    fx_state = "healmore"
     isHealing = TRUE
     hasHealAnimation = TRUE
     heal_amount = 30
     mana_cost = 8
 
-// No dedicated "healus" art — reuses Healmore's icon_state.
+// No dedicated "healus" art — reuses Healmore's.
 datum/skill/Healus
     parent_type = /datum/skill/GenericSpell
     skillName = "Healus"
-    icon_state = "healmore"
+    fx_state = "healmore"
     isHealing = TRUE
     hasHealAnimation = TRUE
     heal_amount = 40
@@ -380,17 +565,17 @@ datum/skill/Healus
 datum/skill/Healmost
     parent_type = /datum/skill/GenericSpell
     skillName = "Healmost"
-    icon_state = "healmost"
+    fx_state = "healmost"
     isHealing = TRUE
     hasHealAnimation = TRUE
     heal_amount = 55
     mana_cost = 12
 
-// No dedicated "healusmore" art — reuses Healmost's icon_state.
+// No dedicated "healusmore" art — reuses Healmost's.
 datum/skill/Healusmore
     parent_type = /datum/skill/GenericSpell
     skillName = "Healusmore"
-    icon_state = "healmost"
+    fx_state = "healmost"
     isHealing = TRUE
     hasHealAnimation = TRUE
     heal_amount = 75
@@ -399,6 +584,7 @@ datum/skill/Healusmore
 datum/skill/Vivify
     parent_type = /datum/skill/GenericSpell
     skillName = "Vivify"
+    fx_state = "vivify"  // no art yet
     isHealing = TRUE
     heal_amount = 90
     mana_cost = 16
@@ -424,6 +610,9 @@ datum/skill/BuffSpell
         user.ShowInfo("You cast [skillName]!")
 
         user.PlayAttackAnimation(user, src, actualTarget)
+        user.PlaySkillFX(src, actualTarget)  // the cast burst; the buff's own standing
+                                              // indicator is activeFXState on the status
+                                              // effect (StatusEffects.dm)
 
         spawn(cast_time)
             actualTarget.ApplyStatusEffect(statusEffectType)
@@ -435,18 +624,21 @@ datum/skill/BuffSpell
 datum/skill/Upper
     parent_type = /datum/skill/BuffSpell
     skillName = "Upper"
+    fx_state = "upper"
     statusEffectType = /datum/status_effect/buff/upper
     mana_cost = 3
 
 datum/skill/Increase
     parent_type = /datum/skill/BuffSpell
     skillName = "Increase"
+    fx_state = "increase"  // no art yet
     statusEffectType = /datum/status_effect/buff/increase
     mana_cost = 3
 
 datum/skill/Barrier
     parent_type = /datum/skill/BuffSpell
     skillName = "Barrier"
+    fx_state = "barrier"
     statusEffectType = /datum/status_effect/buff/barrier
     mana_cost = 4
 
@@ -480,6 +672,9 @@ datum/skill/StatusSpell
         user.canAct = FALSE
         user.ShowInfo("You cast [skillName]!")
 
+        user.PlayAttackAnimation(user, src, target)
+        user.PlaySkillFX(src, target)  // was drawing nothing at all before
+
         spawn(cast_time)
             target.ApplyStatusEffect(statusEffectType)
 
@@ -487,9 +682,12 @@ datum/skill/StatusSpell
             if(user.isDead) return
             user.canAct = TRUE
 
+// "sleep" is the cast burst; the sleeping target's own standing overlay is "asleep",
+// set as activeFXState on the status effect (StatusEffects.dm).
 datum/skill/Sleep
     parent_type = /datum/skill/StatusSpell
     skillName = "Sleep"
+    fx_state = "sleep"
     statusEffectType = /datum/status_effect/sleep
     noTargetMessage = "No target to put to sleep."
     mana_cost = 5
@@ -503,6 +701,7 @@ datum/skill/Sleepmore
 datum/skill/Stopspell
     parent_type = /datum/skill/StatusSpell
     skillName = "Stopspell"
+    fx_state = "stopspell"
     statusEffectType = /datum/status_effect/silence
     noTargetMessage = "No target to silence."
     mana_cost = 7

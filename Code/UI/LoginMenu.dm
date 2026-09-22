@@ -397,6 +397,12 @@ proc/FinalizePlayer(mob/playerTemp/M)
         newPlayer.Intelligence = newPlayer.capIntelligence
         newPlayer.Spirit       = newPlayer.capSpirit
 
+    // Set from the class's own exp curve (GetNexpForLevel(), CombatSystem.dm) at
+    // whatever level this character actually starts at, rather than leaving the base
+    // mob's default — that default is the Hero-baseline number and is wrong both for a
+    // class with its own exp_start and for the max-level Archsage above.
+    newPlayer.Nexp = GetNexpForLevel(newPlayer.Level, newPlayer.exp_start)
+
     // Derive MaxHP/MaxMP from the stats just applied, then top both off — a fresh
     // character should never start below full. This also retires the static
     // per-class MaxMP literals (PlayerTemplate.dm), which RecalculateVitals()

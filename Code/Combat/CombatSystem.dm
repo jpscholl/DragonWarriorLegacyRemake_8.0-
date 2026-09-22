@@ -60,11 +60,10 @@ mob/proc
         var/dodgeChance = min(DODGE_MAX_PERCENT, round(DODGE_BASE_PERCENT + GetEffectiveAgility() * DODGE_AGILITY_SCALE))
         return prob(dodgeChance)
 
-// Flat subtraction rather than percentage reduction — lets a heavily-invested tank
-// shrug off weak hits entirely without a separate armor stat.
+// How the two defense stats are derived. The mitigation STEP that consumes them lives
+// in MitigateDamage() (DamageFormula.dm) with the rest of the damage pipeline.
 #define PHYSICAL_DEFENSE_DIVISOR 4
 #define MAGIC_DEFENSE_DIVISOR 4
-#define MIN_DAMAGE 1
 
 mob/proc
     // defenseBonus/magicDefenseBonus are Increase/Barrier buffs (StatusEffects.dm);
@@ -135,14 +134,7 @@ mob/proc
         flick("hit", src)
         PlaySFXAt(src, isEnemy ? 'enemyhit.wav' : 'hit.wav')
 
-        // Defense subtracted before the defend-stance percentage, then floored — stops
-        // a heavily-defended mob from ever taking a true zero.
-        var/defense = isMagic ? GetMagicDefense() : GetDefense()
-        damage = max(MIN_DAMAGE, damage - defense)
-
-        if(isDefending)
-            damage = round(damage * (100 - DEFEND_DAMAGE_REDUCTION_PERCENT) / 100)
-        damage = max(MIN_DAMAGE, damage)
+        damage = MitigateDamage(damage, isMagic)  // DamageFormula.dm
 
         if(!firstAttacker && attacker && attacker != src)
             firstAttacker = attacker
@@ -299,13 +291,36 @@ mob/proc
         canAct = TRUE
         src.ShowInfo("You respawn.")
 
-// Convex exp curve (Level^2) — cheap early on, balloons at high levels. DM has no
-// exponentiation operator, so plain integer multiplication is the safe way to get a
-// convex curve.
+// Exp curve. OG-CONFIRMED SHAPE (unsorted.dm:6777, LevelCheck()):
+//
+//     exp_needed += round( (level**3 / 15 + level * 14 / 15) * exp_start )
+//
+// evaluated with the level just incremented TO. The OG tracks exp cumulatively while
+// DWLR's Exp resets on every level-up, so the OG's per-level INCREMENT maps directly
+// onto DWLR's Nexp with no conversion.
+//
+// `exp_start` is a per-CLASS multiplier, not a global — the exp curve's steepness
+// differs by class in the original. Its real per-class values live only in types.dm's
+// unrecoverable Chunk() blobs, so the numbers on each class (PlayerTemplate.dm) are
+// invented. The shape is real; the steepness is a guess.
+//
+// The formula collapses to exactly exp_start at level 1 — (1 + 14)/15 = 1 — so
+// exp_start IS the level 1->2 threshold. BASE_EXP stays 15 as the baseline so that
+// still matches both the old quadratic's first level and the intended early beat of a
+// Level-1 monster's 3 exp x 5 kill multiplier = 15 = one kill dings you to level 2.
+//
+// This is a much steeper curve than the old Nexp = 15 x Level**2 past the low levels
+// (level 50 wants ~126k for the level instead of ~37k), which is the OG's own shape but
+// has never been balanced against DWLR's monster exp values. Tune via exp_start.
 #define BASE_EXP 15
 
 // Matches ClassReference.md's stated cap for every class.
 #define MAX_LEVEL 99
+
+proc/GetNexpForLevel(level, exp_start = BASE_EXP)
+    if(level < 1) level = 1
+    if(exp_start <= 0) exp_start = BASE_EXP
+    return max(1, round((level ** 3 / 15 + level * 14 / 15) * exp_start))
 
 mob/proc
     // Loops rather than leveling at most once per call, and carries the leftover into
@@ -316,7 +331,7 @@ mob/proc
         while(src.Level < MAX_LEVEL && src.Exp >= src.Nexp)
             src.Exp -= src.Nexp
             src.Level += 1
-            src.Nexp = BASE_EXP * src.Level * src.Level
+            src.Nexp = GetNexpForLevel(src.Level, src.exp_start)
             // OG-confirmed (unsorted.dm:6777, LevelCheck()): round(level/2) + 5, using
             // the level just incremented to above — NOT a flat +6 past the very first
             // level-up (that's only true for level 1->2: round(2/2)+5 = 6).
@@ -353,11 +368,11 @@ mob/proc
         var/mult = S ? S.damage_multiplier : 1
         ResolvePhysicalHit(M, mult)
 
-    // Shared by PerformMeleeHit()/PerformLineHit() — rolls a Strength-based physical
-    // hit and applies it. attackBonus is the Upper buff (StatusEffects.dm) — added to
-    // Strength for damage purposes only, never to the stat itself.
+    // Shared by PerformMeleeHit()/PerformLineHit() — builds a physical hit and applies
+    // it. The base number comes from ComputePhysicalDamage() (DamageFormula.dm), which
+    // owns every coefficient; only the crit step is applied here.
     ResolvePhysicalHit(mob/target, mult)
-        var/damage = round((GetEffectiveStrength() + attackBonus) * mult)
+        var/damage = ComputePhysicalDamage(mult)
         var/isCrit = RollCrit()
         if(isCrit) damage = round(damage * CRIT_DAMAGE_PERCENT / 100)
         return target.TakeDamage(damage, src, isMagic = FALSE, isCrit = isCrit)
@@ -445,6 +460,37 @@ proc/IsCardinallyAdjacent(atom/A, atom/B, range=1)
     var/dx = abs(A.x - B.x)
     var/dy = abs(A.y - B.y)
     return (dx <= range && dy == 0) || (dx == 0 && dy <= range)
+
+// Whether a tile stops a spell/hazard from occupying it. A dense turf blocks on its own
+// (walls), but so do dense OBJS standing on a passable turf — closed doors and signs.
+// Doors toggle density at runtime, so this reads live state every call rather than
+// anything cached. obj/projectile/IsTileBlocked() (Projectiles.dm) and
+// SpawnHazardBlob() (HazardFields.dm) both route through here so the two can't drift.
+proc/IsTurfBlocked(turf/T)
+    if(!T) return TRUE
+    if(T.density) return TRUE
+    for(var/obj/O in T.contents)
+        if(O.density) return TRUE
+    return FALSE
+
+// Every turf within a Manhattan radius of center — a DIAMOND, not a square. Movement
+// and facing in this game are 4-directional, so a diamond is both the natural shape and
+// what reads on screen as a circle: radius 1 is a 5-tile plus, radius 2 is 13 tiles.
+// Shared by AoE spells (SkillCatalog.dm) and hazard-field blobs (HazardFields.dm) so
+// the two can't disagree about what an area actually covers.
+proc/GetDiamondTurfs(turf/center, radius = 1, skipBlocked = TRUE)
+    var/list/turfs = list()
+    if(!center) return turfs
+
+    for(var/dx = -radius to radius)
+        for(var/dy = -radius to radius)
+            if(abs(dx) + abs(dy) > radius) continue
+            var/turf/T = locate(center.x + dx, center.y + dy, center.z)
+            if(!T) continue
+            if(skipBlocked && IsTurfBlocked(T)) continue
+            turfs += T
+
+    return turfs
 
 mob/proc
     // Real per-area battleModeOn var (Area.dm), set via GM_BattleMode (GMCommands.dm).
@@ -578,15 +624,12 @@ mob/proc
             var/castState = user.ResolveAnimState("cast") || user.ResolveAnimState("attack")
             if(castState) flick(castState, user)
             PlaySFXAt(user, 'spell.wav', base = 70)
-            if(target)
-                // NOTE: unlike the melee overlay above, this uses a plain /icon (no
-                // .layer property), so it likely renders behind the target's sprite —
-                // worth the same /image treatment once a spell-casting enemy exists to
-                // surface it.
-                var/icon/spellOverlay = icon(user.icon, S.icon_state)
-                target.overlays += spellOverlay
-                spawn(6)
-                    target.overlays -= spellOverlay
+            // The spell's own effect art is NOT drawn here. It used to be — as a plain
+            // /icon built from the CASTER'S portrait file, which was wrong twice over: a
+            // spell's art lives in spells.dmi, not on the player sprite, and a bare
+            // /icon carries no .layer so it rendered behind the target anyway. Both
+            // callers now draw it through PlaySkillFX() (SkillFX.dm) instead, which
+            // reads the right file and layers correctly.
 
 // Real 3-stage cast for GenericSpell's healing branch — only for heal-tier skills with
 // real spells.dmi art (Heal/Healmore/Healmost). Synchronous (sleep(), not spawn()) so
@@ -612,12 +655,17 @@ mob/proc/PlayHealCastSequence(datum/skill/S, mob/target, heal_amount, wasDefendi
 
     // Resolution: the TARGET plays the skill's own spells.dmi state at its own baked
     // frame speed, held for HEAL_ANIM_DURATION before the heal lands and the number pops.
+    // Reads S.fx_state through ResolveSkillFXState() (SkillFX.dm) — the heals were the
+    // one place that used icon_state to name a spells.dmi state, which is what fx_state
+    // is for everywhere else.
     if(target)
-        var/image/healFx = image('spells.dmi', target, S.icon_state)
-        healFx.layer = target.layer + 0.1
-        target.overlays += healFx
-        sleep(HEAL_ANIM_DURATION)
-        target.overlays -= healFx
+        var/healState = ResolveSkillFXState(S.fx_state)
+        if(healState)
+            var/image/healFx = image(SKILL_FX_FILE, target, healState)
+            healFx.layer = target.layer + 0.1
+            target.overlays += healFx
+            sleep(HEAL_ANIM_DURATION)
+            if(target) target.overlays -= healFx
 
     ApplyHeal(target, heal_amount)
 

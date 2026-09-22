@@ -17,6 +17,16 @@ datum/status_effect
 		expiresAt = 0         // world.time when this ends; 0 = never (see duration)
 		active = FALSE
 
+		// A spells.dmi state drawn on the holder for as long as the effect is active —
+		// the standing indicator, as opposed to the one-shot burst the casting spell
+		// draws. spells.dmi already ships these for several effects ("upperon",
+		// "barrieron", "asleep"), which is what they're clearly for. Leave null for an
+		// effect with no such art and nothing is drawn. Resolved through
+		// ResolveSkillFXState() (SkillFX.dm), so naming a state that doesn't exist yet
+		// is safe and starts working the moment the art is added.
+		activeFXState = null
+		image/activeFXImage = null
+
 	// Override these per effect — base versions do nothing.
 	proc/OnApply()
 		return
@@ -25,12 +35,28 @@ datum/status_effect
 	proc/OnExpire()
 		return
 
+	// Held as a real /image (not a bare icon) so it carries its own layer — without
+	// that it renders behind the holder's own sprite.
+	proc/ShowActiveFX()
+		if(!holder || !activeFXState || activeFXImage) return
+		var/state = ResolveSkillFXState(activeFXState)
+		if(!state) return
+		activeFXImage = image(SKILL_FX_FILE, holder, state)
+		activeFXImage.layer = holder.layer + 0.05
+		holder.overlays += activeFXImage
+
+	proc/HideActiveFX()
+		if(activeFXImage && holder)
+			holder.overlays -= activeFXImage
+		activeFXImage = null
+
 	proc/Start(mob/M)
 		if(!M) return
 		holder = M
 		active = TRUE
 		expiresAt = duration ? world.time + duration : 0
 		OnApply()
+		ShowActiveFX()
 		EffectLoop()
 
 	proc/Refresh()
@@ -57,6 +83,7 @@ datum/status_effect
 	proc/Stop()
 		if(!active) return
 		active = FALSE
+		HideActiveFX()  // before holder is nulled below, or the overlay is stranded
 		OnExpire()
 		if(holder)
 			holder.statusEffects -= src
@@ -170,11 +197,12 @@ datum/status_effect/poison
 // to grab the created datum and set them. Reuses GetElementalMultiplier() (CombatSystem.dm)
 // so a burn reacts to the same real elemental matrix a direct spell hit does.
 //
-// Currently DORMANT — nothing calls ApplyBurn() yet. An earlier pass wired it to fire
-// so it'd fire on every fire-spell hit, but that trigger was invented, not OG, and got
-// pulled once it became clear the real OG mechanic was residual flame left behind by an
-// AoE spell (Explodet), not instant ignition on a direct hit — a real feature (dynamic
-// turf spawn/expiry) not built yet. Formula's ready for whenever that lands.
+// LIVE as of the hazard-field pass. The trigger is deliberately NOT "any fire spell
+// hit" — an earlier attempt wired it that way and it was wrong. The real OG mechanic is
+// that Explodet deals its impact damage and leaves a circle of flame on the ground, and
+// standing in THAT is what burns you. So the only thing that applies this is
+// obj/hazard_field/flame (HazardFields.dm), spawned by datum/skill/Explodet
+// (SkillCatalog.dm), re-applying it every tick to whoever is standing in the fire.
 // -----------------------------
 #define BURN_TICK_INTERVAL 20         // deciseconds between ticks — same cadence as Poison
 #define BURN_DURATION 60              // deciseconds — a handful of ticks per application
@@ -227,13 +255,14 @@ datum/status_effect/burn
 			holder.ShowInfo("<font color='orange'>The burning stops.</font>")
 
 // Applies Burn with a specific power/element — set after creation since the base
-// ApplyStatusEffect() only takes a type. NOTE: if the target is already burning,
-// ApplyStatusEffect() just refreshes the existing duration (see its own comment) and
-// this does NOT update its power/element — a second, weaker ignition won't downgrade an
-// existing stronger burn mid-tick. Simple tradeoff, revisit if that ever matters.
+// ApplyStatusEffect() only takes a type. On a re-application to an already-burning
+// target, ApplyStatusEffect() refreshes the duration (see its own comment) and the
+// STRONGER power wins here: a weak ignition landing on top of a strong burn must not
+// downgrade it, which matters now that obj/hazard_field (HazardFields.dm) re-applies
+// this every tick for as long as the target stands in the flames.
 mob/proc/ApplyBurn(power, element)
 	var/datum/status_effect/burn/B = ApplyStatusEffect(/datum/status_effect/burn)
-	if(B && B.power == 0)
+	if(B && power > B.power)
 		B.power = power
 		B.element = element
 	return B
@@ -253,6 +282,7 @@ datum/status_effect/sleep
 		effectName = "Sleep"
 		duration = SLEEP_DURATION
 		tickInterval = SLEEP_DURATION  // no ticking — just OnApply/OnExpire
+		activeFXState = "asleep"       // spells.dmi; "sleep" is the cast burst instead
 
 	OnApply()
 		if(holder)
@@ -273,6 +303,7 @@ datum/status_effect/sleep/more
 		effectName = "Sleep"
 		duration = SLEEP_DURATION_MORE
 		tickInterval = SLEEP_DURATION_MORE
+		// activeFXState inherited from /sleep — same visual, longer nap.
 
 // -----------------------------
 // Buffs — Upper (attack), Increase (defense), Barrier (magic defense). Applied
@@ -316,12 +347,15 @@ datum/status_effect/buff
 			if(!holder.isDead)
 				holder.ShowInfo("<font color='[buffColor]'>[expireMsg]</font>")
 
+// The "...on" states in spells.dmi are the buff-is-active indicators, paired with the
+// plain state the spell itself flashes on cast ("upper" -> "upperon").
 datum/status_effect/buff/upper
 	New()
 		..()
 		effectName = "Upper"
 		bonusVar = "attackBonus"
 		bonusAmount = UPPER_ATTACK_BONUS
+		activeFXState = "upperon"
 		applyMsg = "Your attack power rises!"
 		expireMsg = "Your attack power returns to normal."
 
@@ -331,6 +365,9 @@ datum/status_effect/buff/increase
 		effectName = "Increase"
 		bonusVar = "defenseBonus"
 		bonusAmount = INCREASE_DEFENSE_BONUS
+		// No "increaseon" art exists yet — named anyway, so adding that state to
+		// spells.dmi is the only step needed to light this up.
+		activeFXState = "increaseon"
 		applyMsg = "Your defense rises!"
 		expireMsg = "Your defense returns to normal."
 
@@ -340,6 +377,7 @@ datum/status_effect/buff/barrier
 		effectName = "Barrier"
 		bonusVar = "magicDefenseBonus"
 		bonusAmount = BARRIER_MAGIC_DEFENSE_BONUS
+		activeFXState = "barrieron"
 		buffColor = "cyan"
 		applyMsg = "A magical barrier surrounds you!"
 		expireMsg = "Your barrier fades."
