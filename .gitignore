@@ -24,3 +24,8 @@ Player SaveFiles/
 # this project no longer lives in, which is exactly why they don't belong in git.
 Tools/**/bin/
 Tools/**/obj/
+
+# Design notes, OG reference data and decompiled OG source -- kept locally only, not
+# published with the game (2026-09-24). Code comments still point at these files by
+# name; they just live on the dev machine, not in the repo.
+Markdowns/
