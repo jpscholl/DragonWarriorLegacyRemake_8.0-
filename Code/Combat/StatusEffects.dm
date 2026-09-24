@@ -170,6 +170,7 @@ datum/status_effect/poison
 		// already in your veins. Death handling below mirrors TakeDamage() so nothing
 		// gets skipped by going around it.
 		holder.HP -= dmg
+		holder.Unhide()  // any damage reveals a hidden mob (Hide, SkillCatalog.dm)
 
 		flick("hit", holder)
 		var/isEnemy = istype(holder, /mob/enemy)
@@ -236,6 +237,7 @@ datum/status_effect/burn
 		// Direct HP change, not TakeDamage() — same reasoning as Poison above, fire
 		// already caught you, dodging isn't in the picture anymore.
 		holder.HP -= dmg
+		holder.Unhide()  // any damage reveals a hidden mob (Hide, SkillCatalog.dm)
 
 		flick("hit", holder)
 		var/isEnemy = istype(holder, /mob/enemy)

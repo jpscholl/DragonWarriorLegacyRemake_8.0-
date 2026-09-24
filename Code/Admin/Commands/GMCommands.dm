@@ -854,6 +854,9 @@ mob/proc/CreateNPC()
 // obj loops below. IsNightVariant() (Main.dm) is the shared suffix check.
 proc/ToggleNightIconState(atom/A, toNight)
     if(!A.icon_state) return
+    if(isturf(A))
+        var/turf/T = A
+        if(T.selfLit) return  // gives off its own light (lava) -- looks the same at night
     if(toNight)
         A.icon_state += "night"
     else if(IsNightVariant(A.icon_state))

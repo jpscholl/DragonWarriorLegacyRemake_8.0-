@@ -69,8 +69,8 @@ datum/skill/GenericSpell
         isHealing = FALSE
         heal_amount = 0
         // TRUE only for heal-tier skills with real spells.dmi art (Heal/Healmore/
-        // Healmost) — routes through PlayHealCastSequence() (CombatSystem.dm) instead
-        // of the generic spawn(cast_time) below.
+        // Healmost) — routes through PlayHealCastSequence() (CombatSystem.dm), which
+        // holds the heal art on the target before the heal lands.
         hasHealAnimation = FALSE
 
     OnUse(mob/user, mob/target = null)
@@ -79,6 +79,12 @@ datum/skill/GenericSpell
         if(!isHealing && !user.InBattleArea()) return
 
         var/mob/actualTarget = isHealing ? (target || user) : target
+
+        // A single-target damage spell with nothing valid in front used to spend the
+        // MP, play the whole cast, and hit nothing.
+        if(!isHealing && (!target || !user.CanHarm(target)))
+            user.ShowInfo("No target.")
+            return
 
         if(isHealing && actualTarget && actualTarget.HP >= actualTarget.MaxHP)
             user.ShowInfo("[actualTarget == user ? "You are" : "[actualTarget] is"] already at full HP.")
@@ -101,24 +107,28 @@ datum/skill/GenericSpell
             user.PlayHealCastSequence(src, actualTarget, heal_amount, wasDefending, mySession)
             return
 
-        user.PlayAttackAnimation(user, src, actualTarget)
+        if(!user.PlayCastMeter(src, wasDefending)) return  // died mid-cast
+
+        // The effect art plays once the windup completes, not at cast start.
         user.PlaySkillFX(src, actualTarget)  // spells.dmi effect art (SkillFX.dm)
 
-        spawn(cast_time)
-            if(isHealing)
-                user.ApplyHeal(actualTarget, heal_amount)
-            else
-                // Base number from ComputeSpellDamage() (DamageFormula.dm), which owns
-                // every offensive coefficient. The impact burst is gated on the hit
-                // actually landing — a dodged spell shouldn't visibly detonate on the
-                // target (same rule obj/projectile/Impact() follows).
-                if(user.ApplySpellDamage(target, user.ComputeSpellDamage(damage_multiplier), src.element))
-                    user.PlaySkillImpactFX(src, target)
+        if(isHealing)
+            user.ApplyHeal(actualTarget, heal_amount)
+        else
+            // A skill with separate hit art ("icespear" -> "icespearhit") lets its
+            // main art play out first, so the two read as cast-then-impact.
+            if(impact_fx_state)
+                sleep(SKILL_FX_DURATION)
+                if(user.isDead) return
+            // Base number from ComputeSpellDamage() (DamageFormula.dm), which owns
+            // every offensive coefficient. The impact burst is gated on the hit
+            // actually landing — a dodged spell shouldn't visibly detonate on the
+            // target (same rule obj/projectile/Impact() follows).
+            if(user.ApplySpellDamage(target, user.ComputeSpellDamage(damage_multiplier), src.element) && impact_fx_state)
+                user.PlaySkillImpactFX(src, target)
 
-        spawn(user.GetAttackDelay(src, wasDefending))
-            if(user.isDead) return
-            user.canAct = TRUE
-            user.RestoreDefendIfUntouched(wasDefending, mySession)
+        user.canAct = TRUE
+        user.RestoreDefendIfUntouched(wasDefending, mySession)
 
 // -----------------------------
 // AoE Spell — hits everything in a blob instead of one target, and optionally leaves a
@@ -162,7 +172,7 @@ datum/skill/AoESpell
         var/fxState = ResolveSkillFXState(fx_state, user.dir, user.animAlternate)
 
         for(var/turf/T in GetDiamondTurfs(center, aoe_radius))
-            if(fxState) FlashSkillFX(T, fxState)
+            if(fxState) FlashSkillFX(T, fxState, fxDir = user.dir, pixelY = user.pixel_y)
 
             for(var/mob/M in T)
                 // Coop mode / friendly fire (CanHarm(), CombatSystem.dm) -- also
@@ -192,20 +202,15 @@ datum/skill/AoESpell
         var/mySession = user.defendToggleSession
         var/wasDefending = user.DropDefendForAction()
 
-        user.PlayAttackAnimation(user, src, target)
-
         // Aim locks now, at cast start — the blast shouldn't re-aim itself if the
         // caster turns during the windup.
         var/turf/center = FindBlastCenter(user, target)
 
-        spawn(cast_time)
-            if(user.isDead) return
-            ApplyBlast(user, center, user.ComputeSpellDamage(damage_multiplier))
+        if(!user.PlayCastMeter(src, wasDefending)) return  // died mid-cast
+        ApplyBlast(user, center, user.ComputeSpellDamage(damage_multiplier))
 
-        spawn(user.GetAttackDelay(src, wasDefending))
-            if(user.isDead) return
-            user.canAct = TRUE
-            user.RestoreDefendIfUntouched(wasDefending, mySession)
+        user.canAct = TRUE
+        user.RestoreDefendIfUntouched(wasDefending, mySession)
 
 // =============================================================================
 // PHYSICAL SKILLS (Str/Agi gated) — damage_multiplier scales Strength
@@ -227,11 +232,46 @@ datum/skill/Punch
     // Deliberately null, not a placeholder name: a bare-fisted punch is fully
     // described by the portrait's own swing pose and wants no spells.dmi overlay.
 
+// A full clockwise spin (OG, recalled by the user 2026-09-24): swing in the facing
+// direction, turn to the user's right and swing, twice more, and stop once back where
+// it started -- one hit per side, so it can catch enemies on all four at once. Rooted
+// and held in the attack pose the whole time.
 datum/skill/Club
     parent_type = /datum/skill/GenericPhysical
     skillName = "Club"
     fx_state = "club"
     damage_multiplier = 1.1
+
+    var/spinStepDelay = 2  // deciseconds per side -- invented, tune by feel
+
+    OnUse(mob/user, mob/target = null)
+        if(!user.canAct) return
+        if(!user.InBattleArea()) return
+
+        user.canAct = FALSE  // rooted: attackRecoveryOnly stays FALSE for the whole spin
+        var/mySession = user.defendToggleSession
+        var/wasDefending = user.DropDefendForAction()
+        Spin(user, wasDefending, mySession)
+
+    proc/Spin(mob/user, wasDefending, mySession)
+        set waitfor = 0
+        for(var/side = 1 to 4)
+            if(!user || user.isDead) return
+            user.animAlternate = !user.animAlternate  // handed portraits alternate hands
+            var/attackState = user.ResolveAnimState("attack")
+            if(attackState) user.icon_state = attackState
+            PlaySFXAt(user, istype(user, /mob/enemy) ? 'enemyattack.wav' : 'attack.wav', base = 60)
+            user.PlaySkillFX(src, get_step(user, user.dir), spinStepDelay)
+            user.PerformMeleeHit(src)  // no locked target -- whoever's on this side
+            sleep(spinStepDelay)
+            if(!user) return
+            user.dir = turn(user.dir, -90)  // -90 = clockwise = the user's own right
+
+        // Four right turns later it's facing where it started.
+        if(!user || user.isDead) return
+        user.icon_state = "world"
+        user.canAct = TRUE
+        user.RestoreDefendIfUntouched(wasDefending, mySession)
 
 datum/skill/IronClaw
     parent_type = /datum/skill/GenericPhysical
@@ -239,17 +279,94 @@ datum/skill/IronClaw
     fx_state = "claw"  // -> leftclaw/rightclaw
     damage_multiplier = 1.2
 
+// Utility, not an attack (user's design, 2026-09-24 -- the OG mechanics aren't
+// recoverable): a hop one tile forward, airborne for JUMP_AIR_TIME. Anything aimed at
+// the jumper while airborne misses (TakeDamage(), CombatSystem.dm) and ground fire
+// can't touch them (HazardFields.dm) -- that's the point: jump out of an attack. With
+// the tile ahead blocked, it's a hop in place, still a dodge. No spells.dmi art exists
+// for it; the hop itself is the animation.
+#define JUMP_AIR_TIME 4   // deciseconds airborne -- invented, tune by feel
+#define JUMP_HEIGHT 12    // pixels at the top of the arc -- invented
+
 datum/skill/Jump
     parent_type = /datum/skill/GenericPhysical
     skillName = "Jump"
-    fx_state = "jump"  // no art yet
-    damage_multiplier = 1.1
+    fx_state = "jump"  // no art yet -- the hop is the whole visual
+    damage_multiplier = 0  // never hits anything
 
+    OnUse(mob/user, mob/target = null)
+        if(!user.canAct) return
+        // Utility, not combat -- usable anywhere, peaceful areas included (like heals/Return).
+
+        user.canAct = FALSE
+        var/mySession = user.defendToggleSession
+        var/wasDefending = user.DropDefendForAction()
+
+        if(!user.PerformHop()) return  // died in the air
+
+        user.next_step = world.time  // free to walk the moment you land
+        user.canAct = TRUE
+        user.RestoreDefendIfUntouched(wasDefending, mySession)
+
+// The hop Jump and Quakejump share: one tile forward in the facing direction, arcing
+// up JUMP_HEIGHT and back down over JUMP_AIR_TIME, airborne (untouchable) the whole
+// way. With the tile ahead blocked it's a hop in place.
+//
+// ontoMobs lets the landing tile hold a mob -- Quakejump comes down ON the enemy it's
+// hitting. Walls, doors and solid objects still block either way. Synchronous; returns
+// FALSE if the jumper died in the air.
+mob/proc/PerformHop(ontoMobs = FALSE)
+    var/jumpDir = dir
+    var/turf/landing = get_step(src, jumpDir)
+    if(landing && (ontoMobs ? IsTurfBlocked(landing) : IsTileOccupied(landing)))
+        landing = null  // hop in place instead
+
+    isAirborne = TRUE
+    var/baseY = pixel_y
+    if(landing)
+        // One ordinary step, glided across the whole time in the air. Non-dense for
+        // that one step so it can come down on a mob; the landing was already checked
+        // for walls above, which a non-dense mover would otherwise pass through too.
+        var/wasDense = density
+        if(ontoMobs) density = FALSE
+        glide_size = TILE_WIDTH / JUMP_AIR_TIME * world.tick_lag
+        if(step(src, jumpDir) && client && client.camera)
+            client.camera.TrackTarget(src)
+        density = wasDense
+    animate(src, pixel_y = baseY + JUMP_HEIGHT, time = JUMP_AIR_TIME / 2, easing = SINE_EASING | EASE_OUT)
+    animate(pixel_y = baseY, time = JUMP_AIR_TIME / 2, easing = SINE_EASING | EASE_IN)
+    sleep(JUMP_AIR_TIME)
+
+    if(!src) return FALSE
+    isAirborne = FALSE
+    pixel_y = baseY
+    return !isDead
+
+// TRUE if a mob or anything else solid stands on T, or T itself is a wall/door.
+proc/IsTileOccupied(turf/T)
+    if(!T || T.density) return TRUE
+    for(var/atom/movable/A in T)
+        if(A.density) return TRUE
+    return FALSE
+
+// Utility (user's design, 2026-09-24): vanish until something gives you away. Hidden,
+// monsters won't target you and single-target skills can't pick you (IsTargetable(),
+// CombatSystem.dm). You reappear on a step, on using any ability (this one included),
+// on a landed hit, or on taking damage of any kind -- see Unhide() for every trigger.
+// Area hits can still find you by accident, and they reveal you.
 datum/skill/Hide
     parent_type = /datum/skill/GenericPhysical
     skillName = "Hide"
-    damage_multiplier = 1.0
+    damage_multiplier = 0  // never hits anything
     // No fx_state — Hide isn't a strike, so there's nothing to flash.
+
+    OnUse(mob/user, mob/target = null)
+        // Utility, not combat -- usable anywhere, peaceful areas included (like heals/Return).
+        if(user.isHidden)
+            user.Unhide()  // using an ability reveals you -- Hide itself included
+            return
+        if(!user.canAct) return
+        user.Hide()
 
 datum/skill/Magicknife
     parent_type = /datum/skill/GenericPhysical
@@ -257,12 +374,110 @@ datum/skill/Magicknife
     fx_state = "magicknife"
     damage_multiplier = 1.2
 
+// User's design (2026-09-24): thrown, not swung. It flies BOOMERANG_OUT_RANGE tiles
+// ahead, then turns around and comes back along the same line toward the spot it was
+// thrown from. Anything solid ends the flight -- a wall or solid object drops it, and a
+// mob stops it too (hurt only if the thrower may harm them; a dodge lets it fly on).
+// The thrower is solid as well, but on the way back meeting them is a CATCH, not a
+// hit. Step off the line and it sails past the throw spot for BOOMERANG_OVERSHOOT more
+// tiles -- a second chance to hit something behind you, on purpose.
+//
+// One boomerang per thrower: the skill can't be used again until it's caught or down.
+// The thrower is free to move once the throw itself is done.
+#define BOOMERANG_OUT_RANGE 4    // tiles out before turning back -- invented
+#define BOOMERANG_OVERSHOOT 3    // tiles past the throw spot if not caught -- invented
+#define BOOMERANG_STEP_DELAY 1   // deciseconds per tile -- invented; a walking step is 1.36
+
 datum/skill/Boomerang
     parent_type = /datum/skill/GenericPhysical
     skillName = "Boomerang"
-    fx_state = "boomerang"
+    fx_state = "boomerang"   // spells.dmi: a 4-frame spin, drawn as the flying boomerang
     damage_multiplier = 1.3
     isRanged = TRUE
+
+    var/obj/projectile/boomerang/inFlight  // per player -- each has their own datum
+
+    OnUse(mob/user, mob/target = null)
+        if(!user.canAct) return
+        if(!user.InBattleArea()) return
+        if(inFlight)
+            user.ShowInfo("Your boomerang is still in the air!")
+            return
+
+        user.canAct = FALSE
+        var/mySession = user.defendToggleSession
+        var/wasDefending = user.DropDefendForAction()
+        var/throwDir = user.dir
+
+        user.PlayAttackAnimation(user, src)  // throwing pose + sound
+        sleep(cast_time)
+        if(!user || user.isDead) return
+
+        var/obj/projectile/boomerang/B = new(user.loc)
+        B.caster = user
+        B.skill = src
+        B.travelDir = throwDir
+        B.stepDelay = BOOMERANG_STEP_DELAY
+        inFlight = B
+        B.Launch()
+
+        sleep(max(0, user.GetAttackDelay(src, wasDefending) - cast_time))
+        if(!user || user.isDead) return
+        user.canAct = TRUE
+        user.RestoreDefendIfUntouched(wasDefending, mySession)
+
+obj/projectile/boomerang
+    icon_state = "boomerang"
+    var/datum/skill/Boomerang/skill
+
+    // The whole flight line is fixed at the throw: out, back through the throw spot,
+    // then the overshoot beyond it. What's standing on it is checked live, tile by
+    // tile, so the thrower can step into it (catch) or out of it (let it fly past).
+    Launch()
+        set waitfor = 0
+        var/turf/origin = loc
+        var/backDir = turn(travelDir, 180)
+
+        var/list/path = list()
+        var/turf/T = origin
+        for(var/i = 1 to BOOMERANG_OUT_RANGE)
+            T = get_step(T, travelDir)
+            if(!T) break
+            path += T
+        var/outCount = path.len
+        for(var/i = outCount - 1 to 1 step -1)  // back, not re-visiting the far tip
+            path += path[i]
+        path += origin
+        T = origin
+        for(var/i = 1 to BOOMERANG_OVERSHOOT)
+            T = get_step(T, backDir)
+            if(!T) break
+            path += T
+
+        for(var/i = 1 to path.len)
+            var/turf/next = path[i]
+            if(IsTurfBlocked(next)) break  // hit a wall or solid object -- it drops
+            var/returning = (i > outCount)
+            dir = returning ? backDir : travelDir
+            loc = next
+
+            if(returning && caster && !caster.isDead && caster.loc == next)
+                caster.ShowInfo("You catch your boomerang.")
+                break
+            if(StopsOnMob(next)) break
+            sleep(stepDelay)
+
+        if(skill) skill.inFlight = null
+        del src
+
+    // Hits the first solid mob on T. TRUE if the flight ends here: a landed hit, or a
+    // mob the thrower can't hurt (an ally still blocks it). A dodge lets it fly on.
+    proc/StopsOnMob(turf/T)
+        for(var/mob/M in T)
+            if(M == caster || M.HP <= 0 || !M.density) continue
+            if(!caster || !caster.CanHarm(M)) return TRUE
+            if(caster.ResolvePhysicalHit(M, skill ? skill.damage_multiplier : 1)) return TRUE
+        return FALSE
 
 datum/skill/Morningstar
     parent_type = /datum/skill/GenericPhysical
@@ -270,17 +485,118 @@ datum/skill/Morningstar
     fx_state = "morningstar"
     damage_multiplier = 1.3
 
+// Utility, not an attack (user's design, 2026-09-24): the "dash" speed lines play on
+// the tile you start from while you're carried forward fast, up to DASH_DISTANCE
+// tiles, stopping early at anything solid.
+#define DASH_DISTANCE 3        // tiles -- invented, tune by feel
+#define DASH_STEP_DELAY 0.5    // deciseconds per tile -- invented; a normal walk step is 1.36
+
 datum/skill/Dash
     parent_type = /datum/skill/GenericPhysical
     skillName = "Dash"
     fx_state = "dash"
-    damage_multiplier = 1.3
+    damage_multiplier = 0  // never hits anything
+
+    OnUse(mob/user, mob/target = null)
+        if(!user.canAct) return
+        // Utility, not combat -- usable anywhere, peaceful areas included (like heals/Return).
+
+        user.canAct = FALSE
+        var/mySession = user.defendToggleSession
+        var/wasDefending = user.DropDefendForAction()
+
+        var/dashDir = user.dir
+        user.PlaySkillFX(src, user.loc)  // speed lines on the starting tile
+
+        user.glide_size = TILE_WIDTH / DASH_STEP_DELAY * world.tick_lag
+        for(var/i = 1 to DASH_DISTANCE)
+            if(!step(user, dashDir)) break  // hit something solid -- stop there
+            if(user.client && user.client.camera)
+                user.client.camera.TrackTarget(user)
+            sleep(DASH_STEP_DELAY)
+            if(!user || user.isDead) return
+
+        user.next_step = world.time  // free to walk the moment the dash ends
+        user.canAct = TRUE
+        user.RestoreDefendIfUntouched(wasDefending, mySession)
+
+// User's design (2026-09-24): Jump's hop, landing as an attack. You come down one tile
+// forward -- onto an enemy standing there, if there is one -- and:
+//   - the landing tile takes full damage at a high crit chance,
+//   - the 8 tiles around it take QUAKEJUMP_RING_DAMAGE_PERCENT of that and whoever is
+//     hit gets shoved one tile straight outward (the NE tile's mob goes NE, etc).
+// The "quakejump" art has 8 directions, one shockwave segment per ring tile, each
+// drawn on its own tile so together they read as a ring around the landing.
+#define QUAKEJUMP_CENTER_CRIT_PERCENT 75   // invented -- "high chance" on the landing tile
+#define QUAKEJUMP_RING_DAMAGE_PERCENT 50   // invented -- ring hits for half
 
 datum/skill/Quakejump
     parent_type = /datum/skill/GenericPhysical
     skillName = "Quakejump"
     fx_state = "quakejump"
     damage_multiplier = 1.4
+
+    OnUse(mob/user, mob/target = null)
+        if(!user.canAct) return
+        if(!user.InBattleArea()) return
+
+        user.canAct = FALSE
+        var/mySession = user.defendToggleSession
+        var/wasDefending = user.DropDefendForAction()
+
+        if(!user.PerformHop(ontoMobs = TRUE)) return  // died in the air
+        Quake(user)
+
+        // Recovery: the rest of a normal swing's delay, counting the time already
+        // spent in the air.
+        sleep(max(0, user.GetAttackDelay(src, wasDefending) - JUMP_AIR_TIME))
+        if(!user || user.isDead) return
+        user.next_step = world.time
+        user.canAct = TRUE
+        user.RestoreDefendIfUntouched(wasDefending, mySession)
+
+    proc/Quake(mob/user)
+        var/turf/center = user.loc
+        if(!center) return
+        PlaySFXAt(user, istype(user, /mob/enemy) ? 'enemyattack.wav' : 'attack.wav', base = 60)
+
+        // One roll for the whole landing, like an AoE spell's blast.
+        var/base = user.ComputePhysicalDamage(damage_multiplier)
+
+        for(var/mob/M in center)
+            if(M.HP <= 0 || !user.CanHarm(M)) continue
+            var/isCrit = prob(QUAKEJUMP_CENTER_CRIT_PERCENT)
+            M.TakeDamage(isCrit ? round(base * CRIT_DAMAGE_PERCENT / 100) : base, user, isMagic = FALSE, isCrit = isCrit)
+
+        var/ringBase = max(1, round(base * QUAKEJUMP_RING_DAMAGE_PERCENT / 100))
+        for(var/pushDir in list(NORTH, NORTHEAST, EAST, SOUTHEAST, SOUTH, SOUTHWEST, WEST, NORTHWEST))
+            var/turf/T = get_step(center, pushDir)
+            if(!T || IsTurfBlocked(T)) continue  // no shockwave inside a wall
+
+            var/fxState = ResolveSkillFXState(fx_state, pushDir)
+            if(fxState) FlashSkillFX(T, fxState, fxDir = pushDir, pixelY = user.pixel_y)
+
+            // Copy: a successful shove moves M out of T mid-loop.
+            for(var/mob/M in T.contents.Copy())
+                if(M.HP <= 0 || !user.CanHarm(M)) continue
+                var/isCrit = user.RollCrit()
+                var/landed = M.TakeDamage(isCrit ? round(ringBase * CRIT_DAMAGE_PERCENT / 100) : ringBase, user, isMagic = FALSE, isCrit = isCrit)
+                if(landed && M && M.HP > 0)
+                    M.KnockBack(pushDir)
+
+// Shoves this mob one tile in pushDir (diagonals included) without turning it around.
+// Nothing happens when the destination is a wall, a solid object, or already occupied.
+// A real Move(), so hazard terrain at the destination still counts as a step.
+mob/proc/KnockBack(pushDir)
+    var/turf/dest = get_step(src, pushDir)
+    if(!dest || IsTileOccupied(dest)) return FALSE
+    var/facing = dir
+    glide_size = TILE_WIDTH / JUMP_AIR_TIME * world.tick_lag
+    var/moved = Move(dest, pushDir)
+    dir = facing
+    if(moved && client && client.camera)
+        client.camera.TrackTarget(src)
+    return moved
 
 datum/skill/Fireclaw
     parent_type = /datum/skill/GenericPhysical
@@ -594,7 +910,7 @@ datum/skill/BuffSpell
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
-        if(!user.InBattleArea()) return
+        // Utility, not combat -- usable anywhere, peaceful areas included (like heals/Return).
 
         var/cost = GetManaCost()
         if(user.MP < cost)
@@ -608,17 +924,14 @@ datum/skill/BuffSpell
         user.canAct = FALSE
         user.ShowInfo("You cast [skillName]!")
 
-        user.PlayAttackAnimation(user, src, actualTarget)
+        if(!user.PlayCastMeter(src)) return  // died mid-cast
+
         user.PlaySkillFX(src, actualTarget)  // the cast burst; the buff's own standing
                                               // indicator is activeFXState on the status
                                               // effect (StatusEffects.dm)
+        if(actualTarget) actualTarget.ApplyStatusEffect(statusEffectType)
 
-        spawn(cast_time)
-            actualTarget.ApplyStatusEffect(statusEffectType)
-
-        spawn(user.GetAttackDelay(src, FALSE))
-            if(user.isDead) return
-            user.canAct = TRUE
+        user.canAct = TRUE
 
 datum/skill/Upper
     parent_type = /datum/skill/BuffSpell
@@ -674,17 +987,14 @@ datum/skill/StatusSpell
         user.canAct = FALSE
         user.ShowInfo("You cast [skillName]!")
 
-        user.PlayAttackAnimation(user, src, target)
-        user.PlaySkillFX(src, target)  // was drawing nothing at all before
+        if(!user.PlayCastMeter(src)) return  // died mid-cast
 
-        spawn(cast_time)
-            // Re-checked: the target may have ghosted, or coop flipped, mid-cast.
-            if(target && user.CanHarm(target))
-                target.ApplyStatusEffect(statusEffectType)
+        // Re-checked: the target may have ghosted, or coop flipped, mid-cast.
+        if(target && user.CanHarm(target))
+            user.PlaySkillFX(src, target)
+            target.ApplyStatusEffect(statusEffectType)
 
-        spawn(user.GetAttackDelay(src, FALSE))
-            if(user.isDead) return
-            user.canAct = TRUE
+        user.canAct = TRUE
 
 // "sleep" is the cast burst; the sleeping target's own standing overlay is "asleep",
 // set as activeFXState on the status effect (StatusEffects.dm).
@@ -725,7 +1035,7 @@ datum/skill/Rest
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
-        if(!user.InBattleArea()) return
+        // Utility, not combat -- usable anywhere, peaceful areas included (like heals/Return).
 
         user.canAct = FALSE
         user.ShowInfo("You sit down to rest...")
@@ -749,7 +1059,7 @@ datum/skill/Meditate
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
-        if(!user.InBattleArea()) return
+        // Utility, not combat -- usable anywhere, peaceful areas included (like heals/Return).
 
         user.canAct = FALSE
         user.ShowInfo("You begin to meditate...")
@@ -785,16 +1095,14 @@ datum/skill/Return
         user.canAct = FALSE
         user.ShowInfo("You cast Return!")
 
-        spawn(cast_time)
-            if(!user.isDead)
-                user.loc = GetPlayerSpawnTurf()
-                if(user.client && user.client.camera)
-                    user.client.camera.SnapTo(user)  // direct .loc change bypasses client/Move(), the only place the camera normally tracks
-                user.ShowInfo("You return to town!")
+        if(!user.PlayCastMeter(src)) return  // died mid-cast
 
-        spawn(user.GetAttackDelay(src, FALSE))
-            if(user.isDead) return
-            user.canAct = TRUE
+        user.loc = GetPlayerSpawnTurf()
+        if(user.client && user.client.camera)
+            user.client.camera.SnapTo(user)  // direct .loc change bypasses client/Move(), the only place the camera normally tracks
+        user.ShowInfo("You return to town!")
+
+        user.canAct = TRUE
 
 // Resurrects a fallen ally, bypassing their RESPAWN_DELAY wait (Die(), CombatSystem.dm).
 datum/skill/Revive
@@ -826,18 +1134,17 @@ datum/skill/Revive
         user.canAct = FALSE
         user.ShowInfo("You cast Revive!")
 
-        spawn(cast_time)
-            if(P.isDead)
-                P.isDead = FALSE
-                P.density = 1
-                P.icon_state = "world"
-                P.canAct = TRUE
-                P.HP = max(1, round(P.MaxHP * 0.5))
-                P.ShowInfo("You have been revived by [user.name]!")
+        if(!user.PlayCastMeter(src)) return  // died mid-cast
 
-        spawn(user.GetAttackDelay(src, FALSE))
-            if(user.isDead) return
-            user.canAct = TRUE
+        if(P && P.isDead)
+            P.isDead = FALSE
+            P.density = 1
+            P.icon_state = "world"
+            P.canAct = TRUE
+            P.HP = max(1, round(P.MaxHP * 0.5))
+            P.ShowInfo("You have been revived by [user.name]!")
+
+        user.canAct = TRUE
 
 // Goof-off's signature unlock — transforms this character into a Sage (DW3-style).
 #define CLASSCHANGE_MIN_LEVEL 25

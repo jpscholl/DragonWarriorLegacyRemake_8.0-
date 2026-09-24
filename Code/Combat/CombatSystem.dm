@@ -26,6 +26,41 @@ mob/var/mob/firstAttacker = null
 mob/var/isDefending = FALSE
 #define DEFEND_DAMAGE_REDUCTION_PERCENT 50
 
+// TRUE mid-Jump (SkillCatalog.dm) -- attacks miss and ground fire can't reach.
+mob/var/tmp/isAirborne = FALSE
+
+// Hide (SkillCatalog.dm). Invisibility sits at the same tier as GM ghost form, above
+// the roof-reveal trick's level 1 (Area.dm), so no ordinary player or monster sees a
+// hidden mob indoors or out. A client always renders its OWN mob regardless, so the
+// hider just sees themselves faded to HIDE_ALPHA as the "you're hidden" cue.
+#define HIDE_INVISIBILITY 2
+#define HIDE_ALPHA 110
+mob/var/tmp/isHidden = FALSE
+
+mob/proc
+    Hide()
+        isHidden = TRUE
+        invisibility = HIDE_INVISIBILITY
+        alpha = HIDE_ALPHA
+        ShowInfo("You vanish from sight.")
+
+    // Called from every reveal trigger: a step (Step(), SmoothMovement.dm), using any
+    // other ability (UseSkillSlot(), PlayerTemplate.dm), a landed hit (TakeDamage()),
+    // and every direct-damage path -- poison, burn, hazard fields, hazard terrain.
+    // No-op when not hidden, so callers don't need to check first.
+    Unhide()
+        if(!isHidden) return
+        isHidden = FALSE
+        if(!isGhostform) invisibility = 0  // ghost form keeps its own, higher, invisibility
+        alpha = 255
+        ShowInfo("You reappear!")
+
+    // Whether monsters' AI and single-target skills may pick this mob as a target at
+    // all. Area hits (AoE blasts, projectiles, a swing at a tile) can still land on a
+    // hidden mob -- and that hit reveals them.
+    IsTargetable()
+        return !isHidden && !isGhostform
+
 // Invented, not OG -- chance each LANDED hit (dodges don't count) wakes a mob out of
 // the Sleep spell (StatusEffects.dm). 100 = any hit wakes, 0 = sleeps the full duration.
 // Defined here, not beside SLEEP_DURATION, because this file compiles first.
@@ -123,6 +158,12 @@ mob/proc
                 attacker.ShowInfo("Coop mode is active here — you cannot attack other players or their pets.")
             return FALSE
 
+        // Mid-Jump: the attack passes underneath. Returns FALSE like a dodge, so a
+        // projectile keeps flying past instead of stopping here.
+        if(isAirborne)
+            ShowCombatNumber(src, "miss", "#ffffff")
+            return FALSE
+
         var/isEnemy = istype(src, /mob/enemy)
 
         if(RollDodge())
@@ -143,6 +184,7 @@ mob/proc
             firstAttacker = attacker
 
         HP -= damage
+        Unhide()  // a landed hit reveals a hidden mob (Hide, SkillCatalog.dm)
         view(src) << output(isCrit ? "[src] takes a critical hit for [damage] damage! (HP: [max(HP,0)])" : "[src] takes [damage] damage! (HP: [max(HP,0)])", "Info")
         ShowCombatNumber(src, "[damage]", isCrit ? "#ffff00" : DAMAGE_NUMBER_COLOR)
         ShowFloatingHPBar()
@@ -657,6 +699,13 @@ mob/proc
             // view(user), not "user <<" — the latter only reaches the attacker's own
             // client, so this silently never played for enemies at all.
             PlaySFXAt(user, istype(user, /mob/enemy) ? 'enemyattack.wav' : 'attack.wav', base = 60)
+            // A skill with its own spells.dmi art (Club's club, a claw, an axe) shows
+            // THAT instead of the portrait's generic "weapon" state -- the caller draws
+            // it via PlaySkillFX(). Drawing both stacked the skill's art on top of a
+            // plain sword. Only a skill with no art of its own (plain Attack) falls
+            // through to the portrait weapon below.
+            if(ResolveSkillFXState(S.fx_state, user.dir, user.animAlternate))
+                return
             var/list/weaponNudge = GetWeaponOverlayNudge(user.basePlayerIcon, user.dir)
             if(target)
                 // Layered on the mob being hit, not the turf. Only the deliberate
@@ -695,27 +744,38 @@ mob/proc
             // callers now draw it through PlaySkillFX() (SkillFX.dm) instead, which
             // reads the right file and layers correctly.
 
-// Real 3-stage cast for GenericSpell's healing branch — only for heal-tier skills with
-// real spells.dmi art (Heal/Healmore/Healmost). Synchronous (sleep(), not spawn()) so
-// nothing downstream can fire out of order relative to what's on screen.
-mob/proc/PlayHealCastSequence(datum/skill/S, mob/target, heal_amount, wasDefending, mySession)
+// The cast windup EVERY player spell plays before it takes effect -- Blaze, heals,
+// damage and AoE spells, buffs, Sleep/Stopspell, Return, Revive: 10 castmeter.dmi
+// frames over the caster, paced by GetAttackDelay() so a stronger caster winds up
+// faster. Blaze was the only spell that had it; the rest fired after a flat delay.
+//
+// Synchronous -- sleeps through the whole windup. Returns FALSE if the caster died
+// mid-cast; the caller must then stop WITHOUT touching canAct (Die() owns it).
+mob/proc/PlayCastMeter(datum/skill/S, wasDefending = FALSE)
+    PlaySFXAt(src, 'spell.wav', base = 70)
+
     var/atkDelay = GetAttackDelay(S, wasDefending)
     var/frameDelay = max(CAST_METER_MIN_FRAME_DELAY, atkDelay / CAST_METER_SPEED_DIVISOR)
 
-    // Windup: cast meter over the CASTER — a fresh image per frame, previous one
-    // explicitly removed rather than mutated in place (BYOND's overlays list
-    // snapshots appearance at add-time).
+    // A fresh image per frame, previous one explicitly removed rather than mutated in
+    // place -- BYOND's overlays list snapshots appearance at add-time.
     var/image/prevFrame = null
     for(var/i = 1 to 10)
         var/image/meterFrame = image('castmeter.dmi', src, "[i]")
-        meterFrame.layer = layer + 0.1
+        meterFrame.layer = layer + 0.1  // draw over the caster, not behind
         if(prevFrame) overlays -= prevFrame
         overlays += meterFrame
         prevFrame = meterFrame
         sleep(frameDelay)
     if(prevFrame) overlays -= prevFrame
 
-    if(isDead) return  // died mid-cast
+    return !isDead
+
+// Real 3-stage cast for GenericSpell's healing branch — only for heal-tier skills with
+// real spells.dmi art (Heal/Healmore/Healmost). Synchronous (sleep(), not spawn()) so
+// nothing downstream can fire out of order relative to what's on screen.
+mob/proc/PlayHealCastSequence(datum/skill/S, mob/target, heal_amount, wasDefending, mySession)
+    if(!PlayCastMeter(S, wasDefending)) return  // died mid-cast
 
     // Resolution: the TARGET plays the skill's own spells.dmi state at its own baked
     // frame speed, held for HEAL_ANIM_DURATION before the heal lands and the number pops.

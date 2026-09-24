@@ -57,11 +57,17 @@ proc/ResolveSkillFXState(baseName, dir = 0, alternate = FALSE)
 // that gets deleted meanwhile (a dying monster, a spent projectile) the pending block
 // dies with its owner and the overlay is stranded on screen forever. A global proc has
 // no src to delete.
-proc/FlashSkillFX(atom/A, stateName, duration = SKILL_FX_DURATION, layerOffset = 0.1)
+//
+// fxDir picks which of a state's directions to draw -- nearly every weapon/beam state
+// in spells.dmi has 4. It used to be left unset, so every skill drew its SOUTH frame
+// no matter which way the user faced. pixelY lifts a turf-hosted effect to match the
+// sprites standing on it (SPRITE_PIXEL_Y_OFFSET); a mob-hosted one inherits its host's.
+proc/FlashSkillFX(atom/A, stateName, duration = SKILL_FX_DURATION, layerOffset = 0.1, fxDir = SOUTH, pixelY = 0)
     set waitfor = 0
     if(!A || !stateName) return
 
-    var/image/fx = image(SKILL_FX_FILE, A, stateName)
+    var/image/fx = image(SKILL_FX_FILE, A, stateName, dir = fxDir)
+    fx.pixel_y = pixelY
     // A turf's own layer is far below a mob's, so "just above the turf" would bury an
     // explosion underneath whoever is standing in it. Turf-hosted effects get a fixed
     // high layer instead, same value and same reason as FlashTurfEffect()
@@ -79,7 +85,7 @@ mob/proc
     PlaySkillFX(datum/skill/S, atom/where, duration = SKILL_FX_DURATION)
         if(!S || !where) return
         var/state = ResolveSkillFXState(S.fx_state, dir, animAlternate)
-        if(state) FlashSkillFX(where, state, duration)
+        if(state) FlashSkillFX(where, state, duration, fxDir = dir, pixelY = isturf(where) ? pixel_y : 0)
 
     // The burst drawn where a hit LANDS, as opposed to the swing/cast art above.
     // Several skills ship both halves ("blaze"/"blazehit", "lightning"/"lightninghit",
@@ -89,4 +95,4 @@ mob/proc
         if(!S || !where) return
         var/state = ResolveSkillFXState(S.impact_fx_state, dir, animAlternate)
         if(!state) state = ResolveSkillFXState(S.fx_state, dir, animAlternate)
-        if(state) FlashSkillFX(where, state, duration)
+        if(state) FlashSkillFX(where, state, duration, fxDir = dir, pixelY = isturf(where) ? pixel_y : 0)

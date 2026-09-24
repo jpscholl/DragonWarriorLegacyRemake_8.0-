@@ -175,6 +175,11 @@ mob/player
             src.ShowInfo("You are silenced and cannot cast!")
             return
 
+        // Using any ability gives a hidden player away. Hide handles itself, since
+        // using it while hidden is how you come out on purpose.
+        if(!istype(S, /datum/skill/Hide))
+            Unhide()
+
         // Only the tile directly in front — a melee swing should only threaten what
         // you're actually facing.
         var/mob/target = null
@@ -183,6 +188,7 @@ mob/player
             for(var/mob/M in stepTile.contents)
                 if(M == src) continue
                 if(M.HP <= 0) continue
+                if(!M.IsTargetable()) continue  // hidden or ghosted -- can't be picked
                 target = M
                 break
 

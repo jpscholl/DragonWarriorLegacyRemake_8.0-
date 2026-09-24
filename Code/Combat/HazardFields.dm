@@ -66,6 +66,7 @@ obj/hazard_field
     proc/AffectsMob(mob/M)
         if(!M || M.HP <= 0 || M.isDead) return FALSE
         if(M.isGhostform) return FALSE
+        if(M.isAirborne) return FALSE  // mid-Jump, over the flames
         if(M.equipHazardImmune) return FALSE
         if(!owner) return TRUE
         return owner.CanHarm(M)
@@ -98,6 +99,7 @@ obj/hazard_field
                     // Direct HP change, not TakeDamage() — same reasoning as poison and
                     // turf/hazard: you don't dodge the ground you're standing on.
                     M.HP -= tickDamage
+                    M.Unhide()  // any damage reveals a hidden mob (Hide, SkillCatalog.dm)
                     flick("hit", M)
                     PlaySFXAt(M, istype(M, /mob/enemy) ? 'enemyhit.wav' : 'hit.wav')
                     ShowCombatNumber(M, "[tickDamage]", DAMAGE_NUMBER_COLOR)

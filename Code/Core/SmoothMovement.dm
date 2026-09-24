@@ -44,6 +44,7 @@ mob
             if(step(src, dir))
                 last_step = world.time  // record last step time
                 next_step = last_step + delay  // schedule next allowed step
+                Unhide()  // moving gives a hidden mob away (Hide, SkillCatalog.dm)
                 return 1
             return 0  // step failed
 
@@ -157,6 +158,11 @@ client
             set hidden = 1   // hide the verb from user list
 
             if(state)  // key pressed
+                // Rooted (mid-attack, mid-Club-spin, dead) -- no turning in place
+                // either. Step() already blocks the move itself, but this branch sets
+                // mob.dir directly and would knock a spin off its rotation.
+                if(mob && mob.turnWalkMode && dir != mob.dir && !mob.canAct && !mob.attackRecoveryOnly)
+                    return
                 if(mob && mob.turnWalkMode && dir != mob.dir)
                     // Turn-walk toggle: face the new direction, then wait a brief
                     // deliberate moment before walking — without a pause the turn and

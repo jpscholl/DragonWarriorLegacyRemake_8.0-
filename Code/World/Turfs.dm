@@ -400,6 +400,7 @@ turf/hazard
 
 		// Direct HP change, not TakeDamage() — terrain isn't something you dodge.
 		M.HP -= stepDamage
+		M.Unhide()  // any damage reveals a hidden mob (Hide, SkillCatalog.dm)
 		flick("hit", M)
 		PlaySFXAt(M, istype(M, /mob/enemy) ? 'enemyhit.wav' : 'hit.wav')
 		M.ShowInfo("<font color='red'>[hazardMessage] (-[stepDamage] HP)</font>")
@@ -413,12 +414,28 @@ turf/hazard
 			M.Die(null)  // no attacker to credit — terrain isn't a mob
 			M.CleanUpDead()
 
+// Every hazard hurts once per STEP onto it, never per tick -- standing still on one
+// is safe. That includes Dash (each tile it crosses is a step) and Jump's landing.
+
+// TRUE for terrain that makes its own light, so night never darkens it --
+// ToggleNightIconState() (GMCommands.dm) skips it.
+turf/var/selfLit = FALSE
+
 turf/hazard/lava
 	name = "lava"
-	icon = 'floor.dmi'
-	icon_state = "burntcobble"  // ART PLACEHOLDER — no lava sprite exists yet
+	icon = 'water.dmi'   // real lava art -- was a burntcobble placeholder
+	icon_state = "lava"
+	selfLit = TRUE       // glows: stays "lava" at night, never swaps to "lavanight"
 	stepDamage = 15
 	hazardMessage = "The lava scorches you!"
+
+// Magic damage floor. stepDamage is invented -- between swamp and lava.
+turf/hazard/barrier
+	name = "barrier"
+	icon = 'floor.dmi'
+	icon_state = "barrier"
+	stepDamage = 10
+	hazardMessage = "The barrier sears you!"
 
 turf/hazard/swamp
 	name = "swamp"

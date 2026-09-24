@@ -161,31 +161,13 @@ datum/skill/Blaze
         var/mySession = user.defendToggleSession
         var/wasDefending = user.DropDefendForAction()
 
-        PlaySFXAt(user, 'spell.wav', base = 70)
-
         // Cast windup and projectile flight are BOTH driven by GetAttackDelay(), but
         // scaled separately — a windup wants to feel like real commitment, while the
         // projectile just needs to outpace a running player.
         var/atkDelay = user.GetAttackDelay(src, wasDefending)
-        var/frameDelay = max(CAST_METER_MIN_FRAME_DELAY, atkDelay / CAST_METER_SPEED_DIVISOR)
 
-        // Cast meter: 10 frames. A fresh image is built per frame and the previous
-        // one removed, rather than mutating one image's icon_state in place — BYOND's
-        // overlays list stores an immutable snapshot at add-time.
-        var/image/prevFrame = null
-        for(var/i = 1 to 10)
-            var/image/meterFrame = image('castmeter.dmi', user, "[i]")
-            meterFrame.layer = user.layer + 0.1  // draw over the caster, not behind
-            if(prevFrame)
-                user.overlays -= prevFrame
-            user.overlays += meterFrame
-            prevFrame = meterFrame
-            sleep(frameDelay)
-        if(prevFrame)
-            user.overlays -= prevFrame
-
-        if(user.isDead)
-            return  // died mid-cast — don't launch from a corpse or stomp Die()'s canAct lock
+        // Died mid-cast — don't launch from a corpse or stomp Die()'s canAct lock.
+        if(!user.PlayCastMeter(src, wasDefending)) return
 
         // Launch now that the cast meter has fully played out — never before.
         var/turf/spawnTurf = get_step(user, castDir)
@@ -223,18 +205,14 @@ datum/skill/Fireball
         user.canAct = FALSE
         user.ShowInfo("You cast Fireball!")
 
-        user.PlayAttackAnimation(user, src, target)
-        user.PlaySkillFX(src, target)  // SkillFX.dm — PlayAttackAnimation() no longer
-                                        // draws spell art itself
-
-        spawn(cast_time)
-            if(user.ApplySpellDamage(target, 10, src.element))
-                user.PlaySkillImpactFX(src, target)
-
         // Fireball doesn't drop isDefending the way Attack does — no class currently
         // has both Defend and Fireball equipped — so user.isDefending is still
         // accurate here; it still picks up the speed penalty, just without the
         // auto-drop/resume dance.
-        spawn(user.GetAttackDelay(src, user.isDefending))
-            if(user.isDead) return
-            user.canAct = TRUE
+        if(!user.PlayCastMeter(src, user.isDefending)) return  // died mid-cast
+
+        user.PlaySkillFX(src, target)  // SkillFX.dm
+        if(user.ApplySpellDamage(target, 10, src.element))
+            user.PlaySkillImpactFX(src, target)
+
+        user.canAct = TRUE

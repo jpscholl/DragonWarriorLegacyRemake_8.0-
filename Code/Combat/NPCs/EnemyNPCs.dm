@@ -141,27 +141,40 @@ mob/enemy
 		var/datum/skill/S = spellInstances[pick(castableSkills)]
 		if(!S) return FALSE
 
-		// Monsters pay MP like players do — a Healer with an empty pool falls back to melee.
-		var/cost = S.GetManaCost()
-		if(MP < cost) return FALSE
-		MP -= cost
-		ShowFloatingMPBar()
+		// Monsters pay MP like players do — one with an empty pool falls back to melee.
+		// (OnUse() below takes the MP itself; this just decides whether to try.)
+		if(MP < S.GetManaCost()) return FALSE
 
 		lastCastTime = world.time
-		dir = get_dir(src, M)
-		canAct = FALSE
+		dir = CardinalDirTo(M)  // a projectile/blast aims by facing, and there are no diagonals
 		view(src) << output("[src] casts [S.skillName]!", "Info")
-		PlayAttackAnimation(src, S, M)
-		PlaySkillFX(S, M)  // SkillFX.dm — PlayAttackAnimation() no longer draws spell art
-		// Monsters read Intelligence directly rather than going through
-		// ComputeSpellDamage() (DamageFormula.dm): that proc folds in equipSpellPower and
-		// the variance roll, both of which are player-facing concepts, and monster damage
-		// is meant to be tuned from the roster (MonsterRoster.dm), not from player stats.
-		if(ApplySpellDamage(M, round(Intelligence * S.damage_multiplier), S.element))
-			PlaySkillImpactFX(S, M)
-		spawn(spellCooldown)
-			canAct = TRUE
+		CastSkill(S, M)
 		return TRUE
+
+	// Every monster cast goes through the SAME OnUse() a player's does, so all mobs
+	// share one set of spell animations and behaviors: the cast-meter windup
+	// (PlayCastMeter()), Blaze's projectile, Explodet's blast and flames, the heal
+	// sequence, the art timing. Monsters used to run their own instant copy of each
+	// spell that skipped all of it.
+	//
+	// Damage comes from ComputeSpellDamage() like a player's (GetSpellPower() x the
+	// skill's multiplier, plus the variance roll) rather than the old flat
+	// Intelligence x multiplier. No monster had an offensive spell wired yet, so no
+	// balance was built on the old number.
+	//
+	// OnUse() sleeps through the windup, so the AI tick waits with it -- the monster is
+	// busy casting, rooted by canAct the same way a player is.
+	proc/CastSkill(datum/skill/S, mob/M)
+		S.OnUse(src, M)
+
+	// The cardinal direction toward M along whichever axis has the bigger gap -- same
+	// rule StepRelativeTo() uses to pick its primary step.
+	proc/CardinalDirTo(atom/M)
+		var/dx = M.x - x
+		var/dy = M.y - y
+		if(abs(dx) >= abs(dy))
+			return dx >= 0 ? EAST : WEST
+		return dy >= 0 ? NORTH : SOUTH
 
 	// Heal self if hurt, else the most wounded nearby ally. Returns TRUE if a heal went off.
 	proc/TryHeal()
@@ -190,16 +203,10 @@ mob/enemy
 
 		if(!patient) return FALSE
 
-		MP -= cost
-		ShowFloatingMPBar()
 		lastCastTime = world.time
-		canAct = FALSE
+		if(patient != src) dir = CardinalDirTo(patient)
 		view(src) << output("[src] casts [S.skillName] on [patient == src ? "itself" : "[patient]"]!", "Info")
-		PlayAttackAnimation(src, S, patient)
-		PlaySkillFX(S, patient)  // SkillFX.dm
-		ApplyHeal(patient, S.heal_amount)
-		spawn(spellCooldown)
-			canAct = TRUE
+		CastSkill(S, patient)  // same heal sequence a player's cast plays
 		return TRUE
 
 	// Stops entirely once dead (a corpse sits still until CleanUpDead() deletes it),
@@ -222,8 +229,8 @@ mob/enemy
 	// (defined as "behaves exactly like a wild monster") — owner is null for a
 	// genuinely wild monster, so the owner-skip check below never matches there.
 	proc/RunWildAI()
-		// Drop a dead target, or one that ghosted mid-fight (GM_GhostForm).
-		if(target && (target.HP <= 0 || target.isGhostform))
+		// Drop a dead target, or one that ghosted (GM_GhostForm) or hid (Hide) mid-fight.
+		if(target && (target.HP <= 0 || !target.IsTargetable()))  // ghosted or hidden
 			target = null
 
 		// Give up the chase once the target flees past sightRange.
@@ -238,7 +245,7 @@ mob/enemy
 
 		if(!target)
 			for(var/mob/player/P in range(sightRange, src))
-				if(P.HP <= 0 || P.isDead || P.isGhostform) continue
+				if(P.HP <= 0 || P.isDead || !P.IsTargetable()) continue  // ghosted or hidden
 				// Always TRUE for a wild monster. For a Wander-mode pet it skips its own
 				// owner, and every player while coop is on (CanHarm(), CombatSystem.dm) --
 				// no point chasing someone it isn't allowed to hurt.
@@ -346,7 +353,7 @@ mob/enemy
 
 	// Whether an Aggressive pet may pick (or keep) M as its huntTarget.
 	proc/IsHuntable(mob/M)
-		if(!M || M.HP <= 0 || M.isDead || M.isGhostform) return FALSE
+		if(!M || M.HP <= 0 || M.isDead || !M.IsTargetable()) return FALSE  // ghosted or hidden
 		return CanHarm(M, forAI = TRUE)
 
 	// Continuously steps toward moveTowardAtom every tick, same cadence as the
@@ -359,7 +366,13 @@ mob/enemy
 			// to a full second) — checking HP here too stops the corpse immediately.
 			if(HP <= 0)
 				return
-			if(moveTowardAtom && moveIntent != ENEMY_MOVE_NONE)
+			// Sharing a tile with another mob (a Quakejump landed on it) -- get out
+			// from under before anything else. Takes priority over intent: the AI's
+			// adjacency check counts the same tile as "in melee range", so without this
+			// a monster would stand still and swing at the player from underneath.
+			if(IsStacked())
+				StepOffStack()
+			else if(moveTowardAtom && moveIntent != ENEMY_MOVE_NONE)
 				// Hard leash, checked every tick (not just on the next slower AI
 				// decision) — a fleeing enemy steps continuously here the whole second
 				// in between, so it could run well past sightRange otherwise.
@@ -368,6 +381,25 @@ mob/enemy
 				else
 					StepRelativeTo(moveTowardAtom, away = (moveIntent == ENEMY_MOVE_FLEE))
 			sleep(world.tick_lag)
+
+	// TRUE if another solid mob stands on this same tile.
+	proc/IsStacked()
+		for(var/mob/M in loc)
+			if(M != src && M.density && M.HP > 0) return TRUE
+		return FALSE
+
+	// One step to any open side, tried in random order so a stack of monsters doesn't
+	// all file out the same way. Rate-limited like any step (Step()), so a failed or
+	// throttled attempt just retries next tick.
+	proc/StepOffStack()
+		var/d = pick(NORTH, SOUTH, EAST, WEST)
+		var/turnBy = pick(90, -90)
+		for(var/i = 1 to 4)
+			if(i > 1) d = turn(d, turnBy)
+			if(IsTileOccupied(get_step(src, d))) continue
+			if(Step(d)) return TRUE
+			return FALSE  // open but not allowed yet (mid-attack, step cooldown)
+		return FALSE
 
 	// Takes one cardinal step toward Trg (or directly away, if away = TRUE — used for
 	// fleeing). NOT step_to() — see Markdowns/CodeNotes.md for why BYOND's builtin
