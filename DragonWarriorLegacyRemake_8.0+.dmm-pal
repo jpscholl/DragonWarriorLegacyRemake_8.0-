@@ -41,7 +41,7 @@
 /turf/bridge{icon_state="bridgeh"}
 /turf/wall{icon_state="cavewall"}
 /turf/wall{icon_state="cavewallnight"}
-/turf/wall{icon_state="void"}
+/turf/wall{icon_state="void"; opacity=1}
 /turf/wall{icon_state="curtains"}
 /turf/furniture{name="statue"; icon_state="statue"}
 /turf/furniture{name="throne"; icon_state="evilthrone"}

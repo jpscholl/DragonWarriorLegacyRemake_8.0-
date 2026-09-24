@@ -156,11 +156,20 @@ datum/CharacterSaveData/proc/ApplyToCharacter(mob/player/P)
 // carrying them forward verbatim would preserve the bug rather than fix it.
 //
 // They can be told apart: a color the player actually PICKED always came from
-// color_swatches (ColorSwap.dm), while "Default Color" wrote the icon's own sampled art
+// color_families (ColorSwap.dm), while "Default Color" wrote the icon's own sampled art
 // color, which is never one of those named swatches. So a saved color matching a swatch
 // is a real choice and is kept; anything else was a default, and dropping it hands that
 // zone back to the art — which is what makes an existing character pick up a fixed color
 // on their next login instead of needing to be recreated.
+//
+// NOTE: color_families was simplified 2026-09-23 from a flat 59-swatch list to an
+// 18-family/3-shade one, and several old swatches (Cyan, Magenta, Pink, Navy, Maroon,
+// Tan, and most of the old Light/Dark values) no longer have an exact match at all. A
+// legacy color that used to match now just falls through to "was a default" and hands
+// that zone back to the art on migration — same outcome as if the player had never
+// picked a custom color there. Acceptable: this whole proc only ever runs once, on a
+// save_version 1 character's first login after this rework, and reverting a since-
+// removed swatch to the art's own default is a reasonable fallback, not data loss.
 datum/CharacterSaveData/proc/MigrateLegacyAppearance(mob/player/P)
     var/list/legacy = list("Main" = mainColor, "Accent" = accentColor, "Hair" = hairColor, "Eyes" = eyeColor)
     var/list/migrated = list()
@@ -168,10 +177,8 @@ datum/CharacterSaveData/proc/MigrateLegacyAppearance(mob/player/P)
     for(var/zone in legacy)
         var/color = legacy[zone]
         if(!color) continue
-        for(var/swatchName in color_swatches)
-            if(color_swatches[swatchName] == color)
-                migrated[zone] = color
-                break
+        if(FindSwatchLocation(color))  // ColorSwap.dm — non-null means a real prior pick
+            migrated[zone] = color
 
     P.zoneColors = migrated.len ? migrated : null
 

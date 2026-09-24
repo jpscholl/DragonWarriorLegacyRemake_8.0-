@@ -24,6 +24,23 @@ area
 	var/indestructibleMode = TRUE  // FALSE = fire/ice attacks damage terrain here
 	var/weather = null             // GM-set weather state, outside areas only
 
+	// TRUE = inside this area, each turf's own `opacity` actually controls line of
+	// sight. FALSE (the default) = it doesn't, and setting opacity on a turf here does
+	// nothing at all.
+	//
+	// That sounds backwards until you know why SEE_THRU exists. Every mob carries
+	// sight = SEE_THRU by default (PlayerTemplate.dm), meaning "ignore opacity" — which
+	// the roof trick below depends on, since it needs outdoor viewers to see straight
+	// through a building's opaque shell. But SEE_THRU is all-or-nothing per mob: there's
+	// no way to ignore a building's walls while still respecting a cave's. So honest
+	// per-turf opacity has to be switched on somewhere, and the area a mob is standing
+	// in is the only thing that can do it.
+	//
+	// Entered()/Exited() below strip and restore SEE_THRU accordingly. Set it on any
+	// area where you want to place a wall, tick its opacity in the map editor, and have
+	// that mean what it says.
+	var/respectWallOpacity = FALSE
+
 	// For most areas, icon/icon_state exist purely as debug data for GM_SeeAreas'
 	// overlay (GMCommands.dm) -- normal players never see them, since ordinary
 	// floor/wall turfs already carry their own real art. A subtype (rave, below) that
@@ -70,6 +87,11 @@ area
 		..()
 		if(ismob(O))
 			var/mob/M = O
+			// See respectWallOpacity's own comment above — strip the viewer's SEE_THRU
+			// bypass so this area's turfs' own opacity actually stops their sight,
+			// instead of silently doing nothing like it does everywhere else.
+			if(respectWallOpacity) M.sight &= ~SEE_THRU
+
 			// Curse night (isCurseNight, Main.dm) overrides every area's own music for
 			// its duration — without this check, walking into a new area mid-curse-night
 			// would immediately switch back to that area's normal track.
@@ -77,6 +99,22 @@ area
 				M.PlayAreaMusic(CURSE_NIGHT_MUSIC)
 			else if(areaMusic)
 				M.PlayAreaMusic(areaMusic)
+
+	// Restores SEE_THRU on the way out of a respectWallOpacity area — but only if the
+	// destination isn't ALSO one, same "don't flicker sight on between two adjoining
+	// instances of the same kind of area" guard area/ceiling/Exited() below uses for its
+	// own opacity mechanism. Two respectWallOpacity areas bordering each other (e.g. a
+	// cave that spans multiple area instances) should read as one continuous "opacity is
+	// honest here" zone, not toggle a player's sight back and forth at every seam.
+	Exited(atom/movable/O, atom/newloc)
+		..()
+		if(!respectWallOpacity) return
+		if(ismob(O))
+			var/mob/M = O
+			var/turf/T = newloc
+			var/area/destArea = T ? T.loc : null
+			if(destArea && destArea.respectWallOpacity) return
+			M.sight |= SEE_THRU
 
 	casino
 		icon_state = "casino"
@@ -112,6 +150,12 @@ area
 	cave
 		icon_state = "cave"
 		areaMusic = 'cave.mid'
+		// The void border wall around cave interiors is painted with opacity = 1 in the
+		// map editor — this is what makes that setting actually count (respectWallOpacity's
+		// own comment above), so a player standing in a cave can no longer see straight
+		// through that wall to whatever's beyond it. Interior cavewall tiles are left at
+		// their default (non-opaque), same as an ordinary wall elsewhere in the game.
+		respectWallOpacity = TRUE
 
 	old
 		icon_state = "old"
@@ -174,9 +218,11 @@ area
 		// The inner footprint (visible, below) overrides this back to a no-op, since
 		// those are the floor tiles you're meant to see across while standing inside.
 		//
-		// Scoped to this area on purpose -- turf/wall itself stays non-opaque everywhere
-		// else in the game, which is deliberate: ordinary walls are meant to be
-		// see-through.
+		// Scoped to this area on purpose -- this FORCES every turf here opaque
+		// regardless of what's painted on it, unlike respectWallOpacity (area's own var,
+		// used by area/cave) which just lets each turf's own opacity setting count. An
+		// ordinary wall outside both mechanisms stays non-opaque by default, or opaque-
+		// but-inert if someone paints it that way outside a respectWallOpacity area.
 		//
 		// Opacity is NOT per-viewer -- an opaque tile blocks light for everyone equally,
 		// and there's no way to change that. The one-way behaviour comes from the other

@@ -84,7 +84,16 @@ proc/BuildPlayerIconRegistry()
         "Accent" = rgb(255,255,255),
         "Hair"   = rgb(0,124,254),
         "Eyes"   = rgb(0,124,250)))
-    AddPlayerIcon(reg, "Dragon Warrior 4 Hero (Male)", "Hero", 'Mob Icons/Player/Hero/dw4malehero.dmi')
+    // "Accent2" is a second, near-identical green (0,187,0) sitting one value off from
+    // Hair/Headgear's own green (0,188,0) -- distinct enough for SwapColor's exact-match
+    // to tell apart, but easy to miss without sampling. Female not yet sampled -- may
+    // need the same split once it is.
+    AddPlayerIcon(reg, "Dragon Warrior 4 Hero (Male)", "Hero", 'Mob Icons/Player/Hero/dw4malehero.dmi', list(
+        "Main"    = rgb(0,92,255),
+        "Accent"  = rgb(255,255,255),
+        "Accent2" = rgb(0,187,0),
+        "Hair"    = rgb(0,188,0),   // also covers headgear -- shares one color
+        "Eyes"    = rgb(0,90,255)))
     AddPlayerIcon(reg, "Dragon Warrior 4 Hero (Female)", "Hero", 'Mob Icons/Player/Hero/dw4femalehero.dmi')
 
     // Soldier -- dw3guard is PARTIALLY authored: only "Main" has been sampled so far, so

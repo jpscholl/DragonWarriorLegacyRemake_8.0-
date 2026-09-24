@@ -2,9 +2,9 @@
 "ab" = (/turf/wall{icon_state = "stone"},/area/town)
 "ac" = (/turf/wall{icon_state = "stoneedge"},/area/town)
 "ad" = (/turf/ground,/area/townrain)
-"ae" = (/obj/stat/door{icon_state = "jail"; closed_icon_state = "jail"; name = "Battle arena"; is_locked = 1},/turf/ground{name = "sand"; icon_state = "sand"},/area/castle)
+"ae" = (/turf/ground{name = "sand"; icon_state = "sand"},/area/battle)
 "af" = (/turf/ground{icon_state = "grass"},/turf/ground,/area/townrain)
-"ag" = (/turf/wall{icon_state = "void"},/area)
+"ag" = (/turf/wall{icon_state = "void"; opacity = 1},/area/cave)
 "ah" = (/turf/wall{icon_state = "void"},/area/cave)
 "ai" = (/turf/furniture{name = "tub"; icon_state = "tub"},/area/ceiling/visible)
 "aj" = (/obj/stat/door,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/town)
@@ -41,7 +41,7 @@
 "aO" = (/turf/ground{name = "brush"; icon_state = "brush"},/area/wilderness)
 "aP" = (/turf/wall{icon_state = "cavewallnight"},/area/cave)
 "aQ" = (/turf/water{icon_state = "leftedge"},/area/wilderness)
-"aR" = (/obj/stat/sign{name = "Grunge Cafe"; message = "Stop by and mess around with us!"},/obj/stat/sign{icon_state = "sign"; name = "Grunge Cafe"; message = "Stop by and mess around with us!"},/turf/ground,/area/townrain)
+"aR" = (/obj/stat/sign{name = "Grunge Cafe"; message = "Stop by and mess around with us!"},/obj/stat/sign{name = "Grunge Cafe"; icon_state = "sign"; message = "Stop by and mess around with us!"},/turf/ground,/area/townrain)
 "aS" = (/obj/stat/drawers{step_x = 0},/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
 "aT" = (/turf/stairs/stairsdown,/area/townrain)
 "aU" = (/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/wilderness)
@@ -72,7 +72,7 @@
 "bt" = (/obj/stat/drawers,/turf/floor{icon_state = "woodfloor"},/area/town)
 "bu" = (/turf/wall{icon_state = "wood"},/area/town)
 "bv" = (/turf/furniture{name = "throne"; icon_state = "throneright"},/area/town)
-"bw" = (/obj/stat/door,/turf/ground{name = "grass"; icon_state = "grass"},/area/town)
+"bw" = (/obj/stat/door{name = "Eatery"; is_locked = 1},/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
 "bx" = (/turf/furniture{name = "table"; icon_state = "woodtable"},/area/town)
 "by" = (/turf/wall{icon_state = "wooddownleft"},/area/town)
 "bz" = (/turf/bridge{icon_state = "stonebridge"},/area/townrain)
@@ -81,7 +81,7 @@
 "bC" = (/turf/furniture{icon_state = "plant"},/area/town)
 "bD" = (/turf/wall{icon_state = "wooddown"},/area/town)
 "bE" = (/obj/stat/door{name = "Eatery"; is_locked = 1},/turf/floor{icon_state = "redcobble"},/area/town)
-"bF" = (/obj/stat/door{name = "old door"; is_locked = 1},/turf/ground,/area/cave)
+"bF" = (/obj/stat/door{name = "old door"; is_locked = 1},/turf/ground{name = "cavedirt"; icon_state = "cavedirt"},/area/cave)
 "bG" = (/turf/bridge{icon_state = "bridge"},/area/cave)
 "bH" = (/turf/bridge{icon_state = "bridgeh"},/area/cave)
 "bI" = (/obj/stat/door,/turf/bridge{icon_state = "bridgeh"},/area/townrain)
@@ -105,7 +105,7 @@
 "ca" = (/obj/stat/door{name = "Bar"; is_locked = 1},/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/bar)
 "cb" = (/obj/stat/bookcase,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/bar)
 "cc" = (/obj/stat/bookcase,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/town)
-"cd" = (/obj/stat/door{icon_state = "jail"; closed_icon_state = "jail"},/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/castle)
+"cd" = (/obj/stat/door,/turf/ground{icon = 'floor.dmi'; icon_state = "redcobble"},/area/town)
 "ce" = (/turf/furniture{name = "tub"; icon_state = "tub"},/area/bar)
 "cf" = (/turf/furniture/counter,/area/town)
 "cg" = (/turf/floor{name = "stool"; icon_state = "stool"},/area/town)
@@ -144,7 +144,7 @@
 "cN" = (/turf/floor{name = "carpet"; icon_state = "carpet"},/area/castle)
 "cO" = (/turf/furniture/bedleft,/area/castle)
 "cP" = (/turf/furniture/bedhead{icon_state = "bedright"},/area/castle)
-"cQ" = (/turf/ground{name = "sand"; icon_state = "sand"},/area/castle)
+"cQ" = (/obj/stat/door{name = "Battle arena"; icon_state = "jail"; is_locked = 1; closed_icon_state = "jail"},/turf/ground{name = "sand"; icon_state = "sand"},/area/battle)
 "cR" = (/turf/wall{icon_state = "pillarup"},/area/castle)
 "cS" = (/obj/stat/sign{icon_state = "church"},/turf/wall{icon_state = "stoneedge"},/area/town)
 "cT" = (/turf/furniture{name = "table"; icon_state = "stonetable"},/area/castle)
@@ -179,7 +179,7 @@
 "dw" = (/obj/stat/door{name = "Inn"; is_locked = 1},/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/town)
 "dx" = (/obj/stat/door{name = "House 3"},/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/town)
 "dy" = (/obj/stat/door{name = "Silk's Mansion"},/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/town)
-"dz" = (/obj/stat/door{name = "Eatery"; is_locked = 1},/turf/ground{name = "grass"; icon_state = "grass"},/area/town)
+"dz" = (/turf/wall{icon_state = "void"; opacity = 1},/area)
 "dA" = (/obj/stat/door{name = "House 1"; is_locked = 0},/turf/floor{icon_state = "woodfloor"},/area/town)
 "dB" = (/obj/stat/door{name = "Bar"; is_locked = 1},/turf/floor{icon_state = "woodfloor"},/area/town)
 "dC" = (/obj/stat/door{name = "Room 3"; is_locked = 1},/turf/floor{icon_state = "woodfloor"},/area/town)
@@ -187,11 +187,13 @@
 "dE" = (/obj/stat/door{name = "Room 2"; is_locked = 1},/turf/floor{icon_state = "woodfloor"},/area/town)
 "dF" = (/obj/stat/door{name = "Wood House 1"; is_locked = 1},/turf/ground{name = "grass"; icon_state = "grass"},/area/town)
 "dG" = (/obj/stat/door{name = "Wood House 2"; is_locked = 1},/turf/floor{icon_state = "woodfloor"},/area/town)
-"dH" = (/obj/stat/door{icon_state = "jail"; closed_icon_state = "jail"; name = "Apartment 3"; is_locked = 1},/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/castle)
-"dI" = (/obj/stat/door{icon_state = "jail"; closed_icon_state = "jail"; name = "Jail"; is_locked = 1},/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/castle)
+"dH" = (/obj/stat/door{name = "Apartment 3"; icon_state = "jail"; is_locked = 1; closed_icon_state = "jail"},/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/castle)
+"dI" = (/obj/stat/door{name = "Jail"; icon_state = "jail"; is_locked = 1; closed_icon_state = "jail"},/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/castle)
 "dJ" = (/obj/stat/door{name = "Apartment 2"; is_locked = 1},/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/castle)
 "dK" = (/obj/stat/door{name = "Apartment 1"; is_locked = 1},/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/castle)
 "dL" = (/obj/stat/sign{name = "Church"; message = "Welcome to the Church"},/turf/ground,/area/townrain)
+"dM" = (/turf/wall{icon_state = "void"; luminosity = 1; opacity = 1},/area/cave)
+"dN" = (/mob/npc/merchant,/turf/floor{name = "cobble"; icon_state = "redcobble"},/area/bar)
 
 (1,1,1) = {"
 akakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakakak
@@ -280,13 +282,13 @@ aqaqaqaqaKaKaKaKaKaKaKaKaKaKaKaKbhbhaKaKaKaKaKaKaKaKaKaKaKaKaKaKaKaKaKaKaKaKaKaK
 aqaqaqaqaKaKbibjbjbjbjbjbjbjbiaKbkbkaEblblblblblblblblblblblcrcrbmbnbnbnbnbnbpaKaKaKaKaKaKaKaKaqaqaqaqaqaq
 aqaqaqaqaKaKbibYcwcwbqcwcwbYbiaKbkbkcrblbYcwbrbsbsblbtbtbtblcraEbubYcwbtbtbtbuaKaKaKaKaKaKaKaKaqaqaqaqaqaq
 aqaqaqaqaKaKbicscscscscscscsbjaKbkbkcrblcKcKcKcKcKaJcKcKcKblcraEbucKcKcKcJcKbuaKaKaKaKaKaKaKaKaqaqaqaqaqaq
-aqaqaqaqaKaKbicscscscscscscsdzbzbkbkbWblcJbxcJcKcKblcKcKcKblcrbWbucKcKcKbxcKbuaKaKaKaKaKaKaKaKaqaqaqaqaqaq
+aqaqaqaqaKaKbicscscscscscscsbwbzbkbkbWblcJbxcJcKcKblcKcKcKblcrbWbucKcKcKbxcKbuaKaKaKaKaKaKaKaKaqaqaqaqaqaq
 aqaqaqaqaKaKbicfcfcfcfcfcfcfbiaKakbkbWblcKcKcKcKbXblcKcHcIblaEbWbucHcIcKcJcKbuaKaKaKaKaKaKaKaKaqaqaqaqaqaq
 aqaqaqaqaKaKbicgcgcgcgcgcgcgbiaKakbkbWblblbldGblblblblblblblbWcrbybnbndFbnbnbAaKaKaKaKaKaKaKaKaqaqaqaqaqaq
 aqaqaqaqaKaKbicscscscscscscsbiaKakbkbWcrbWakbkakbWbWaEbWbWaEbWbWaEbWakbkakaEcraKaKaKaKaKaKaKaKaqaqaqaqaqaq
 aqaqaqaqaKaKbicscgcscscscgcsbiaKakbkakakakakbkakakakakakakakakakakakakbkakakakbIbJbJbJbkbkbkaKaqaqaqaqaqaq
 aqaqaqaqaKaKbicgcjcgcscgcjcgbjaKakbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkaKaKaKaKbkbNbkaKaqaqaqaqaqaq
-aqaqaqaqaKaKbicscgcscscscgcsbwbzbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbIbJbJbJbkbkbkaKaqaqaqaqaqaq
+aqaqaqaqaKaKbicscgcscscscgcscdbzbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbkbIbJbJbJbkbkbkaKaqaqaqaqaqaq
 aqaqaqaqaKaKbicscscscscscscsbiaKbWbWbObkbWcraEaEbWbWcrbWbWbWakakakakbkbkakakakaKaKaKaKaKaKaKaKaqaqaqaqaqaq
 aqaqaqaqaKaKbibXcscscscscsbCbiaKbmbnbncKbnbnbnbDbnbnbnbnbpaEakbQbQbQbkbkbQbQbQaKaKaKaKaKaKaKaKaqaqaqaqaqaq
 aqaqaqaqaKaKbibjbjbjbEbjbjbjbiaKbucKcfcKcKcKcKdEcKcKbsbsbubWakbQbkbkbkbkbkbkbQaKaKaKaKaKaKaKaKaqaqaqaqaqaq
@@ -306,59 +308,59 @@ aqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaqaq
 "}
 
 (1,1,3) = {"
-ahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahah
-ahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahah
-ahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahah
-ahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahah
-ahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahah
-ahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahah
-ahahahahahahahasasasasasasasasasasasasasasasasasasasasasasasasasasasasasahahahasasasasasasasasahahahahahah
-ahahahahahahahasasaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPasasahahahasasaPaPaPaPasasahahahahahah
-ahahahahahahahasasaVaVaVaVaVaVaVaVaVaVaVbcbcbcbcaVaVaVaVaVaVaVaVaVaVasasahahahasasaVaVaVboasasahahahahahah
-ahahahahahahahasasaVaVaVaVaVbcbcaVaVaVaVaVaVaVaVaVaVaVaVbcbcbcaVaVaVasasahahahasasaVaVaVaVasasahahahahahah
-ahahahahahahahasasaVaVasasasasasasasasasasasasasasasaVaVasasasasbcaVasasasasasasasaVaVasasasasahahahahahah
-ahahahahahahahasasaVaVasasaPaPaPaPaPaPaPaPaPaPaPasasaVaVasasasasbcaVaPaPaPaPaPaPaPaVbcasasaPaPahahahahahah
-ahahahahahahahasasaVaVasasahahahahahahahahahahahasasaVaVasasasasaVaVaVaVaVaVaVaVaVaVbcasasahahahahahahahah
-ahahahahahahahasasaVaVasasasasasasasasasasahahahasasbcbFasasasasaVaVaVaVaVaVaVaVaVaVbcasasahahahahahahahah
-ahahahahahahahasasaVaVaPaPaPaPaPaPaPaPasasahahahasasbcbGasasasasasasasasaVaVasasasasasasasahahahahahahahah
-ahahahahahahahasasaVaVaVaVaVaVaVaVaVaVasasahahahasasbcbGasasaPaPasasasasaVaVasasaPaPaPaPaPahahahahahahahah
-ahahahahahahahasasaVaVaVaVaVaVaVaVaVaVasasahasasasasbcbGasasahahasasasasbcaVasasahahahahahahahahahahahahah
-ahahahahahahahasasasasasasasasasasaVaVasasahasasaPaPbcbGasasahahasasaPaPbcaVasasahahahahahahahahahahahahah
-ahahahahahahahasasasasasasasasasasaVaVasasahasasaVbHbHaVasasahahasasbcbcbcaVasasahahahahahahahahahahahahah
-ahahahahahahahasasasasasasasasasasaVaVasasahasasbGbcbcbcasasahahasasaVaVaVaVasasahahahahahahahahahahahahah
-ahahahahahahahasasaPaPaPaPaPaPaPaPaVaVasasahasasbGbcasasasasahahasasaVaVaVaVasasahahahahahahahahahahahahah
-ahahahahahahahasasbcaVaVbcbcaVaVaVaVaVasasahasasbKbcasasaPaPahahasasbcaVaVaVasasahahahahahahahahahahahahah
-ahahahahahahahasasbcbcaVaVaVaVaVaVaVaVasasahasasasasasasahahahahasasbcaVaVbcasasahahahahahahahahahahahahah
-ahahahahahahahasasasasasasasasaVaVasasasasahaPaPaPaPaPaPahahahahasasbcaVbcbcasasahahahahahahahahahahahahah
-ahahahahahahahaPaPaPaPaPaPasasaVaVasasaPaPahahahahahahahahahahahasasasasasasasasahahahahahahahahahahahahah
-ahahahahahahahahahahahahahasasaVaVasasahahahahahahahahahahahahahaPaPaPaPaPaPaPaPahahahahahahahahahahahahah
-ahahahahahahahahahahahahahbLbLbPbPbLbLahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahah
-ahahahahahahbLbRbRbRbRbRbLbRbRbPbPbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbLbRbRbRbRbRbRbRbRbRbRbRbRbRbLagahahahahah
-ahahahahahahbLbTbUczczcAbRbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbLcBcBcBcBcBcBcBcBcBcBcBcBcBbLagahahahahah
-ahahahahahahbLbPbPbPbPbPdKbPbPbPbPbPbPcFcFcFcFcFcFcFcFcFcFbPbPbPbLbPcGcGcGcAcMcMcMcAcGcGcGbPbLagahahahahah
-ahahahahahahbLbPbPbPbPbPbLbPbPbPbPbPbLbRbRbRbRbRbRbRbRbRbRbLbPbPbLbPbPbPbPbPcMcNcMbPbPbPbPbPbLagahahahahah
-ahahahahahahbLcOcPbPcOcPbLbPbPbPbPbPbLcQcQcQcQcQcQcQcQcQcQbLbPbPbLbPbPbPbPbPcNcNcNbPbPbPbPbPbLagahahahahah
-ahahahahahahbLbRbRbRbRbRbLbPbPbPbPbPbLcQcQcQcQcQcQcQcQcQcQbLbPbPbLbPcFbPbPcRcNcNcNcRbPbPcFbPbLagahahahahah
-ahahahahahahbLbTbUczczcAbRbPbPbPbPbPaecQcQcQcQcQcQcQcQcQcQaebPbPbLcFcTcFbPcUcNcNcNcUbPcFcTcFbLagahahahahah
-ahahahahahahbLbPbPbPbPbPdJbPbPbPbPbPbLcQcQcQcQcQcQcQcQcQcQbLbPbPbLbPcFbPbPbPcNcNcNbPbPbPcFbPbLagahahahahah
-ahahahahahahbLbPbPbPbPbPbLbPbPbPbPbPbLcQcQcQcQcQcQcQcQcQcQbLbPbPbLbPbPbPbPbPcNcNcNbPbPbPbPbPbLagahahahahah
-ahahahahahahbLcOcPbPcOcPbLbPbPbPbPbPbLcQcQcQcQcQcQcQcQcQcQbLbPbPbRbRbRbRbRbRcNcNcNbRbRbRbRbRbLagahahahahah
-ahahahahahahbLbRbRbRbRbRbRbPbPbPbPbPbRbRbRbRbRbRbRbRbRbRbRbRbPbPbPbPbPbPbPbPcNcNcNbPbPbPbPbPbLagahahahahah
-ahahahahahahbLbPbPbPbPbPbPbPbPbPbPbPbPcFcFcFcFcFcFcFcFcFcFbPbPbPbPbPbPbPbPbPcNcNcNbPbPbPbPbPbLagahahahahah
-ahahahahahahbLbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPcNcNcNbPbPbPbPbPbLagahahahahah
-ahahahahahahbLbRbRdIbRbRbLbRbRdIbRbRbLbRbRdIbRbRbLbRbRdHbRbRbLbPbPbPbPbPbLbRbRbRbRbRbRbRbRbRbLagahahahahah
-ahahahahahahbLcWbPbPbPbPbLcWbPbPbPbPbLcWbPbPbPbPbLczczbPbPbPbLbPbPbPbPbPbLcRcGcGcMcMcMcGcGcRbLagahahahahah
-ahahahahahahbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPbPbPbLcUbPbPcMbPcMbPbPcUbLagahahahahah
-ahahahahahahbLbPbPbPbPbPbLbPbPbPbPbPbLbPbPbPbPbPbLbPbPbPbPbPbLbPbPbPbPbPbLbPcFcFbPbPbPcFcFbPbLagahahahahah
-ahahahahahahbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPbPbPcVcFcXcYcFbPcFcXcYcFbLagahahahahah
-ahahahahahahbLbTbPbPbPbPbLbTbPbPbPbPbLbTbPbPbPbPbLcGcGbPbPbPbLbPbPbPbPbPbLbPcFcFbPbPbPcFcFbPbLagahahahahah
-ahahahahahahbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRagahahahahah
-ahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahah
-ahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahah
-ahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahah
-ahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahah
-ahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahah
-ahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahahah
+agagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagag
+agagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagag
+agagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagag
+agagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagag
+agagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagag
+agagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagag
+agagagagagagagasasasasasasasasasasasasasasasasasasasasasasasasasasasasasagagagasasasasasasasasagagagagagag
+agagagagagagagasasaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPaPasasagagagasasaPaPaPaPasasagagagagagag
+agagagagagagagasasaVaVaVaVaVaVaVaVaVaVaVbcbcbcbcaVaVaVaVaVaVaVaVaVaVasasagagagasasaVaVaVboasasagagagagagag
+agagagagagagagasasaVaVaVaVaVbcbcaVaVaVaVaVaVaVaVaVaVaVaVbcbcbcaVaVaVasasagagagasasaVaVaVaVasasagagagagagag
+agagagagagagagasasaVaVasasasasasasasasasasasasasasasaVaVasasasasbcaVasasasasasasasaVaVasasasasagagagagagag
+agagagagagagagasasaVaVasasaPaPaPaPaPaPaPaPaPaPaPasasaVaVasasasasbcaVaPaPaPaPaPaPaPaVbcasasaPaPagagagagagag
+agagagagagagagasasaVaVasasagagagagagagagagagagagasasaVaVasasasasaVaVaVaVaVaVaVaVaVaVbcasasagagagagagagagag
+agagagagagagagasasaVaVasasasasasasasasasasagagagasasbcbFasasasasaVaVaVaVaVaVaVaVaVaVbcasasagagagagagagagag
+agagagagagagagasasaVaVaPaPaPaPaPaPaPaPasasagagagasasbcbGasasasasasasasasaVaVasasasasasasasagagagagagagagag
+agagagagagagagasasaVaVaVaVaVaVaVaVaVaVasasagagagasasbcbGasasaPaPasasasasaVaVasasaPaPaPaPaPagagagagagagagag
+agagagagagagagasasaVaVaVaVaVaVaVaVaVaVasasagasasasasbcbGasasagagasasasasbcaVasasagagagagagagagagagagagagag
+agagagagagagagasasasasasasasasasasaVaVasasagasasaPaPbcbGasasagagasasaPaPbcaVasasagagagagagagagagagagagagag
+agagagagagagagasasasasasasasasasasaVaVasasagasasaVbHbHaVasasagagasasbcbcbcaVasasagagagagagagagagagagagagag
+agagagagagagagasasasasasasasasasasaVaVasasagasasbGbcbcbcasasagagasasaVaVaVaVasasagagagagagagagagagagagagag
+agagagagagagagasasaPaPaPaPaPaPaPaPaVaVasasagasasbGbcasasasasagagasasaVaVaVaVasasagagagagagagagagagagagagag
+agagagagagagagasasbcaVaVbcbcaVaVaVaVaVasasagasasbKbcasasaPaPagagasasbcaVaVaVasasagagagagagagagagagagagagag
+agagagdMagagagasasbcbcaVaVaVaVaVaVaVaVasasagasasasasasasagagagagasasbcaVaVbcasasagagagagagagagagagagagagag
+agagagagagagagasasasasasasasasaVaVasasasasagaPaPaPaPaPaPagagagagasasbcaVbcbcasasagagagagagagagagagagagagag
+agagagagagagagaPaPaPaPaPaPasasaVaVasasaPaPahahahahahahahagagagagasasasasasasasasagagagagagagagagagagagagag
+agagagagagagagagagagagagagasasaVaVasasagagagagagagagagagagagagagaPaPaPaPaPaPaPaPagagagagagagagagagagagagag
+agagagagagagagagagagagagagbLbLbPbPbLbLagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagag
+agagagagagagbLbRbRbRbRbRbLbRbRbPbPbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbLbRbRbRbRbRbRbRbRbRbRbRbRbRbLdzagagagagag
+agagagagagagbLbTbUczczcAbRbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbLcBcBcBcBcBcBcBcBcBcBcBcBcBbLdzagagagagag
+agagagagagagbLbPbPbPbPbPdKbPbPbPbPbPbPcFcFcFcFcFcFcFcFcFcFbPbPbPbLbPcGcGcGcAcMcMcMcAcGcGcGbPbLdzagagagagag
+agagagagagagbLbPbPbPbPbPbLbPbPbPbPbPbLbRbRbRbRbRbRbRbRbRbRbLbPbPbLbPbPbPbPbPcMcNcMbPbPbPbPbPbLdzagagagagag
+agagagagagagbLcOcPbPcOcPbLbPbPbPbPbPbLaeaeaeaeaeaeaeaeaeaebLbPbPbLbPbPbPbPbPcNcNcNbPbPbPbPbPbLdzagagagagag
+agagagagagagbLbRbRbRbRbRbLbPbPbPbPbPbLaeaeaeaeaeaeaeaeaeaebLbPbPbLbPcFbPbPcRcNcNcNcRbPbPcFbPbLdzagagagagag
+agagagagagagbLbTbUczczcAbRbPbPbPbPbPcQaeaeaeaeaeaeaeaeaeaecQbPbPbLcFcTcFbPcUcNcNcNcUbPcFcTcFbLdzagagagagag
+agagagagagagbLbPbPbPbPbPdJbPbPbPbPbPbLaeaeaeaeaeaeaeaeaeaebLbPbPbLbPcFbPbPbPcNcNcNbPbPbPcFbPbLdzagagagagag
+agagagagagagbLbPbPbPbPbPbLbPbPbPbPbPbLaeaeaeaeaeaeaeaeaeaebLbPbPbLbPbPbPbPbPcNcNcNbPbPbPbPbPbLdzagagagagag
+agagagagagagbLcOcPbPcOcPbLbPbPbPbPbPbLaeaeaeaeaeaeaeaeaeaebLbPbPbRbRbRbRbRbRcNcNcNbRbRbRbRbRbLdzagagagagag
+agagagagagagbLbRbRbRbRbRbRbPbPbPbPbPbRbRbRbRbRbRbRbRbRbRbRbRbPbPbPbPbPbPbPbPcNcNcNbPbPbPbPbPbLdzagagagagag
+agagagagagagbLbPbPbPbPbPbPbPbPbPbPbPbPcFcFcFcFcFcFcFcFcFcFbPbPbPbPbPbPbPbPbPcNcNcNbPbPbPbPbPbLdzagagagagag
+agagagagagagbLbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPbPcNcNcNbPbPbPbPbPbLdzagagagagag
+agagagagagagbLbRbRdIbRbRbLbRbRdIbRbRbLbRbRdIbRbRbLbRbRdHbRbRbLbPbPbPbPbPbLbRbRbRbRbRbRbRbRbRbLdzagagagagag
+agagagagagagbLcWbPbPbPbPbLcWbPbPbPbPbLcWbPbPbPbPbLczczbPbPbPbLbPbPbPbPbPbLcRcGcGcMcMcMcGcGcRbLdzagagagagag
+agagagagagagbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPbPbPbLcUbPbPcMbPcMbPbPcUbLdzagagagagag
+agagagagagagbLbPbPbPbPbPbLbPbPbPbPbPbLbPbPbPbPbPbLbPbPbPbPbPbLbPbPbPbPbPbLbPcFcFbPbPbPcFcFbPbLdzagagagagag
+agagagagagagbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPcOcPbLbPbPbPbPbPcVcFcXcYcFbPcFcXcYcFbLdzagagagagag
+agagagagagagbLbTbPbPbPbPbLbTbPbPbPbPbLbTbPbPbPbPbLcGcGbPbPbPbLbPbPbPbPbPbLbPcFcFbPbPbPcFcFbPbLdzagagagagag
+agagagagagagbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRbRdzagagagagag
+agagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagag
+agagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagag
+agagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagag
+agagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagag
+agagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagag
+agagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagagag
 "}
 
 (1,1,4) = {"
@@ -372,7 +374,7 @@ dbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdb
 dbdbdbdbdbdbaMaNaNaNaNaNaNaNaNaNaNaNaNaNaNaMaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDaDawdbdbdbdbdbdbdb
 dbdbdbdbdbdbaMbVceclclbZcabZbZcbcbcbbZbZcmaMamamamamamamamamamamamamalbWaEbWbWaEbWbWaEaEaTawdbdbdbdbdbdbdb
 dbdbdbdbdbdbaMbZbZbZbZbZcncobZbZbZbZbZbZbZaMamaEaEaEaEamamaEaEaEaEamabacacacacacacabacacacabdbdbdbdbdbdbdb
-dbdbdbdbdbdbaMbZbZbZbZbZcncobZbZbZbZbZbZbZaMamaEcucuaEamamaEcucuaEamacananbYcwcwcwabcsaoaCabdbdbdbdbdbdbdb
+dbdbdbdbdbdbaMbZdNbZdNbZcncobZbZbZbZbZbZbZaMamaEcucuaEamamaEcucuaEamacananbYcwcwcwabcsaoaCabdbdbdbdbdbdbdb
 dbdbdbdbdbdbaMcncncncncncncobZbZbZbZbZcobZaMamaEcucuaEamamaEcucuaEamdyaoaoaoaoaoaoabcsaoaoabdbdbdbdbdbdbdb
 dbdbdbdbdbdbaMcocococococobZbZbZbZbZcocpcoaMamaEcucuaEamamaEcucuaEamabaoaoaoaoaoaoabcsaoaoabdbdbdbdbdbdbdb
 dbdbdbdbdbdbaMbZbZbZbZbZbZbZbZbZbZbZbZcobZaMamaEcucuaEamamaEcucuaEamabaocgcgaoaoaoacacajacabdbdbdbdbdbdbdb
