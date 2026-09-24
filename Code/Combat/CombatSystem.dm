@@ -470,6 +470,11 @@ mob/proc
                 break
 
         if(!M || M.HP <= 0) return
+        // A normal swing can't reach a mob sharing your tile (stacked after a Jump/
+        // Quakejump landing) -- including a locked target that moved underneath you
+        // mid-windup. Area attacks (AoE spells, Club's spin, Quakejump's ring) don't
+        // come through here and still hit.
+        if(M.loc == loc) return
 
         var/mult = S ? S.damage_multiplier : 1
         ResolvePhysicalHit(M, mult)
@@ -561,10 +566,13 @@ mob/proc
         return delay
 
 // get_dist()/step_to() use Chebyshev distance (diagonal counts as adjacent), but this
-// game is 4-directional only — true only when exactly one axis differs.
+// game is 4-directional only — true only when exactly one axis differs. The SAME tile
+// doesn't count: a mob stacked on another (a Jump/Quakejump landing) isn't in melee
+// range of it, so the AI moves off instead of swinging from underneath.
 proc/IsCardinallyAdjacent(atom/A, atom/B, range=1)
     var/dx = abs(A.x - B.x)
     var/dy = abs(A.y - B.y)
+    if(!dx && !dy) return FALSE
     return (dx <= range && dy == 0) || (dx == 0 && dy <= range)
 
 // Whether a tile stops a spell/hazard from occupying it. A dense turf blocks on its own

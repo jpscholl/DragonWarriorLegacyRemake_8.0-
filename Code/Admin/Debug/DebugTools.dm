@@ -165,6 +165,69 @@ mob
             var/placed = SpawnHazardBlob(usr.loc, /obj/hazard_field/flame, 1, null, 20, "fire", 80)
             usr.ShowInfo("Spawned [placed] flame tile(s). Stand in one to take burn damage.")
 
+        // Lays out training dummies for testing Quakejump: one on the tile in front of
+        // you (where a plain Quakejump lands) and one on every tile around it except the
+        // one you're standing on -- 8 in all, so a single landing hits and shoves the
+        // whole ring. Occupied/blocked tiles are skipped. Leave room behind the ring,
+        // or the shoves have nowhere to go.
+        Test_SpawnDummyRing()
+            set category = "Debug"
+            if(!usr.RequireBuilder()) return
+            if(!usr.RequireCanAct()) return
+
+            var/turf/center = get_step(usr, usr.dir)
+            if(!center)
+                usr.ShowInfo("No room in front of you.")
+                return
+            var/placed = 0
+            for(var/turf/T in list(center) + GetRingTurfs(center))
+                if(T == usr.loc || IsTileOccupied(T)) continue
+                new /mob/enemy/training_dummy(T)
+                placed++
+            usr.ShowInfo("Spawned [placed] training dummies. Test_ClearDummies removes them.")
+
+        Test_ClearDummies()
+            set category = "Debug"
+            if(!usr.RequireBuilder()) return
+            var/removed = 0
+            for(var/mob/enemy/training_dummy/D in world)
+                del D
+                removed++
+            usr.ShowInfo("Removed [removed] training dummies.")
+
+// The 8 tiles around T (null edges of the map dropped).
+proc/GetRingTurfs(turf/T)
+    var/list/ring = list()
+    for(var/d in list(NORTH, NORTHEAST, EAST, SOUTHEAST, SOUTH, SOUTHWEST, WEST, NORTHWEST))
+        var/turf/R = get_step(T, d)
+        if(R) ring += R
+    return ring
+
+// A punching bag for testing skills (Quakejump's shove especially) against something
+// that survives more than one hit. Never acts on its own -- no AI at all, so it can't
+// wander off, chase, flee or fight back; it only moves when something shoves it. Never
+// dodges (0 Agility), shrugs off nothing (0 Vitality), and pays out nothing, so it
+// can't be farmed. Also spawnable from GM_MakeMob.
+mob/enemy/training_dummy
+    name = "Training Dummy"
+    icon = 'slime.dmi'
+    icon_state = "world"
+    Level = 1
+    HP = 99999
+    MaxHP = 99999
+    Strength = 0
+    Agility = 0
+    Vitality = 0
+    Intelligence = 0
+    Spirit = 0
+    expReward = 0
+    goldReward = 0
+    fleeHealthPercent = 0
+    wanderChance = 0
+
+    RunWildAI()
+        return  // no brain -- stays exactly where it's put (or shoved)
+
 // GetPixel() returns "#rrggbb" (or "#rrggbbaa") — zoneDefaults (PlayerIconColorPalette.dm)
 // entries are written as rgb(r,g,b) literals, so this converts to that exact format,
 // copy-pasteable straight into an icon's zoneDefaults with no manual hex math.

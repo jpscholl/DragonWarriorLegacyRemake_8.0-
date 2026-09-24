@@ -366,12 +366,17 @@ mob/enemy
 			// to a full second) — checking HP here too stops the corpse immediately.
 			if(HP <= 0)
 				return
-			// Sharing a tile with another mob (a Quakejump landed on it) -- get out
-			// from under before anything else. Takes priority over intent: the AI's
-			// adjacency check counts the same tile as "in melee range", so without this
-			// a monster would stand still and swing at the player from underneath.
-			if(IsStacked())
-				StepOffStack()
+			// Something mid-Jump is passing over or landing on this tile -- hold still
+			// until it's fully down. Stepping away while it was still in the air read
+			// as the jump shoving the monster forward.
+			if(AirborneOverhead())
+				;
+			// Sharing a tile with a landed mob (Jump/Quakejump came down on it). A
+			// monster that's fighting gets out from under before anything else, so it
+			// can square up and attack -- a normal swing can't reach its own tile
+			// (PerformMeleeHit()). An idle one just lets the jumper stand on it.
+			else if(IsStacked())
+				if(IsFighting()) StepOffStack()
 			else if(moveTowardAtom && moveIntent != ENEMY_MOVE_NONE)
 				// Hard leash, checked every tick (not just on the next slower AI
 				// decision) — a fleeing enemy steps continuously here the whole second
@@ -383,10 +388,22 @@ mob/enemy
 			sleep(world.tick_lag)
 
 	// TRUE if another solid mob stands on this same tile.
+	// TRUE if another solid mob has LANDED on this same tile (one still in the air
+	// doesn't count -- see AirborneOverhead()).
 	proc/IsStacked()
 		for(var/mob/M in loc)
-			if(M != src && M.density && M.HP > 0) return TRUE
+			if(M != src && M.density && M.HP > 0 && !M.isAirborne) return TRUE
 		return FALSE
+
+	proc/AirborneOverhead()
+		for(var/mob/M in loc)
+			if(M != src && M.isAirborne) return TRUE
+		return FALSE
+
+	// Actively after someone: a wild monster with a target, or an Aggressive pet
+	// with a hunt target.
+	proc/IsFighting()
+		return target || huntTarget
 
 	// One step to any open side, tried in random order so a stack of monsters doesn't
 	// all file out the same way. Rate-limited like any step (Step()), so a failed or
@@ -472,6 +489,7 @@ mob/enemy
 	// Simple random idle movement. Stays on the slower AILoop() cadence, not
 	// MovementLoop() — wandering is occasional idle steps, not continuous movement.
 	proc/Wander()
+		if(AirborneOverhead()) return  // someone's landing on us -- don't read as a shove
 		if(prob(wanderChance))
 			Step(pick(NORTH, SOUTH, EAST, WEST))
 

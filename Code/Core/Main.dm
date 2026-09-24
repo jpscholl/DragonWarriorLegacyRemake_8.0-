@@ -402,10 +402,23 @@ mob
 
     step_size = 32
 
+    // The one exception to the no-diagonals rule: a forced shove (KnockBack(),
+    // SkillCatalog.dm -- Quakejump's ring pushes its corner tiles diagonally). Set for
+    // that single Move() only; nothing a player or monster does on its own sets it.
+    var/tmp/allowDiagonalMove = FALSE
+
+    // Set by PerformHop() (SkillCatalog.dm) while a jumper is lifted above other mobs;
+    // null otherwise. The first real move after landing puts the layer back.
+    var/tmp/layerBeforeHop = null
+
     Move(loc, dir = 0)
-        if(dir in DIAGONAL_DIRS)
+        if((dir in DIAGONAL_DIRS) && !allowDiagonalMove)
             return
-        return ..()
+        . = ..()
+        // Not while still in the air -- the hop's own glide steps come through here.
+        if(. && !isAirborne && !isnull(layerBeforeHop))
+            layer = layerBeforeHop
+            layerBeforeHop = null
 
 // -------------------- Temporary Player (Login Phase) --------------------
 mob/playerTemp

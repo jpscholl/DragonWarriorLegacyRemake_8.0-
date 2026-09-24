@@ -255,12 +255,12 @@ datum/skill/Club
 
     proc/Spin(mob/user, wasDefending, mySession)
         set waitfor = 0
+        PlaySFXAt(user, istype(user, /mob/enemy) ? 'enemyattack.wav' : 'attack.wav', base = 60)  // once for the whole spin
         for(var/side = 1 to 4)
             if(!user || user.isDead) return
             user.animAlternate = !user.animAlternate  // handed portraits alternate hands
             var/attackState = user.ResolveAnimState("attack")
             if(attackState) user.icon_state = attackState
-            PlaySFXAt(user, istype(user, /mob/enemy) ? 'enemyattack.wav' : 'attack.wav', base = 60)
             user.PlaySkillFX(src, get_step(user, user.dir), spinStepDelay)
             user.PerformMeleeHit(src)  // no locked target -- whoever's on this side
             sleep(spinStepDelay)
@@ -280,13 +280,17 @@ datum/skill/IronClaw
     damage_multiplier = 1.2
 
 // Utility, not an attack (user's design, 2026-09-24 -- the OG mechanics aren't
-// recoverable): a hop one tile forward, airborne for JUMP_AIR_TIME. Anything aimed at
+// recoverable): a hop one tile forward -- two if you're still holding that direction
+// at the top of the arc (PerformHop()) -- airborne for JUMP_AIR_TIME. Anything aimed at
 // the jumper while airborne misses (TakeDamage(), CombatSystem.dm) and ground fire
 // can't touch them (HazardFields.dm) -- that's the point: jump out of an attack. With
-// the tile ahead blocked, it's a hop in place, still a dodge. No spells.dmi art exists
+// a wall or solid object ahead, it's a hop in place, still a dodge. A mob ahead is no
+// obstacle: you go over it and land on top (the monster steps out from under you --
+// StepOffStack(), EnemyNPCs.dm). No spells.dmi art exists
 // for it; the hop itself is the animation.
 #define JUMP_AIR_TIME 4   // deciseconds airborne -- invented, tune by feel
 #define JUMP_HEIGHT 12    // pixels at the top of the arc -- invented
+#define JUMP_LAYER_LIFT 0.2  // how far above other mobs a jumper draws (MOB_LAYER is 4)
 
 datum/skill/Jump
     parent_type = /datum/skill/GenericPhysical
@@ -302,7 +306,7 @@ datum/skill/Jump
         var/mySession = user.defendToggleSession
         var/wasDefending = user.DropDefendForAction()
 
-        if(!user.PerformHop()) return  // died in the air
+        if(!user.PerformHop(ontoMobs = TRUE, allowExtend = TRUE)) return  // died in the air
 
         user.next_step = world.time  // free to walk the moment you land
         user.canAct = TRUE
@@ -315,32 +319,61 @@ datum/skill/Jump
 // ontoMobs lets the landing tile hold a mob -- Quakejump comes down ON the enemy it's
 // hitting. Walls, doors and solid objects still block either way. Synchronous; returns
 // FALSE if the jumper died in the air.
-mob/proc/PerformHop(ontoMobs = FALSE)
+//
+// allowExtend (Jump only): still holding the jump's direction at the top of the arc
+// carries the hop one tile further. Each tile glides over one half of the arc, so a
+// plain hop covers its tile on the way up and comes straight down onto it, while an
+// extended one keeps moving through the fall.
+mob/proc/PerformHop(ontoMobs = FALSE, allowExtend = FALSE)
     var/jumpDir = dir
-    var/turf/landing = get_step(src, jumpDir)
-    if(landing && (ontoMobs ? IsTurfBlocked(landing) : IsTileOccupied(landing)))
-        landing = null  // hop in place instead
+    var/baseY = pixel_y
+    var/halfAir = JUMP_AIR_TIME / 2
 
     isAirborne = TRUE
-    var/baseY = pixel_y
-    if(landing)
-        // One ordinary step, glided across the whole time in the air. Non-dense for
-        // that one step so it can come down on a mob; the landing was already checked
-        // for walls above, which a non-dense mover would otherwise pass through too.
-        var/wasDense = density
-        if(ontoMobs) density = FALSE
-        glide_size = TILE_WIDTH / JUMP_AIR_TIME * world.tick_lag
-        if(step(src, jumpDir) && client && client.camera)
-            client.camera.TrackTarget(src)
-        density = wasDense
-    animate(src, pixel_y = baseY + JUMP_HEIGHT, time = JUMP_AIR_TIME / 2, easing = SINE_EASING | EASE_OUT)
-    animate(pixel_y = baseY, time = JUMP_AIR_TIME / 2, easing = SINE_EASING | EASE_IN)
-    sleep(JUMP_AIR_TIME)
+    // Drawn above every other mob for the whole hop, and still on top of whoever it
+    // lands on -- mobs sharing a layer on one tile draw in no fixed order, and the
+    // jumper kept ending up underneath. mob/Move() (Main.dm) restores the layer on the
+    // first move after landing.
+    if(isnull(layerBeforeHop)) layerBeforeHop = layer
+    layer = layerBeforeHop + JUMP_LAYER_LIFT
+    animate(src, pixel_y = baseY + JUMP_HEIGHT, time = halfAir, easing = SINE_EASING | EASE_OUT)
+    animate(pixel_y = baseY, time = halfAir, easing = SINE_EASING | EASE_IN)
+
+    HopStep(jumpDir, ontoMobs, halfAir)  // blocked = a hop in place
+    sleep(halfAir)
+
+    if(src && allowExtend && !isDead && client && client.move_dir == jumpDir)
+        HopStep(jumpDir, ontoMobs, halfAir)
+    sleep(halfAir)
 
     if(!src) return FALSE
     isAirborne = FALSE
     pixel_y = baseY
+    if(!SharesTileWithMob())  // landed clear of everyone -- nothing to stay on top of
+        layer = layerBeforeHop
+        layerBeforeHop = null
     return !isDead
+
+mob/proc/SharesTileWithMob()
+    for(var/mob/M in loc)
+        if(M != src) return TRUE
+    return FALSE
+
+// One airborne tile of a hop, glided over glideTime. Returns whether it moved.
+// Non-dense for that one step so it can come down on a mob (ontoMobs); walls and solid
+// objects are checked first, since a non-dense mover would pass through those too.
+mob/proc/HopStep(hopDir, ontoMobs, glideTime)
+    var/turf/T = get_step(src, hopDir)
+    if(!T || (ontoMobs ? IsTurfBlocked(T) : IsTileOccupied(T))) return FALSE
+
+    var/wasDense = density
+    if(ontoMobs) density = FALSE
+    glide_size = TILE_WIDTH / glideTime * world.tick_lag
+    var/moved = step(src, hopDir)
+    density = wasDense
+    if(moved && client && client.camera)
+        client.camera.TrackTarget(src)
+    return moved
 
 // TRUE if a mob or anything else solid stands on T, or T itself is a wall/door.
 proc/IsTileOccupied(turf/T)
@@ -354,14 +387,23 @@ proc/IsTileOccupied(turf/T)
 // CombatSystem.dm). You reappear on a step, on using any ability (this one included),
 // on a landed hit, or on taking damage of any kind -- see Unhide() for every trigger.
 // Area hits can still find you by accident, and they reveal you.
+#define HIDE_TOGGLE_COOLDOWN 10  // deciseconds between toggles -- invented
+
 datum/skill/Hide
     parent_type = /datum/skill/GenericPhysical
     skillName = "Hide"
     damage_multiplier = 0  // never hits anything
     // No fx_state — Hide isn't a strike, so there's nothing to flash.
 
+    // Holding the key down auto-repeats it, which flickered Hide on/off/on. Same fix as
+    // Defend's DEFEND_TOGGLE_COOLDOWN (SkillDatum.dm), just longer: hiding is a
+    // deliberate act, not a stance you tap in and out of mid-fight.
+    var/lastToggleTime = -1#INF  // per player -- each has their own datum
+
     OnUse(mob/user, mob/target = null)
         // Utility, not combat -- usable anywhere, peaceful areas included (like heals/Return).
+        if(world.time - lastToggleTime < HIDE_TOGGLE_COOLDOWN) return
+        lastToggleTime = world.time
         if(user.isHidden)
             user.Unhide()  // using an ability reveals you -- Hide itself included
             return
@@ -487,7 +529,8 @@ datum/skill/Morningstar
 
 // Utility, not an attack (user's design, 2026-09-24): the "dash" speed lines play on
 // the tile you start from while you're carried forward fast, up to DASH_DISTANCE
-// tiles, stopping early at anything solid.
+// tiles, stopping early at walls and objects. Mobs in the way get shoved ahead of the
+// dash rather than stopping it (see the loop below).
 #define DASH_DISTANCE 3        // tiles -- invented, tune by feel
 #define DASH_STEP_DELAY 0.5    // deciseconds per tile -- invented; a normal walk step is 1.36
 
@@ -510,6 +553,15 @@ datum/skill/Dash
 
         user.glide_size = TILE_WIDTH / DASH_STEP_DELAY * world.tick_lag
         for(var/i = 1 to DASH_DISTANCE)
+            // Plow into a mob and shove it one tile ahead, then carry on into the
+            // space it left -- so a dash can bulldoze someone along. Only mobs you
+            // could hurt (CanHarm(): coop keeps players from shoving allies into lava).
+            // A mob that can't be shoved (wall or another mob behind it) stops the dash.
+            var/turf/next = get_step(user, dashDir)
+            if(next && !IsTurfBlocked(next))
+                for(var/mob/M in next.contents.Copy())
+                    if(M.density && M.HP > 0 && user.CanHarm(M))
+                        M.KnockBack(dashDir, DASH_STEP_DELAY)
             if(!step(user, dashDir)) break  // hit something solid -- stop there
             if(user.client && user.client.camera)
                 user.client.camera.TrackTarget(user)
@@ -521,7 +573,8 @@ datum/skill/Dash
         user.RestoreDefendIfUntouched(wasDefending, mySession)
 
 // User's design (2026-09-24): Jump's hop, landing as an attack. You come down one tile
-// forward -- onto an enemy standing there, if there is one -- and:
+// forward (two if still holding that direction at the top of the arc, same as Jump) --
+// onto an enemy standing there, if there is one -- and:
 //   - the landing tile takes full damage at a high crit chance,
 //   - the 8 tiles around it take QUAKEJUMP_RING_DAMAGE_PERCENT of that and whoever is
 //     hit gets shoved one tile straight outward (the NE tile's mob goes NE, etc).
@@ -529,6 +582,7 @@ datum/skill/Dash
 // drawn on its own tile so together they read as a ring around the landing.
 #define QUAKEJUMP_CENTER_CRIT_PERCENT 75   // invented -- "high chance" on the landing tile
 #define QUAKEJUMP_RING_DAMAGE_PERCENT 50   // invented -- ring hits for half
+#define QUAKEJUMP_RING_DURATION SKILL_FX_DURATION  // how long the ring shows -- the jumper stays rooted this long
 
 datum/skill/Quakejump
     parent_type = /datum/skill/GenericPhysical
@@ -544,12 +598,14 @@ datum/skill/Quakejump
         var/mySession = user.defendToggleSession
         var/wasDefending = user.DropDefendForAction()
 
-        if(!user.PerformHop(ontoMobs = TRUE)) return  // died in the air
+        // Same extension as Jump: holding the direction at the top of the arc lands a
+        // tile further. The quake always happens wherever you actually come down.
+        if(!user.PerformHop(ontoMobs = TRUE, allowExtend = TRUE)) return  // died in the air
         Quake(user)
 
-        // Recovery: the rest of a normal swing's delay, counting the time already
-        // spent in the air.
-        sleep(max(0, user.GetAttackDelay(src, wasDefending) - JUMP_AIR_TIME))
+        // Rooted until the shockwave ring has fully faded -- or for the rest of a
+        // normal swing's delay (counting the time in the air), if that's longer.
+        sleep(max(QUAKEJUMP_RING_DURATION, user.GetAttackDelay(src, wasDefending) - JUMP_AIR_TIME))
         if(!user || user.isDead) return
         user.next_step = world.time
         user.canAct = TRUE
@@ -574,7 +630,7 @@ datum/skill/Quakejump
             if(!T || IsTurfBlocked(T)) continue  // no shockwave inside a wall
 
             var/fxState = ResolveSkillFXState(fx_state, pushDir)
-            if(fxState) FlashSkillFX(T, fxState, fxDir = pushDir, pixelY = user.pixel_y)
+            if(fxState) FlashSkillFX(T, fxState, QUAKEJUMP_RING_DURATION, fxDir = pushDir, pixelY = user.pixel_y)
 
             // Copy: a successful shove moves M out of T mid-loop.
             for(var/mob/M in T.contents.Copy())
@@ -584,15 +640,18 @@ datum/skill/Quakejump
                 if(landed && M && M.HP > 0)
                     M.KnockBack(pushDir)
 
-// Shoves this mob one tile in pushDir (diagonals included) without turning it around.
+// Shoves this mob one tile in pushDir (diagonals included) without turning it around,
+// glided over glideTime. Used by Quakejump's ring and Dash.
 // Nothing happens when the destination is a wall, a solid object, or already occupied.
 // A real Move(), so hazard terrain at the destination still counts as a step.
-mob/proc/KnockBack(pushDir)
+mob/proc/KnockBack(pushDir, glideTime = JUMP_AIR_TIME)
     var/turf/dest = get_step(src, pushDir)
     if(!dest || IsTileOccupied(dest)) return FALSE
     var/facing = dir
-    glide_size = TILE_WIDTH / JUMP_AIR_TIME * world.tick_lag
+    glide_size = TILE_WIDTH / glideTime * world.tick_lag
+    allowDiagonalMove = TRUE  // mob/Move() (Main.dm) otherwise rejects every diagonal
     var/moved = Move(dest, pushDir)
+    allowDiagonalMove = FALSE
     dir = facing
     if(moved && client && client.camera)
         client.camera.TrackTarget(src)
