@@ -26,6 +26,15 @@ mob/var/mob/firstAttacker = null
 mob/var/isDefending = FALSE
 #define DEFEND_DAMAGE_REDUCTION_PERCENT 50
 
+// Invented, not OG -- chance each LANDED hit (dodges don't count) wakes a mob out of
+// the Sleep spell (StatusEffects.dm). 100 = any hit wakes, 0 = sleeps the full duration.
+// Defined here, not beside SLEEP_DURATION, because this file compiles first.
+#define SLEEP_WAKE_ON_HIT_PERCENT 50
+
+// CombatSide() return values -- see CanHarm() below TakeDamage().
+#define COMBAT_SIDE_PLAYERS  "players"
+#define COMBAT_SIDE_MONSTERS "monsters"
+
 // Bumped whenever isDefending is toggled BY THE PLAYER (Defend.OnUse()) — lets
 // Attack.OnUse() auto-restore a defend stance it dropped mid-swing without stomping a
 // manual toggle that happened in the meantime.
@@ -46,6 +55,14 @@ mob/proc
         if(wasDefending && defendToggleSession == mySession)
             isDefending = TRUE
             icon_state = "defend"
+
+    // Ends the stance for good (lying down in a bed) -- unlike DropDefendForAction(),
+    // nothing auto-resumes it; the player re-raises it with Defend after waking. Bumps
+    // the session even when not currently defending, so an Attack that dropped the
+    // stance mid-swing can't re-raise it on the sleeping mob when its recovery ends.
+    CancelDefend()
+        defendToggleSession++
+        isDefending = FALSE
 
 // OG-confirmed (unsorted.dm:625, hit()): dodgeChance = min(75, round(agility * 0.75)).
 // Only the dodge-chance roll itself is confirmed — hit()'s trace falls into
@@ -96,29 +113,15 @@ mob/proc
     // decide whether a projectile stops here or keeps flying.
     TakeDamage(damage, mob/attacker, isMagic = FALSE, isCrit = FALSE)
         if(HP <= 0) return FALSE
+        if(isGhostform) return FALSE  // also covers attacker-less damage; CanHarm() handles the rest
 
-        // No friendly fire on your own pet, and a pet can't hurt its own owner either
-        // (RunWildAI() already avoids targeting its owner — this is the backstop for
-        // any other path, e.g. a stray AoE).
-        if(istype(src, /mob/enemy))
-            var/mob/enemy/E = src
-            if(E.owner && E.owner == attacker) return FALSE
-
-        if(istype(attacker, /mob/enemy))
-            var/mob/enemy/A = attacker
-            if(A.owner && A.owner == src) return FALSE
-
-        // Coop mode blocks player-vs-player damage unless the target's area allows
-        // PvP (Area.dm's battleAllowsPvP) — separate from GM_BattleMode's monster-
-        // aggro gate (InBattleArea()). GM-tier targets are exempt from the protection.
-        if(istype(src, /mob/player) && istype(attacker, /mob/player))
-            var/mob/player/targetP = src
-            if(!(targetP.client && targetP.client.adminLevel >= LEVEL_GM_HOST))
-                var/turf/pvpTurf = src.loc
-                var/area/pvpArea = pvpTurf ? pvpTurf.loc : null
-                if(!pvpArea || !pvpArea.battleAllowsPvP)
-                    attacker.ShowInfo("Coop mode is active here — you cannot attack other players.")
-                    return FALSE
+        // Friendly fire / coop mode -- see CanHarm() below. Only a direct melee swing
+        // normally gets this far blocked; projectiles, blasts and fire fields already
+        // skip targets CanHarm() rejects before calling in here.
+        if(attacker && !attacker.CanHarm(src))
+            if(istype(attacker, /mob/player) && CombatSide() == COMBAT_SIDE_PLAYERS)
+                attacker.ShowInfo("Coop mode is active here — you cannot attack other players or their pets.")
+            return FALSE
 
         var/isEnemy = istype(src, /mob/enemy)
 
@@ -144,15 +147,76 @@ mob/proc
         ShowCombatNumber(src, "[damage]", isCrit ? "#ffff00" : DAMAGE_NUMBER_COLOR)
         ShowFloatingHPBar()
 
-        // Being hit wakes you up — without this, Sleep was an unbreakable stun for its
-        // full duration.
-        RemoveStatusEffect(/datum/status_effect/sleep)
+        // Being hit MIGHT break the Sleep spell (SLEEP_WAKE_ON_HIT_PERCENT, above) --
+        // a guaranteed wake made Sleep worth one free hit and nothing more, a
+        // guaranteed hold made it a free beating for the whole duration. Bed sleep
+        // always breaks (not OG -- a remake call: nobody naps through a monster
+        // hitting them).
+        if(prob(SLEEP_WAKE_ON_HIT_PERCENT))
+            RemoveStatusEffect(/datum/status_effect/sleep)
+        WakeUp()
 
         if(HP <= 0)
             Die(attacker)
             CleanUpDead()
 
         return TRUE
+
+// -----------------------------
+// Friendly fire / coop mode
+// -----------------------------
+// Two sides: players plus their pets, and wild monsters. Coop mode is per area
+// (Area.dm's battleAllowsPvP, toggled by GM_CoopMode) and judged by the TARGET's area:
+//   Coop ON  (default) -- a side can only hurt the other side.
+//   Coop OFF           -- anyone can hurt anyone: player vs player, pet vs pet, etc.
+// Standing exceptions either way: wild monsters never hurt each other (their spells
+// would otherwise shred their own pack), and a pet and its own owner never hurt each
+// other.
+//
+// Staff on GM rules (UsesGodRules(), AdminLevels.dm) ignore coop completely, in both
+// directions: they can hurt anyone but themselves, and anything can hurt them. Only
+// ghost form protects them. That's for DAMAGE -- AI picking who to chase passes
+// forAI = TRUE and judges a GM like any player, so monsters and pets hit a GM with
+// stray attacks but pets don't go hunting GMs across a coop town.
+//
+// Every damage path asks this one proc -- TakeDamage() here, projectiles
+// (Projectiles.dm), AoE blasts and Sleep/Stopspell (SkillCatalog.dm), and fire fields
+// (HazardFields.dm) -- so the rule can't drift between them the way the old per-file
+// "is it an enemy?" checks did. (COMBAT_SIDE_* are defined at the top of this file.)
+
+mob/proc
+    CombatSide()
+        if(istype(src, /mob/enemy))
+            var/mob/enemy/E = src
+            return E.owner ? COMBAT_SIDE_PLAYERS : COMBAT_SIDE_MONSTERS
+        return COMBAT_SIDE_PLAYERS
+
+    CanHarm(mob/target, forAI = FALSE)
+        if(!target || target == src) return FALSE
+        // GM_GhostForm: untouchable by everything, GM or not, coop or not.
+        if(target.isGhostform) return FALSE
+
+        if(istype(src, /mob/enemy))
+            var/mob/enemy/E = src
+            if(E.owner && E.owner == target) return FALSE
+        if(istype(target, /mob/enemy))
+            var/mob/enemy/T = target
+            if(T.owner && T.owner == src) return FALSE
+
+        if(!forAI && (UsesGodRules() || target.UsesGodRules()))
+            return TRUE
+
+        var/mySide = CombatSide()
+        var/theirSide = target.CombatSide()
+        if(mySide == COMBAT_SIDE_MONSTERS && theirSide == COMBAT_SIDE_MONSTERS)
+            return FALSE
+        if(mySide != theirSide)
+            return TRUE
+
+        // Same side (player/pet vs player/pet) -- only where coop is off.
+        var/turf/T = target.loc
+        var/area/A = istype(T) ? T.loc : null
+        return A && A.battleAllowsPvP
 
 mob/proc
     // Base drops nothing; mob/enemy overrides with the real drop roll (EnemyNPCs.dm).
@@ -358,8 +422,8 @@ mob/proc
             var/turf/T = get_step(src, dir)
             if(!T) return
             for(var/mob/X in T.contents)
-                if(X == src) continue
                 if(X.HP <= 0) continue
+                if(!CanHarm(X)) continue  // skip self, ghosts, allies -- not swallow the swing
                 M = X
                 break
 

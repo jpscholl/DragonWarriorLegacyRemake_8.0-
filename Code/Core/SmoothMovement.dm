@@ -35,11 +35,15 @@ mob
             // the next step is allowed, instead of the two drifting out of sync.
             glide_size = TILE_WIDTH / delay * world.tick_lag
 
+            // Any move ATTEMPT wakes you (Code/World/Turfs.dm), not just a successful
+            // step -- otherwise pushing toward a wall or other dense tile beside the bed
+            // left you stuck asleep. No-op when not sleeping.
+            WakeUp()
+
             // Attempt to step in the given direction
             if(step(src, dir))
                 last_step = world.time  // record last step time
                 next_step = last_step + delay  // schedule next allowed step
-                WakeUp()  // moving at all cancels sleeping (Code/World/Turfs.dm), no-op otherwise
                 return 1
             return 0  // step failed
 

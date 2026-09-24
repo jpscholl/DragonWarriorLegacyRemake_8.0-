@@ -4,11 +4,10 @@
 // Base moving-projectile entity for ranged spells (confirmed design, see
 // TODOList.md's "Real spell system" entry). A projectile is spawned already facing
 // its travel direction (see datum/skill/Blaze, SkillDatum.dm) and Launch()es itself:
-// steps forward one tile at a time, checking for a valid target (opposing side only —
-// player-fired hits enemies, enemy-fired hits players, never same-side, matching the
-// confirmed no-friendly-fire coop-area rule) or a dense obstacle, stopping and showing
-// an impact icon_state either way. Falls off the edge of the map cleanly if it never
-// hits anything.
+// steps forward one tile at a time, checking for a valid target (whoever the caster
+// may hurt — CanHarm(), CombatSystem.dm, which applies coop mode and friendly fire) or
+// a dense obstacle, stopping and showing an impact icon_state either way. Falls off the
+// edge of the map cleanly if it never hits anything.
 
 // Shows a short-lived impact effect on a turf. Deliberately a FREE-STANDING proc, not
 // a proc on /obj/projectile — that was a real bug: the cleanup used to run in a
@@ -110,15 +109,15 @@ obj/projectile
 			loc = nextTurf
 			sleep(stepDelay)
 
-	// Opposing side only — player-fired hits enemies, enemy-fired hits players, never
-	// the same side as the caster (no friendly fire, matches confirmed coop-by-default,
-	// Area.dm). Skips anything already dead so a projectile doesn't "hit" a corpse
-	// that's just lingering before CleanUpDead() removes it.
+	// Only mobs the caster is allowed to hurt (CanHarm(), CombatSystem.dm -- coop mode
+	// and friendly fire); anyone else, the shot flies past. Skips anything already dead
+	// so a projectile doesn't "hit" a corpse that's just lingering before CleanUpDead()
+	// removes it.
 	proc/FindTarget(turf/T)
-		var/casterIsEnemy = istype(caster, /mob/enemy)
+		if(!caster) return null
 		for(var/mob/M in T.contents)
 			if(M.HP <= 0) continue
-			if(istype(M, /mob/enemy) == casterIsEnemy) continue
+			if(!caster.CanHarm(M)) continue
 			return M
 		return null
 

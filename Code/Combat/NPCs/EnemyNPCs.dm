@@ -20,10 +20,11 @@
 
 // Pet behavior modes (ShowPetOwnerMenu()'s "Set Mode") — what HandlePetTick()
 // branches on every AILoop() tick once a mob/enemy has an owner.
-#define PET_MODE_AGGRESSIVE 1  // hunts nearby unowned mob/enemy while in battle mode
+#define PET_MODE_AGGRESSIVE 1  // hunts wild monsters in battle mode -- plus players and other
+                                 // pets where coop is off (CanHarm(), CombatSystem.dm)
 #define PET_MODE_SIT 2          // stays put, doesn't act
-#define PET_MODE_WANDER 3       // reverts to plain wild-monster behavior, including
-                                 // targeting players
+#define PET_MODE_WANDER 3       // reverts to plain wild-monster behavior -- targets
+                                 // players, but only where coop is off
 #define PET_MODE_FOLLOW 4       // keeps pace with owner, never fights — default mode
 
 #define PET_FOLLOW_DISTANCE 3  // tiles — how far a Follow/Aggressive-idle pet lets its
@@ -36,8 +37,9 @@ mob/enemy
 
 	var/mob/player/target
 	// PET_MODE_AGGRESSIVE's equivalent of target — separate var because target is
-	// typed mob/player and DM checks member access against a var's declared type.
-	var/mob/enemy/huntTarget
+	// typed mob/player, and an Aggressive pet can hunt monsters, other pets, or (coop
+	// off) players.
+	var/mob/huntTarget
 	// What MovementLoop() actually steps toward this tick — usually == target, but a
 	// Follow/idle-Aggressive pet walks toward its owner while target stays null.
 	var/atom/moveTowardAtom
@@ -237,7 +239,10 @@ mob/enemy
 		if(!target)
 			for(var/mob/player/P in range(sightRange, src))
 				if(P.HP <= 0 || P.isDead || P.isGhostform) continue
-				if(P == owner) continue  // pet-mode-wander guard against its own owner
+				// Always TRUE for a wild monster. For a Wander-mode pet it skips its own
+				// owner, and every player while coop is on (CanHarm(), CombatSystem.dm) --
+				// no point chasing someone it isn't allowed to hurt.
+				if(!CanHarm(P, forAI = TRUE)) continue
 				target = P
 				break
 
@@ -307,16 +312,24 @@ mob/enemy
 					moveIntent = ENEMY_MOVE_NONE
 					return
 
-				// Drop the target if it died, wandered off, or got tamed by someone
-				// else mid-fight.
-				if(huntTarget && (huntTarget.HP <= 0 || huntTarget.owner || get_dist(src, huntTarget) > sightRange))
+				// Drop the target if it died, ghosted, wandered off, or stopped being
+				// fair game mid-fight (tamed by someone, or coop switched back on).
+				if(huntTarget && (!IsHuntable(huntTarget) || get_dist(src, huntTarget) > sightRange))
 					huntTarget = null
 
+				// Wild monsters always; with coop OFF also players and other pets
+				// (CanHarm(), CombatSystem.dm). Wild monsters get first pick either way,
+				// so a PvP-area pet still clears monsters off its owner before turning
+				// on other players.
 				if(!huntTarget)
-					for(var/mob/enemy/E in range(sightRange, src))
-						if(E == src || E.owner || E.HP <= 0) continue
-						huntTarget = E
-						break
+					var/mob/fallback = null
+					for(var/mob/M in range(sightRange, src))
+						if(!IsHuntable(M)) continue
+						if(M.CombatSide() == COMBAT_SIDE_MONSTERS)
+							huntTarget = M
+							break
+						if(!fallback) fallback = M
+					if(!huntTarget) huntTarget = fallback
 
 				if(huntTarget)
 					moveTowardAtom = huntTarget
@@ -330,6 +343,11 @@ mob/enemy
 					moveIntent = ENEMY_MOVE_CHASE
 				else
 					moveIntent = ENEMY_MOVE_NONE
+
+	// Whether an Aggressive pet may pick (or keep) M as its huntTarget.
+	proc/IsHuntable(mob/M)
+		if(!M || M.HP <= 0 || M.isDead || M.isGhostform) return FALSE
+		return CanHarm(M, forAI = TRUE)
 
 	// Continuously steps toward moveTowardAtom every tick, same cadence as the
 	// player's client/MoveLoop() — this is what makes movement flow smoothly instead
@@ -394,12 +412,30 @@ mob/enemy
 		if(secondaryDir && Step(secondaryDir)) return
 
 		// Direct route and secondary axis both blocked — start skirting,
-		// perpendicular to primaryDir.
+		// perpendicular to primaryDir -- unless it's a PLAYER in the way. Then the
+		// enemy holds its ground instead of sidestepping off the player it just
+		// reached. Walls, objects and other monsters still get routed around, so a pack
+		// spreads out rather than queueing single file. Also filters out a Step() that
+		// failed only because it was rate-limited or rooted mid-attack, since the tile
+		// ahead is open then.
+		if(!primaryDir || !BlockedExceptByPlayer(primaryDir))
+			return
 		if(primaryDir == EAST || primaryDir == WEST)
 			avoidDir = pick(NORTH, SOUTH)
 		else
 			avoidDir = pick(EAST, WEST)
 		Step(avoidDir)
+
+	// TRUE if the tile one step in dir is blocked by something worth skirting: the map
+	// edge, a dense turf (wall, tree, closed door), a dense obj (chest, sign), or
+	// another monster. FALSE if it's open, or if a player is standing in it.
+	proc/BlockedExceptByPlayer(dir)
+		var/turf/T = get_step(src, dir)
+		if(!T || T.density) return TRUE
+		if(locate(/mob/player) in T) return FALSE
+		for(var/atom/movable/A in T)
+			if(A.density) return TRUE
+		return FALSE
 
 	// Simple random idle movement. Stays on the slower AILoop() cadence, not
 	// MovementLoop() — wandering is occasional idle steps, not continuous movement.

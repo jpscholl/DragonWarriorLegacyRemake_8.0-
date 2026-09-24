@@ -291,7 +291,10 @@ proc/ApplyNightSuffix(baseState)
 var/global/battleModeGlobalOn = FALSE
 
 // Same shape as battleModeGlobalOn, but for GM_CoopMode()'s "All Areas" option.
-var/global/coopModeGlobalOn = FALSE
+// Starts TRUE to match reality -- every area defaults to coop (Area.dm's
+// battleAllowsPvP = FALSE). It used to start FALSE, so the first "All Areas" toggle
+// announced coop turning ON while changing nothing.
+var/global/coopModeGlobalOn = TRUE
 
 // Toggled by GM_SaveLocation() — when TRUE, a returning character's saved (x,y,z) is
 // used instead of GetPlayerSpawnTurf() at load time. World-wide, matching the

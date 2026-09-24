@@ -10,8 +10,9 @@
 // object tree -> New Instance... -> set icon_state), not a new hardcoded subtype. See
 // Markdowns/CodeNotes.md for the 2026-07-21 turf collapse this convention came from.
 
-// Sleeping state, used by the bedhead turf below. Moving at all wakes the player back
-// up automatically — see Step() in Code/Core/SmoothMovement.dm.
+// Sleeping state, used by the bedhead turf below. Any move attempt (even into a wall)
+// wakes the player — see Step() in Code/Core/SmoothMovement.dm — and so does taking a
+// hit (TakeDamage(), CombatSystem.dm).
 mob/var/isSleeping = FALSE
 
 // Named-pair teleport link — shared by turf/warp (its whole purpose) and any
@@ -143,6 +144,7 @@ turf
 				user.loc = src
 				if(user.client && user.client.camera)
 					user.client.camera.SnapTo(user)  // direct .loc change bypasses client/Move(), the only place the camera normally tracks
+				user.CancelDefend()  // no shield up in bed -- otherwise you'd wake still defending, in "world" pose
 				user.icon_state = "sleep"
 				user.isSleeping = TRUE
 				user.SleepRestoreLoop()

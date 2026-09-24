@@ -136,15 +136,29 @@ proc/FindSwatchLocation(color)
 // Shared by the creation preview (UpdateAppearance(), below) and the real login repaint
 // (RebuildIcon(), SaveSystem.dm) so a character can never look different in the preview
 // than they do in the world.
+//
+// Two passes, not one straight swap per zone: a chosen color can equal ANOTHER zone's
+// as-drawn color (pick White for Main on a sprite whose Accent is drawn white), and a
+// one-pass swap would then let Accent's later swap grab the just-painted Main pixels
+// too. Pass 1 parks every overridden zone on its own placeholder color, pass 2 paints
+// the placeholders, so no zone's swap can ever see another zone's result.
 proc/ApplyZoneColors(icon/target, datum/PlayerIcon/entry, list/overrides)
     if(!target || !entry || !overrides)
         return
 
+    // Placeholder -> chosen color. rgb(1,2,n) is near-black, which no player portrait
+    // or palette swatch uses.
+    var/list/parked = list()
     for(var/zone in overrides)
         var/baseColor = entry.zoneDefaults[zone]
         var/newColor  = overrides[zone]
         if(baseColor && newColor)
-            target.SwapColor(baseColor, newColor)
+            var/placeholder = rgb(1, 2, parked.len + 1)
+            target.SwapColor(baseColor, placeholder)
+            parked[placeholder] = newColor
+
+    for(var/placeholder in parked)
+        target.SwapColor(placeholder, parked[placeholder])
 
 // Repaints the LIVE character-creation preview object (newCharPreview) using the
 // current palette. Only meaningful during creation -- a loaded/finalized character
@@ -160,7 +174,7 @@ mob/proc/UpdateAppearance()
 
     newCharPreview.icon = base
 
-// Top-level picker for one zone: a list of the 18 color FAMILIES. Picking one opens
+// Top-level picker for one zone: a list of the 16 color FAMILIES. Picking one opens
 // PickShadeForFamily() below; picking a shade there applies it and drops straight back
 // to this same family list, so switching families to compare is just picking each in
 // turn. Stays open until the player explicitly Confirms or Cancels -- Cancel reverts to

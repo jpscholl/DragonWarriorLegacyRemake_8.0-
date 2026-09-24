@@ -20,7 +20,7 @@ area
 	// this is just each type's starting value on compile.
 	var/battleModeOn = FALSE       // FALSE = peaceful area, no attacks/skills allowed --
 	                                // overridden TRUE below on battle/dungeon/boss/temple
-	var/battleAllowsPvP = FALSE    // TRUE = players can hurt each other here (OG: only the Arena defaults TRUE -- which area that maps to isn't confirmed yet)
+	var/battleAllowsPvP = FALSE    // TRUE = coop OFF: players/pets can hurt each other here (CanHarm(), CombatSystem.dm) (OG: only the Arena defaults TRUE -- which area that maps to isn't confirmed yet)
 	var/indestructibleMode = TRUE  // FALSE = fire/ice attacks damage terrain here
 	var/weather = null             // GM-set weather state, outside areas only
 

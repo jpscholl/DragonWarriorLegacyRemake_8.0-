@@ -106,6 +106,7 @@ datum/skill/Defend
 
     OnUse(mob/user, mob/target = null)
         if(!user.InBattleArea()) return
+        if(user.isSleeping) return  // can't raise a shield in bed -- wake up first
         if(world.time - lastToggleTime < DEFEND_TOGGLE_COOLDOWN) return
         lastToggleTime = world.time
         // Marks this as a real manual toggle — Attack.OnUse()'s auto-resume checks

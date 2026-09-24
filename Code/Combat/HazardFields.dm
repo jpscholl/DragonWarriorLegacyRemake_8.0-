@@ -59,16 +59,16 @@ obj/hazard_field
 
         expiresAt = 0
 
-    // Same no-friendly-fire rule as obj/projectile/FindTarget() (Projectiles.dm):
-    // player-created hits enemies, enemy-created hits players, never the caster's own
-    // side. An unowned field skips the check and affects everyone.
+    // Same coop-mode / friendly-fire rule as every other damage path (CanHarm(),
+    // CombatSystem.dm), judged as if the field's owner were hitting M -- which also
+    // spares the owner. An unowned field (or one whose caster has since been deleted)
+    // affects everyone.
     proc/AffectsMob(mob/M)
         if(!M || M.HP <= 0 || M.isDead) return FALSE
         if(M.isGhostform) return FALSE
         if(M.equipHazardImmune) return FALSE
         if(!owner) return TRUE
-        if(M == owner) return FALSE
-        return istype(M, /mob/enemy) != istype(owner, /mob/enemy)
+        return owner.CanHarm(M)
 
     // Deliberately NOT called from New() — SpawnHazardBlob() below assigns power/
     // duration/owner after the `new`, so a loop started in New() would already have

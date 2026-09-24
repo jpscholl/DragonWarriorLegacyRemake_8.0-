@@ -159,16 +159,15 @@ datum/skill/AoESpell
     // One damage roll shared by everyone caught in the blast, not a separate roll per
     // victim — an explosion should read as a single event.
     proc/ApplyBlast(mob/user, turf/center, damage)
-        var/casterIsEnemy = istype(user, /mob/enemy)
         var/fxState = ResolveSkillFXState(fx_state, user.dir, user.animAlternate)
 
         for(var/turf/T in GetDiamondTurfs(center, aoe_radius))
             if(fxState) FlashSkillFX(T, fxState)
 
             for(var/mob/M in T)
-                if(M == user) continue
-                // Same no-friendly-fire rule the projectiles use (Projectiles.dm).
-                if(istype(M, /mob/enemy) == casterIsEnemy) continue
+                // Coop mode / friendly fire (CanHarm(), CombatSystem.dm) -- also
+                // excludes the caster itself.
+                if(!user.CanHarm(M)) continue
                 if(M.HP <= 0) continue
                 user.ApplySpellDamage(M, damage, element)
 
@@ -658,7 +657,10 @@ datum/skill/StatusSpell
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
         if(!user.InBattleArea()) return
-        if(!target)
+        // Hostile effects obey the same coop / friendly-fire / ghost rule as damage
+        // (CanHarm(), CombatSystem.dm) -- this path never touches TakeDamage(), so it
+        // used to let a player Sleep another player in a coop area, or a ghosted GM.
+        if(!target || !user.CanHarm(target))
             user.ShowInfo(noTargetMessage)
             return
 
@@ -676,7 +678,9 @@ datum/skill/StatusSpell
         user.PlaySkillFX(src, target)  // was drawing nothing at all before
 
         spawn(cast_time)
-            target.ApplyStatusEffect(statusEffectType)
+            // Re-checked: the target may have ghosted, or coop flipped, mid-cast.
+            if(target && user.CanHarm(target))
+                target.ApplyStatusEffect(statusEffectType)
 
         spawn(user.GetAttackDelay(src, FALSE))
             if(user.isDead) return

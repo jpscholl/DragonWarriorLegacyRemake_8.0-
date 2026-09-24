@@ -968,25 +968,46 @@ mob/verb/GM_BattleMode()
         target.battleModeOn = !target.battleModeOn
         src.ShowInfo("[target.name] is now [target.battleModeOn ? "a dangerous area" : "a peaceful area"].")
 
-// Per-area (or global) toggle for PLAYER-vs-PLAYER damage, separate from
-// GM_BattleMode's monster-aggro/skill-use gate. Coop ON (the default everywhere,
-// Area.dm's battleAllowsPvP = FALSE) means players can't hurt each other; Coop OFF
-// enables PvP. Enforced in TakeDamage() (CombatSystem.dm), which also exempts GM-tier
-// targets from the protection.
+// Per-area (or global) toggle for friendly fire, separate from GM_BattleMode's
+// monster-aggro/skill-use gate. Coop ON (the default everywhere, Area.dm's
+// battleAllowsPvP = FALSE) means players and pets can only hurt monsters and vice
+// versa; Coop OFF lets anything hurt anything -- player vs player, pet vs pet. Wild
+// monsters never hurt each other either way. The rule itself is CanHarm()
+// (CombatSystem.dm), which every damage path asks.
+//
+// Also where staff pick their OWN rules (UsesGodRules(), AdminLevels.dm): Builder,
+// Admin and GM/Host can switch between player rules and GM rules here, which is why
+// this verb is offered to every staff tier -- but only GM/Host and up see the area
+// options. Aeon's Crew/Aeon are always on GM rules and just get told so.
 mob/verb/GM_CoopMode()
     set category = "GM"
-    set desc = "Toggles player-vs-player damage for one area, or every area at once"
+    set desc = "Toggles friendly fire for an area, or which rules you yourself follow"
 
-    if(!RequireGMHost()) return
+    if(!RequireStaff()) return
     if(!RequireCanAct()) return
 
-    var/list/areaChoices = AddAreaChoices(list("None" = null, "All Areas" = "ALL"))
+    var/list/areaChoices = list("None" = null)
+    if(client.adminLevel >= LEVEL_AEONS_CREW)
+        areaChoices["Your rules: GM (always, at your level)"] = "SELF_FIXED"
+    else
+        areaChoices["Your rules: [client.godRulesChosen ? "GM" : "Player"] -- switch"] = "SELF"
+    if(client.adminLevel >= LEVEL_GM_HOST)
+        areaChoices["All Areas"] = "ALL"
+        AddAreaChoices(areaChoices)
 
-    var/choice = input(src, "Choose an area to toggle coop mode (or All Areas):", "GM_CoopMode") in areaChoices
+    var/choice = input(src, "Toggle coop mode for an area, or switch your own rules:", "GM_CoopMode") in areaChoices
     var/selection = areaChoices[choice]
     if(!selection) return  // "None" selected, cancel
 
-    if(selection == "ALL")
+    if(selection == "SELF_FIXED")
+        src.ShowInfo("You always follow GM rules: coop never applies to you. You can hurt anyone but yourself, and anything can hurt you (except while in ghost form).")
+    else if(selection == "SELF")
+        client.godRulesChosen = !client.godRulesChosen
+        if(client.godRulesChosen)
+            src.ShowInfo("You now follow GM rules: coop no longer applies to you. You can hurt anyone but yourself, and anything can hurt you (except while in ghost form).")
+        else
+            src.ShowInfo("You now follow player rules: coop mode applies to you like any player.")
+    else if(selection == "ALL")
         coopModeGlobalOn = !coopModeGlobalOn
         for(var/area/A in world)
             A.battleAllowsPvP = !coopModeGlobalOn

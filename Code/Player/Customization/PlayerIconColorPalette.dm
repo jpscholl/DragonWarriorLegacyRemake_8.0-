@@ -86,38 +86,80 @@ proc/BuildPlayerIconRegistry()
         "Eyes"   = rgb(0,124,250)))
     // "Accent2" is a second, near-identical green (0,187,0) sitting one value off from
     // Hair/Headgear's own green (0,188,0) -- distinct enough for SwapColor's exact-match
-    // to tell apart, but easy to miss without sampling. Female not yet sampled -- may
-    // need the same split once it is.
+    // to tell apart, but easy to miss without sampling.
     AddPlayerIcon(reg, "Dragon Warrior 4 Hero (Male)", "Hero", 'Mob Icons/Player/Hero/dw4malehero.dmi', list(
         "Main"    = rgb(0,92,255),
         "Accent"  = rgb(255,255,255),
         "Accent2" = rgb(0,187,0),
         "Hair"    = rgb(0,188,0),   // also covers headgear -- shares one color
         "Eyes"    = rgb(0,90,255)))
-    AddPlayerIcon(reg, "Dragon Warrior 4 Hero (Female)", "Hero", 'Mob Icons/Player/Hero/dw4femalehero.dmi')
+    // White is SKIN on every DW4 sprite, so no DW4 entry below offers white as a zone --
+    // recoloring it repaints faces and hands. (The male above and dw4elf predate that call.)
+    AddPlayerIcon(reg, "Dragon Warrior 4 Hero (Female)", "Hero", 'Mob Icons/Player/Hero/dw4femalehero.dmi', list(
+        "Main"   = rgb(0,92,255),
+        "Accent" = rgb(0,188,0)))     // hair, headgear and tunic trim -- one shared green
 
-    // Soldier -- dw3guard is PARTIALLY authored: only "Main" has been sampled so far, so
-    // that's the only zone its color menu offers. Not a statement about the art; the rest
-    // just isn't done yet. Adding a zone here is all it takes to offer it.
-    AddPlayerIcon(reg, "Dragon Warrior 1 Soldier", "Soldier", 'Mob Icons/Player/Soldier/dw1soldier.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 2 Soldier", "Soldier", 'Mob Icons/Player/Soldier/dw2soldier.dmi')
+    // -----------------------------------------------------------------------------------
+    // Everything below the DW1/DW2 soldiers is SIMPLIFIED to 2 zones for now (2026-09-24
+    // -- get the game working first, fuller customization in a later update): the colors
+    // that were already separate in the original art, which is why a zone often sweeps
+    // in parts that happen to share its color (noted per line). Painting a near-duplicate
+    // into the .dmi and adding its line here is all a new zone takes. Skin tones
+    // (240,208,176 / 251,167,195) and the 252,252,252 hit-flash are never zones.
+    // -----------------------------------------------------------------------------------
+
+    // Soldier
+    AddPlayerIcon(reg, "Dragon Warrior 1 Soldier", "Soldier", 'Mob Icons/Player/Soldier/dw1soldier.dmi', list(
+        "Main"   = rgb(127,127,127),
+        "Accent" = rgb(255,255,255),
+        "Hair"   = rgb(126,127,127),   // helmet -- no hair shows under it
+        "Eyes"   = rgb(126,126,127)))
+    AddPlayerIcon(reg, "Dragon Warrior 2 Soldier", "Soldier", 'Mob Icons/Player/Soldier/dw2soldier.dmi', list(
+        "Main"   = rgb(224,92,16),
+        "Accent" = rgb(255,255,255),
+        "Hair"   = rgb(223,92,16),     // helmet -- the horns stay white, under Accent
+        "Eyes"   = rgb(254,255,255)))
     AddPlayerIcon(reg, "Dragon Warrior 3 Guard", "Soldier", 'Mob Icons/Player/Soldier/dw3guard.dmi', list(
-        "Main" = rgb(0,120,248)))
-    AddPlayerIcon(reg, "Dragon Warrior 3 Soldier (Male)", "Soldier", 'Mob Icons/Player/Soldier/dw3malesoldier.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 3 Soldier (Female)", "Soldier", 'Mob Icons/Player/Soldier/dw3femalesoldier.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 4 Guard (Female)", "Soldier", 'Mob Icons/Player/Soldier/dw4femaleguard.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 4 Ragnar", "Soldier", 'Mob Icons/Player/Soldier/dw4ragnar.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 4 Adventurer", "Soldier", 'Mob Icons/Player/Soldier/dw4adventurer.dmi')
+        "Main"   = rgb(0,120,248),
+        "Accent" = rgb(255,255,255)))
+    AddPlayerIcon(reg, "Dragon Warrior 3 Soldier (Male)", "Soldier", 'Mob Icons/Player/Soldier/dw3malesoldier.dmi', list(
+        "Main"   = rgb(224,0,92),      // also the hair
+        "Accent" = rgb(64,44,188)))
+    AddPlayerIcon(reg, "Dragon Warrior 3 Soldier (Female)", "Soldier", 'Mob Icons/Player/Soldier/dw3femalesoldier.dmi', list(
+        "Main"   = rgb(231,0,91),      // also the hair
+        "Accent" = rgb(71,43,191)))
+    AddPlayerIcon(reg, "Dragon Warrior 4 Guard (Female)", "Soldier", 'Mob Icons/Player/Soldier/dw4femaleguard.dmi', list(
+        "Main"   = rgb(231,95,19),
+        "Accent" = rgb(248,120,88)))
+    AddPlayerIcon(reg, "Dragon Warrior 4 Ragnar", "Soldier", 'Mob Icons/Player/Soldier/dw4ragnar.dmi', list(
+        "Main"   = rgb(255,124,255),   // helmet + armor
+        "Accent" = rgb(108,64,255)))
+    AddPlayerIcon(reg, "Dragon Warrior 4 Adventurer", "Soldier", 'Mob Icons/Player/Soldier/dw4adventurer.dmi', list(
+        "Main"   = rgb(0,88,248),
+        "Accent" = rgb(0,184,0)))
 
-    // Wizard -- dw3malewizard is partially authored, same as dw3guard above: "Main" only.
-    AddPlayerIcon(reg, "Dragon Warrior 1 Wizard", "Wizard", 'Mob Icons/Player/Wizard/dw1wizard.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 2 Wizard", "Wizard", 'Mob Icons/Player/Wizard/dw2wizard.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 2 Princess", "Wizard", 'Mob Icons/Player/Wizard/dw2princess.dmi')
+    // Wizard
+    AddPlayerIcon(reg, "Dragon Warrior 1 Wizard", "Wizard", 'Mob Icons/Player/Wizard/dw1wizard.dmi', list(
+        "Main"   = rgb(127,127,127),
+        "Accent" = rgb(255,255,255)))    // beard, plus the hat brim and staff
+    AddPlayerIcon(reg, "Dragon Warrior 2 Wizard", "Wizard", 'Mob Icons/Player/Wizard/dw2wizard.dmi', list(
+        "Main"   = rgb(0,124,255),
+        "Accent" = rgb(255,255,255)))    // beard
+    AddPlayerIcon(reg, "Dragon Warrior 2 Princess", "Wizard", 'Mob Icons/Player/Wizard/dw2princess.dmi', list(
+        "Main"   = rgb(108,64,255),
+        "Accent" = rgb(255,255,255)))
     AddPlayerIcon(reg, "Dragon Warrior 3 Wizard (Male)", "Wizard", 'Mob Icons/Player/Wizard/dw3malewizard.dmi', list(
-        "Main" = rgb(0,172,64)))
-    AddPlayerIcon(reg, "Dragon Warrior 3 Wizard (Female)", "Wizard", 'Mob Icons/Player/Wizard/dw3femalewizard.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 4 Brey", "Wizard", 'Mob Icons/Player/Wizard/dw4brey.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 4 Mara", "Wizard", 'Mob Icons/Player/Wizard/dw4mara.dmi')
+        "Main"   = rgb(0,172,64),
+        "Accent" = rgb(255,255,255)))    // beard
+    AddPlayerIcon(reg, "Dragon Warrior 3 Wizard (Female)", "Wizard", 'Mob Icons/Player/Wizard/dw3femalewizard.dmi', list(
+        "Main"   = rgb(171,19,0),      // also the hair
+        "Accent" = rgb(0,171,0)))
+    AddPlayerIcon(reg, "Dragon Warrior 4 Brey", "Wizard", 'Mob Icons/Player/Wizard/dw4brey.dmi', list(
+        "Main"   = rgb(224,92,16),
+        "Accent" = rgb(255,124,92)))   // also the face
+    AddPlayerIcon(reg, "Dragon Warrior 4 Mara", "Wizard", 'Mob Icons/Player/Wizard/dw4mara.dmi', list(
+        "Main"   = rgb(144,0,128),
+        "Accent" = rgb(255,124,92)))
     // Icon states (world, hit, sleep, attack, weapon -- no "defend") match this project's
     // Wizard pattern exactly, not Hero/Soldier's -- confirmed 2026-09-14 via icon_states()
     // on the actual file. Moved out of Hero for that reason. "Hair" also covers the
@@ -130,27 +172,59 @@ proc/BuildPlayerIconRegistry()
         "Eyes"   = rgb(0,88,249)))
 
     // Fighter
-    AddPlayerIcon(reg, "Dragon Warrior 1 Fighter", "Fighter", 'Mob Icons/Player/Fighter/dw1fighter.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 2 Fighter", "Fighter", 'Mob Icons/Player/Fighter/dw2fighter.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 3 Fighter (Male)", "Fighter", 'Mob Icons/Player/Fighter/dw3malefighter.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 3 Fighter (Female)", "Fighter", 'Mob Icons/Player/Fighter/dw3femalefighter.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 4 Alena", "Fighter", 'Mob Icons/Player/Fighter/dw4alena.dmi')
+    AddPlayerIcon(reg, "Dragon Warrior 1 Fighter", "Fighter", 'Mob Icons/Player/Fighter/dw1fighter.dmi', list(
+        "Main"   = rgb(139,23,0),
+        "Accent" = rgb(255,255,255)))
+    AddPlayerIcon(reg, "Dragon Warrior 2 Fighter", "Fighter", 'Mob Icons/Player/Fighter/dw2fighter.dmi', list(
+        "Main"   = rgb(231,95,19),
+        "Accent" = rgb(255,255,255)))
+    AddPlayerIcon(reg, "Dragon Warrior 3 Fighter (Male)", "Fighter", 'Mob Icons/Player/Fighter/dw3malefighter.dmi', list(
+        "Main"   = rgb(171,19,0),      // also the hair
+        "Accent" = rgb(0,171,0)))
+    AddPlayerIcon(reg, "Dragon Warrior 3 Fighter (Female)", "Fighter", 'Mob Icons/Player/Fighter/dw3femalefighter.dmi', list(
+        "Main"   = rgb(171,19,0),      // also the hair
+        "Accent" = rgb(0,171,0)))
+    AddPlayerIcon(reg, "Dragon Warrior 4 Alena", "Fighter", 'Mob Icons/Player/Fighter/dw4alena.dmi', list(
+        "Main"   = rgb(255,124,92),
+        "Accent" = rgb(224,92,16)))      // hat -- also the hair
 
     // Pilgrim
-    AddPlayerIcon(reg, "Dragon Warrior 2 Pilgrim", "Pilgrim", 'Mob Icons/Player/Pilgrim/dw2pilgrim.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 3 Pilgrim (Male)", "Pilgrim", 'Mob Icons/Player/Pilgrim/dw3malepilgrim.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 3 Pilgrim (Female)", "Pilgrim", 'Mob Icons/Player/Pilgrim/dw3femalepilgrim.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 4 Cristo", "Pilgrim", 'Mob Icons/Player/Pilgrim/dw4cristo.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 4 Nara", "Pilgrim", 'Mob Icons/Player/Pilgrim/dw4nara.dmi')
+    AddPlayerIcon(reg, "Dragon Warrior 2 Pilgrim", "Pilgrim", 'Mob Icons/Player/Pilgrim/dw2pilgrim.dmi', list(
+        "Main"   = rgb(0,188,0),
+        "Accent" = rgb(255,60,0)))       // hair + shield trim
+    AddPlayerIcon(reg, "Dragon Warrior 3 Pilgrim (Male)", "Pilgrim", 'Mob Icons/Player/Pilgrim/dw3malepilgrim.dmi', list(
+        "Main"   = rgb(0,124,255),
+        "Accent" = rgb(255,255,255)))
+    AddPlayerIcon(reg, "Dragon Warrior 3 Pilgrim (Female)", "Pilgrim", 'Mob Icons/Player/Pilgrim/dw3femalepilgrim.dmi', list(
+        "Main"   = rgb(0,171,71),
+        "Accent" = rgb(255,255,255)))
+    AddPlayerIcon(reg, "Dragon Warrior 4 Cristo", "Pilgrim", 'Mob Icons/Player/Pilgrim/dw4cristo.dmi', list(
+        "Main"   = rgb(0,188,0),
+        "Accent" = rgb(0,92,255)))
+    AddPlayerIcon(reg, "Dragon Warrior 4 Nara", "Pilgrim", 'Mob Icons/Player/Pilgrim/dw4nara.dmi', list(
+        "Main"   = rgb(144,0,128),
+        "Accent" = rgb(255,124,92)))
 
     // Goof-off
-    AddPlayerIcon(reg, "Dragon Warrior 3 Goof-off (Male)", "Goof-off", 'Mob Icons/Player/Goof-off/dw3malegoofoff.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 3 Goof-off (Female)", "Goof-off", 'Mob Icons/Player/Goof-off/dw3femalegoofoff.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 3 Bard", "Goof-off", 'Mob Icons/Player/Goof-off/dw3bard.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 4 Bard", "Goof-off", 'Mob Icons/Player/Goof-off/dw4bard.dmi')
+    AddPlayerIcon(reg, "Dragon Warrior 3 Goof-off (Male)", "Goof-off", 'Mob Icons/Player/Goof-off/dw3malegoofoff.dmi', list(
+        "Main"   = rgb(224,0,92),      // also the hair
+        "Accent" = rgb(64,44,188)))
+    AddPlayerIcon(reg, "Dragon Warrior 3 Goof-off (Female)", "Goof-off", 'Mob Icons/Player/Goof-off/dw3femalegoofoff.dmi', list(
+        "Main"   = rgb(224,0,92),      // also the hair
+        "Accent" = rgb(64,44,188)))
+    AddPlayerIcon(reg, "Dragon Warrior 3 Bard", "Goof-off", 'Mob Icons/Player/Goof-off/dw3bard.dmi', list(
+        "Main"   = rgb(0,171,71),
+        "Accent" = rgb(255,255,255)))
+    AddPlayerIcon(reg, "Dragon Warrior 4 Bard", "Goof-off", 'Mob Icons/Player/Goof-off/dw4bard.dmi', list(
+        "Main"   = rgb(107,71,255),
+        "Accent" = rgb(248,120,248)))
 
     // Sage
-    AddPlayerIcon(reg, "Dragon Warrior 3 Sage (Male)", "Sage", 'Mob Icons/Player/Sage/dw3malesage.dmi')
-    AddPlayerIcon(reg, "Dragon Warrior 3 Sage (Female)", "Sage", 'Mob Icons/Player/Sage/dw3femalesage.dmi')
+    AddPlayerIcon(reg, "Dragon Warrior 3 Sage (Male)", "Sage", 'Mob Icons/Player/Sage/dw3malesage.dmi', list(
+        "Main"   = rgb(0,171,71),
+        "Accent" = rgb(255,255,255)))
+    AddPlayerIcon(reg, "Dragon Warrior 3 Sage (Female)", "Sage", 'Mob Icons/Player/Sage/dw3femalesage.dmi', list(
+        "Main"   = rgb(0,171,71),
+        "Accent" = rgb(255,255,255)))
 
     return reg

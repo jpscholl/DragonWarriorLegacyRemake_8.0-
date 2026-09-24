@@ -268,8 +268,8 @@ mob/proc/ApplyBurn(power, element)
 	return B
 
 // -----------------------------
-// Sleep — locks canAct until it expires. No wake-on-hit yet (classic Dragon Warrior
-// sleep breaks when the sleeper is attacked).
+// Sleep — locks canAct until it expires, or until a landed hit wakes the sleeper
+// (a SLEEP_WAKE_ON_HIT_PERCENT roll per hit, CombatSystem.dm's TakeDamage()).
 // -----------------------------
 #define SLEEP_DURATION 100       // deciseconds
 #define SLEEP_DURATION_MORE 200  // Sleepmore's stronger version

@@ -133,7 +133,6 @@ client
             /mob/verb/GM_ToggleLog,
             /mob/verb/GM_LevelIncrease,
             /mob/verb/GM_BattleMode,
-            /mob/verb/GM_CoopMode,
             /mob/verb/GM_PlayMusic,
             /mob/verb/GM_SaveLocation,
             /mob/verb/GM_KillMonsters,
@@ -161,6 +160,17 @@ client
         else
             mob.verbs -= gmHostVerbs
 
+        // Every staff tier. Its own list, applied last: Builder and Admin are separate
+        // capability sets, so a verb both need can't sit in either list above (one
+        // tier's `-=` would strip what the other's `+=` just granted).
+        var/list/staffVerbs = list(
+            /mob/verb/GM_CoopMode,   // area options inside are still GM/Host+ only
+        )
+        if(adminLevel >= LEVEL_BUILDER)
+            mob.verbs += staffVerbs
+        else
+            mob.verbs -= staffVerbs
+
 // -----------------------------
 // Access guards — every GM/Builder/Debug verb across the codebase used to hand-roll
 // its own "if(!client || !client.X) { ShowInfo(...); return }" check (35 identical
@@ -181,4 +191,25 @@ mob/proc/RequireGMHost()
     if(client && client.adminLevel >= LEVEL_GM_HOST) return TRUE
     src.ShowInfo("You don't have GM access.")
     return FALSE
+
+// Any staff tier at all, Builder and up.
+mob/proc/RequireStaff()
+    if(client && client.adminLevel >= LEVEL_BUILDER) return TRUE
+    src.ShowInfo("You don't have staff access.")
+    return FALSE
+
+// -----------------------------
+// GM rules vs player rules in combat
+// -----------------------------
+// Staff are overpowered next to players, so coop mode can treat them as "gods":
+// they can hurt anyone but themselves, and anything can hurt them (other GMs
+// included). Ghost form still makes them untouchable. Aeon's Crew and Aeon are always
+// on GM rules; Builder, Admin and GM/Host choose for themselves in GM_CoopMode.
+// Defaults to player rules, and resets to that on reconnect.
+client/var/tmp/godRulesChosen = FALSE
+
+mob/proc/UsesGodRules()
+    if(!client) return FALSE
+    if(client.adminLevel >= LEVEL_AEONS_CREW) return TRUE
+    return client.adminLevel >= LEVEL_BUILDER && client.godRulesChosen
 
