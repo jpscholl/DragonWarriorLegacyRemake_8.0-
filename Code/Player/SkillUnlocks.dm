@@ -156,6 +156,7 @@ mob/player/Archsage/GetStartingKit()
         list(/datum/skill/Jump, null),
         list(/datum/skill/Hide, null),
         list(/datum/skill/Magicknife, null),
+        list(/datum/skill/SandToss, null),
         list(/datum/skill/Boomerang, null),
         list(/datum/skill/Morningstar, null),
         list(/datum/skill/Dash, null),
@@ -174,10 +175,13 @@ mob/player/Archsage/GetStartingKit()
         list(/datum/skill/Demonhammer, null),
         list(/datum/skill/DragonKiller, null),
         list(/datum/skill/ThunderSword, null),
+        list(/datum/skill/SageSaber, null),
         list(/datum/skill/Icebolt, null),
+        list(/datum/skill/Zap, null),
         list(/datum/skill/Lightning, null),
         list(/datum/skill/Infernos, null),
         list(/datum/skill/Icespears, null),
+        list(/datum/skill/Flamespears, null),
         list(/datum/skill/Blazemore, null),
         list(/datum/skill/Blizzard, null),
         list(/datum/skill/Boom, null),
@@ -267,6 +271,7 @@ mob/player/Fighter/GetSkillUnlocks()
         new /datum/skillUnlock(/datum/skill/Jump, 3, "Agility", 7),
         new /datum/skillUnlock(/datum/skill/Hide, 4, "Agility", 8),
         new /datum/skillUnlock(/datum/skill/Rest, 5, "Vitality", 8),
+        new /datum/skillUnlock(/datum/skill/SandToss, 6, "Agility", 9),  // not OG -- user's design, 2026-09-25
         new /datum/skillUnlock(/datum/skill/IronClaw, 7, "Strength", 9),
         new /datum/skillUnlock(/datum/skill/Dash, 9, "Agility", 11),
         new /datum/skillUnlock(/datum/skill/Quakejump, 12, "Agility", 12),
@@ -279,6 +284,7 @@ mob/player/Goofoff/GetSkillUnlocks()
     return list(
         new /datum/skillUnlock(/datum/skill/Club, 3, "Strength", 6),
         new /datum/skillUnlock(/datum/skill/Jump, 4, "Agility", 7),
+        new /datum/skillUnlock(/datum/skill/SandToss, 5, "Agility", 8),  // not OG -- user's design, 2026-09-25
         new /datum/skillUnlock(/datum/skill/Magicknife, 6, "Strength", 8),
         new /datum/skillUnlock(/datum/skill/Thornwhip, 8, "Strength", 8),
         new /datum/skillUnlock(/datum/skill/Boomerang, 10, "Strength", 10),
@@ -351,5 +357,8 @@ mob/player/Sage/GetSkillUnlocks()
 
     merged += new /datum/skillUnlock(/datum/skill/Fireball, 8, "Intelligence", 8)
     merged += new /datum/skillUnlock(/datum/skill/Blaze, 10, "Intelligence", 9)
+    // Sage-only, and its last unlock (user, 2026-09-25) -- above everything the Hero/
+    // Wizard/Pilgrim tables reach (ThunderSword, 40). Level/stat invented.
+    merged += new /datum/skillUnlock(/datum/skill/SageSaber, 45, "Intelligence", 35)
 
     return merged

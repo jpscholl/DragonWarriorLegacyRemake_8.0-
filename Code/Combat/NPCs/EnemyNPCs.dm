@@ -134,7 +134,7 @@ mob/enemy
 	// Offensive cast at M. Returns TRUE if a spell went off, so the caller skips a
 	// melee swing this tick.
 	proc/TryCastAt(mob/M)
-		if(!castableSkills.len || !SpellReady() || !canAct) return FALSE
+		if(!castableSkills.len || !SpellReady() || !canAct || isSilenced) return FALSE  // Stopspell
 		if(get_dist(src, M) > castRange) return FALSE
 		if(!prob(castChance)) return FALSE
 
@@ -178,7 +178,7 @@ mob/enemy
 
 	// Heal self if hurt, else the most wounded nearby ally. Returns TRUE if a heal went off.
 	proc/TryHeal()
-		if(!healSkills.len || !SpellReady() || !canAct) return FALSE
+		if(!healSkills.len || !SpellReady() || !canAct || isSilenced) return FALSE
 
 		// Typed as GenericSpell so heal_amount is compile-checked — a healSkills list
 		// that accidentally names a non-healing skill fails safe here.

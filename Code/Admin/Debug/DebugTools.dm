@@ -186,6 +186,30 @@ mob
                 placed++
             usr.ShowInfo("Spawned [placed] training dummies. Test_ClearDummies removes them.")
 
+        // Learns any skill regardless of class, level or stats, into the Free Skills
+        // list -- for testing skills no class unlocks yet (Zap). Not saved; relog clears.
+        Test_LearnSkill()
+            set category = "Debug"
+            if(!usr.RequireBuilder()) return
+            var/mob/player/P = usr
+            if(!istype(P)) return
+
+            var/list/choices = list()
+            for(var/T in typesof(/datum/skill) - /datum/skill)
+                var/datum/skill/S = T
+                var/name = initial(S.skillName)
+                if(name == "Unnamed Skill") continue  // abstract bases (GenericSpell, BoltSword...)
+                if(P.HasSkillType(T)) continue
+                choices[name] = T
+            if(!choices.len)
+                P.ShowInfo("You already know every skill.")
+                return
+
+            var/pick = input(P, "Learn which skill?", "Test_LearnSkill") as null|anything in choices
+            if(!pick) return
+            P.EquipSkill(choices[pick])
+            P.ShowInfo("Learned [pick]. Equip it from Free Skills.")
+
         Test_ClearDummies()
             set category = "Debug"
             if(!usr.RequireBuilder()) return

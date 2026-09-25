@@ -399,7 +399,7 @@ turf/hazard
 		if(M.equipHazardImmune) return
 
 		// Direct HP change, not TakeDamage() — terrain isn't something you dodge.
-		M.HP -= stepDamage
+		M.HP = max(0, M.HP - stepDamage)
 		M.Unhide()  // any damage reveals a hidden mob (Hide, SkillCatalog.dm)
 		flick("hit", M)
 		PlaySFXAt(M, istype(M, /mob/enemy) ? 'enemyhit.wav' : 'hit.wav')

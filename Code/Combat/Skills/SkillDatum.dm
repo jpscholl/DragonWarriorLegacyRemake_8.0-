@@ -33,6 +33,9 @@ datum/skill
         // The burst drawn where the hit lands, when the art ships as a matched pair
         // ("blaze"/"blazehit"). Falls back to fx_state when unset.
         impact_fx_state = null
+        // Multiplies the cast meter's per-frame delay (PlayCastMeter(), CombatSystem.dm)
+        // -- 1.5 = a windup half again as long. For a spell that should feel slow to cast.
+        cast_meter_slowness = 1
 
     proc/OnUse(mob/user, mob/target = null)
         return
@@ -121,98 +124,27 @@ datum/skill/Defend
             user.icon_state = "world"
             user.ShowInfo("You lower your shield.")
 
-// The real projectile spell system — Fireball below is the old placeholder
-// (instant-hit, melee-range only); Blaze is the first spell built against the real
-// thing. See Markdowns/CodeNotes.md for the cast-meter and projectile-speed history.
-#define PROJECTILE_SPEED_DIVISOR 20
-#define PROJECTILE_MIN_STEP_DELAY 0.3
-
+// Blaze was the first real projectile spell; it now runs on SpellBolt (SkillCatalog.dm)
+// with every other bolt, so it shares the cast/flight/impact rules instead of owning a
+// copy. OG: /proj/blaze, MP 4, same Int*2+4 formula as Zap -- so Zap's multiplier.
 datum/skill/Blaze
-    parent_type = /datum/skill
+    parent_type = /datum/skill/SpellBolt
 
     skillName = "Blaze"
-    icon_state = "blaze"  // spells.dmi — also the projectile's own sprite
-    // Set for consistency with the rest of the roster, though Blaze never draws through
-    // PlaySkillFX(): its art travels with obj/projectile/blaze (Projectiles.dm), which
-    // carries its own icon_state/impactIconState.
+    icon_state = "blaze"
     fx_state = "blaze"
     impact_fx_state = "blazehit"
-    isSpell = TRUE
     element = "fire"
-    mana_cost = 5  // low, placeholder — tune once seen in action
+    damage_multiplier = 0.9
+    mana_cost = 4  // OG
 
-    OnUse(mob/user, mob/target = null)
-        if(!user.canAct) return
-        if(!user.InBattleArea()) return
-
-        var/cost = GetManaCost()
-        if(user.MP < cost)
-            user.ShowInfo("Not enough MP to cast Blaze! (need [cost])")
-            return
-
-        user.MP -= cost
-        user.ShowFloatingMPBar()
-        user.canAct = FALSE
-
-        // Facing locks the instant the cast starts, captured now rather than re-read
-        // at launch time — turning itself isn't blocked by canAct.
-        var/castDir = user.dir
-
-        var/mySession = user.defendToggleSession
-        var/wasDefending = user.DropDefendForAction()
-
-        // Cast windup and projectile flight are BOTH driven by GetAttackDelay(), but
-        // scaled separately — a windup wants to feel like real commitment, while the
-        // projectile just needs to outpace a running player.
-        var/atkDelay = user.GetAttackDelay(src, wasDefending)
-
-        // Died mid-cast — don't launch from a corpse or stomp Die()'s canAct lock.
-        if(!user.PlayCastMeter(src, wasDefending)) return
-
-        // Launch now that the cast meter has fully played out — never before.
-        var/turf/spawnTurf = get_step(user, castDir)
-        if(spawnTurf)
-            var/obj/projectile/blaze/P = new(spawnTurf)
-            P.caster = user
-            P.travelDir = castDir
-            P.stepDelay = max(PROJECTILE_MIN_STEP_DELAY, atkDelay / PROJECTILE_SPEED_DIVISOR)
-            P.damage = 5  // low, placeholder — same as mana_cost above
-            P.element = element
-
-            // pierces stays FALSE — confirmed Blaze stops on its first hit.
-            P.Launch()
-
-        user.canAct = TRUE
-        user.RestoreDefendIfUntouched(wasDefending, mySession)
+// Blaze's art and flight, just faster and harder (user, from the OG, 2026-09-25).
+// OG: /proj/firebal also flies with "blaze", MP 4, damage round(Int*2.5)+5 vs Blaze's
+// Int*2+4 -- so ~1.25x Blaze's multiplier.
+#define FIREBALL_SLOWNESS 0.5  // flight step delay vs. Blaze's -- 0.5 = twice as fast; invented
 
 datum/skill/Fireball
-    parent_type = /datum/skill
-
+    parent_type = /datum/skill/Blaze
     skillName = "Fireball"
-    icon_state = "fireball"
-    fx_state = "blaze"  // no "fireball" art — borrows Blaze's, since this whole skill
-                         // is the pre-projectile placeholder anyway
-    isSpell = TRUE
-    cast_time = 6
-    element = "fire"
-
-    OnUse(mob/user, mob/target)
-        if(!user.canAct) return
-        if(!user.InBattleArea()) return
-        // No hard target requirement — castable at an empty tile, same as Attack.
-        // ApplySpellDamage() below already no-ops on a null target.
-
-        user.canAct = FALSE
-        user.ShowInfo("You cast Fireball!")
-
-        // Fireball doesn't drop isDefending the way Attack does — no class currently
-        // has both Defend and Fireball equipped — so user.isDefending is still
-        // accurate here; it still picks up the speed penalty, just without the
-        // auto-drop/resume dance.
-        if(!user.PlayCastMeter(src, user.isDefending)) return  // died mid-cast
-
-        user.PlaySkillFX(src, target)  // SkillFX.dm
-        if(user.ApplySpellDamage(target, 10, src.element))
-            user.PlaySkillImpactFX(src, target)
-
-        user.canAct = TRUE
+    damage_multiplier = 1.1
+    bolt_slowness = FIREBALL_SLOWNESS

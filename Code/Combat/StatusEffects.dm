@@ -169,7 +169,7 @@ datum/status_effect/poison
 		// Direct HP change, not TakeDamage() — you shouldn't be able to dodge poison
 		// already in your veins. Death handling below mirrors TakeDamage() so nothing
 		// gets skipped by going around it.
-		holder.HP -= dmg
+		holder.HP = max(0, holder.HP - dmg)
 		holder.Unhide()  // any damage reveals a hidden mob (Hide, SkillCatalog.dm)
 
 		flick("hit", holder)
@@ -236,7 +236,7 @@ datum/status_effect/burn
 
 		// Direct HP change, not TakeDamage() — same reasoning as Poison above, fire
 		// already caught you, dodging isn't in the picture anymore.
-		holder.HP -= dmg
+		holder.HP = max(0, holder.HP - dmg)
 		holder.Unhide()  // any damage reveals a hidden mob (Hide, SkillCatalog.dm)
 
 		flick("hit", holder)
@@ -272,9 +272,12 @@ mob/proc/ApplyBurn(power, element)
 // -----------------------------
 // Sleep — locks canAct until it expires, or until a landed hit wakes the sleeper
 // (a SLEEP_WAKE_ON_HIT_PERCENT roll per hit, CombatSystem.dm's TakeDamage()).
-// -----------------------------
-#define SLEEP_DURATION 100       // deciseconds
-#define SLEEP_DURATION_MORE 200  // Sleepmore's stronger version
+// Each nap rolls its own length (user, from the OG, 2026-09-25: Sleep lasted
+// 2-8 seconds). Sleepmore's range is invented -- the OG gave it a bigger base value.
+#define SLEEP_DURATION_MIN 20        // deciseconds
+#define SLEEP_DURATION_MAX 80
+#define SLEEP_MORE_DURATION_MIN 40   // invented
+#define SLEEP_MORE_DURATION_MAX 100  // invented
 
 datum/status_effect/sleep
 	parent_type = /datum/status_effect
@@ -282,8 +285,8 @@ datum/status_effect/sleep
 	New()
 		..()
 		effectName = "Sleep"
-		duration = SLEEP_DURATION
-		tickInterval = SLEEP_DURATION  // no ticking — just OnApply/OnExpire
+		duration = rand(SLEEP_DURATION_MIN, SLEEP_DURATION_MAX)
+		tickInterval = duration        // no ticking — just OnApply/OnExpire
 		activeFXState = "asleep"       // spells.dmi; "sleep" is the cast burst instead
 
 	OnApply()
@@ -302,10 +305,8 @@ datum/status_effect/sleep
 datum/status_effect/sleep/more
 	New()
 		..()
-		effectName = "Sleep"
-		duration = SLEEP_DURATION_MORE
-		tickInterval = SLEEP_DURATION_MORE
-		// activeFXState inherited from /sleep — same visual, longer nap.
+		duration = rand(SLEEP_MORE_DURATION_MIN, SLEEP_MORE_DURATION_MAX)
+		tickInterval = duration
 
 // -----------------------------
 // Buffs — Upper (attack), Increase (defense), Barrier (magic defense). Applied
@@ -349,15 +350,20 @@ datum/status_effect/buff
 			if(!holder.isDead)
 				holder.ShowInfo("<font color='[buffColor]'>[expireMsg]</font>")
 
-// The "...on" states in spells.dmi are the buff-is-active indicators, paired with the
-// plain state the spell itself flashes on cast ("upper" -> "upperon").
+// Barrier's pairing below guesses the "...on" state is the standing indicator. Upper
+// is the other way round (user, from the OG, 2026-09-25): "upperon" is the cast flash,
+// "upper" the overlay that stays -- and it lasts about a minute, not BUFF_DURATION.
+#define UPPER_DURATION 600  // deciseconds
+
 datum/status_effect/buff/upper
 	New()
 		..()
 		effectName = "Upper"
+		duration = UPPER_DURATION
+		tickInterval = UPPER_DURATION
 		bonusVar = "attackBonus"
 		bonusAmount = UPPER_ATTACK_BONUS
-		activeFXState = "upperon"
+		activeFXState = "upper"
 		applyMsg = "Your attack power rises!"
 		expireMsg = "Your attack power returns to normal."
 
@@ -383,6 +389,36 @@ datum/status_effect/buff/barrier
 		buffColor = "cyan"
 		applyMsg = "A magical barrier surrounds you!"
 		expireMsg = "Your barrier fades."
+
+// -----------------------------
+// Blind — Sand Toss (SkillCatalog.dm; user's design, 2026-09-25). The blinded mob can
+// still act and attack, but misses more (BLIND_MISS_PERCENT, TakeDamage()) and sometimes
+// swings at the wrong tile (BLIND_WRONG_TILE_PERCENT, PerformMeleeHit()) -- both in
+// CombatSystem.dm. No standing overlay: "sandtoss" is only the throw.
+// -----------------------------
+#define BLIND_DURATION 100  // deciseconds -- invented
+
+mob/var/tmp/isBlinded = FALSE
+
+datum/status_effect/blind
+	parent_type = /datum/status_effect
+
+	New()
+		..()
+		effectName = "Blind"
+		duration = BLIND_DURATION
+		tickInterval = BLIND_DURATION
+
+	OnApply()
+		if(holder)
+			holder.isBlinded = TRUE
+			holder.ShowInfo("<font color='#c8a060'>Sand gets in your eyes!</font>")
+
+	OnExpire()
+		if(holder)
+			holder.isBlinded = FALSE
+			if(!holder.isDead)
+				holder.ShowInfo("<font color='#c8a060'>You can see again.</font>")
 
 // -----------------------------
 // Silence — blocks spell casting. Enforced centrally in UseSkillSlot()

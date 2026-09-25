@@ -63,8 +63,19 @@ mob/proc
 
 // Invented, not OG -- chance each LANDED hit (dodges don't count) wakes a mob out of
 // the Sleep spell (StatusEffects.dm). 100 = any hit wakes, 0 = sleeps the full duration.
-// Defined here, not beside SLEEP_DURATION, because this file compiles first.
+// Defined here, not beside SLEEP_DURATION_MIN/MAX (StatusEffects.dm), because this file compiles first.
 #define SLEEP_WAKE_ON_HIT_PERCENT 50
+
+// Chance each LANDED hit breaks a spell mid-cast-meter (PlayCastMeter(), below). The
+// user wants interruption possible but not guaranteed (2026-09-25) -- invented number.
+#define CAST_INTERRUPT_PERCENT 25
+
+// Blind (Sand Toss, StatusEffects.dm) -- invented numbers. A blinded attacker misses more
+// (an extra roll on top of the target's own dodge, TakeDamage()) and sometimes swings at
+// the wrong tile entirely (PerformMeleeHit()). Defined here because this file compiles
+// before StatusEffects.dm.
+#define BLIND_MISS_PERCENT 35
+#define BLIND_WRONG_TILE_PERCENT 30
 
 // CombatSide() return values -- see CanHarm() below TakeDamage().
 #define COMBAT_SIDE_PLAYERS  "players"
@@ -146,7 +157,9 @@ mob/proc
     // multiplier by the time it gets here. Returns whether the hit actually landed
     // (FALSE for already-dead/blocked/dodged) — Projectiles.dm's Launch() uses this to
     // decide whether a projectile stops here or keeps flying.
-    TakeDamage(damage, mob/attacker, isMagic = FALSE, isCrit = FALSE)
+    // canDodge = FALSE skips RollDodge() -- for damage whose "can it be dodged" moment
+    // already passed (Sage Saber's knockback slam: you can't dodge the wall).
+    TakeDamage(damage, mob/attacker, isMagic = FALSE, isCrit = FALSE, canDodge = TRUE)
         if(HP <= 0) return FALSE
         if(isGhostform) return FALSE  // also covers attacker-less damage; CanHarm() handles the rest
 
@@ -166,7 +179,7 @@ mob/proc
 
         var/isEnemy = istype(src, /mob/enemy)
 
-        if(RollDodge())
+        if(canDodge && (RollDodge() || (attacker && attacker.isBlinded && prob(BLIND_MISS_PERCENT))))
             // view(src), not bare view() — bare view() centers on usr, which is
             // unreliable outside a code path triggered directly by a verb (e.g. an
             // enemy's AILoop() calling this via PerformMeleeHit()).
@@ -183,7 +196,7 @@ mob/proc
         if(!firstAttacker && attacker && attacker != src)
             firstAttacker = attacker
 
-        HP -= damage
+        HP = max(0, HP - damage)  // floors at 0 -- a death shows 0 HP, never negative
         Unhide()  // a landed hit reveals a hidden mob (Hide, SkillCatalog.dm)
         view(src) << output(isCrit ? "[src] takes a critical hit for [damage] damage! (HP: [max(HP,0)])" : "[src] takes [damage] damage! (HP: [max(HP,0)])", "Info")
         ShowCombatNumber(src, "[damage]", isCrit ? "#ffff00" : DAMAGE_NUMBER_COLOR)
@@ -197,6 +210,10 @@ mob/proc
         if(prob(SLEEP_WAKE_ON_HIT_PERCENT))
             RemoveStatusEffect(/datum/status_effect/sleep)
         WakeUp()
+
+        // A landed hit mid-windup might break the cast (PlayCastMeter() reads the flag).
+        if(isCasting && prob(CAST_INTERRUPT_PERCENT))
+            castInterrupted = TRUE
 
         if(HP <= 0)
             Die(attacker)
@@ -460,6 +477,12 @@ mob/proc
     // is the only thing that should turn a committed swing into a miss. Falls back to
     // scanning the tile ahead only when no target was captured up front.
     PerformMeleeHit(datum/skill/S, mob/M = null)
+        // Blinded (Sand Toss): sometimes the swing goes to another side entirely --
+        // turning to face it, and hitting whoever (if anyone) happens to be there.
+        if(isBlinded && prob(BLIND_WRONG_TILE_PERCENT))
+            dir = pick(list(NORTH, SOUTH, EAST, WEST) - dir)
+            M = null
+
         if(!M)
             var/turf/T = get_step(src, dir)
             if(!T) return
@@ -477,9 +500,11 @@ mob/proc
         if(M.loc == loc) return
 
         var/mult = S ? S.damage_multiplier : 1
-        ResolvePhysicalHit(M, mult)
+        // Returns the mob struck when the hit lands (null on a miss/no target), for skills
+        // that add an on-hit effect (Magicknife's MP drain).
+        if(ResolvePhysicalHit(M, mult)) return M
 
-    // Shared by PerformMeleeHit()/PerformLineHit() — builds a physical hit and applies
+    // Shared by every physical hit (swings, bolts, Thornwhip) — builds a physical hit and applies
     // it. The base number comes from ComputePhysicalDamage() (DamageFormula.dm), which
     // owns every coefficient; only the crit step is applied here.
     ResolvePhysicalHit(mob/target, mult)
@@ -599,6 +624,21 @@ proc/GetDiamondTurfs(turf/center, radius = 1, skipBlocked = TRUE)
     for(var/dx = -radius to radius)
         for(var/dy = -radius to radius)
             if(abs(dx) + abs(dy) > radius) continue
+            var/turf/T = locate(center.x + dx, center.y + dy, center.z)
+            if(!T) continue
+            if(skipBlocked && IsTurfBlocked(T)) continue
+            turfs += T
+
+    return turfs
+
+// Same as GetDiamondTurfs() but a full square, diagonals included -- radius 1 is the
+// 3x3 block. For blasts that should catch the corners too (Boom, Explodet).
+proc/GetSquareTurfs(turf/center, radius = 1, skipBlocked = TRUE)
+    var/list/turfs = list()
+    if(!center) return turfs
+
+    for(var/dx = -radius to radius)
+        for(var/dy = -radius to radius)
             var/turf/T = locate(center.x + dx, center.y + dy, center.z)
             if(!T) continue
             if(skipBlocked && IsTurfBlocked(T)) continue
@@ -757,13 +797,25 @@ mob/proc
 // frames over the caster, paced by GetAttackDelay() so a stronger caster winds up
 // faster. Blaze was the only spell that had it; the rest fired after a flat delay.
 //
-// Synchronous -- sleeps through the whole windup. Returns FALSE if the caster died
-// mid-cast; the caller must then stop WITHOUT touching canAct (Die() owns it).
+// A landed hit mid-windup MAY break the cast (CAST_INTERRUPT_PERCENT, TakeDamage()):
+// the meter stops, the spell never goes off, and the MP stays spent. The caster gets
+// canAct back here, since the caller just returns.
+//
+// Synchronous -- sleeps through the whole windup. Returns FALSE if the caster died or
+// was interrupted mid-cast; the caller must then stop WITHOUT touching canAct (Die()
+// owns it on a death; this proc already restored it on an interrupt).
+mob/var/tmp/isCasting = FALSE
+mob/var/tmp/castInterrupted = FALSE
+
 mob/proc/PlayCastMeter(datum/skill/S, wasDefending = FALSE)
     PlaySFXAt(src, 'spell.wav', base = 70)
 
     var/atkDelay = GetAttackDelay(S, wasDefending)
     var/frameDelay = max(CAST_METER_MIN_FRAME_DELAY, atkDelay / CAST_METER_SPEED_DIVISOR)
+    if(S) frameDelay *= S.cast_meter_slowness
+
+    isCasting = TRUE
+    castInterrupted = FALSE
 
     // A fresh image per frame, previous one explicitly removed rather than mutated in
     // place -- BYOND's overlays list snapshots appearance at add-time.
@@ -775,9 +827,18 @@ mob/proc/PlayCastMeter(datum/skill/S, wasDefending = FALSE)
         overlays += meterFrame
         prevFrame = meterFrame
         sleep(frameDelay)
+        if(castInterrupted || isDead) break
     if(prevFrame) overlays -= prevFrame
 
-    return !isDead
+    isCasting = FALSE
+    if(isDead) return FALSE
+    if(castInterrupted)
+        castInterrupted = FALSE
+        view(src) << output("[src]'s [S ? S.skillName : "spell"] is interrupted!", "Info")
+        ShowCombatNumber(src, "interrupted", "#b0b0ff")
+        canAct = TRUE
+        return FALSE
+    return TRUE
 
 // Real 3-stage cast for GenericSpell's healing branch — only for heal-tier skills with
 // real spells.dmi art (Heal/Healmore/Healmost). Synchronous (sleep(), not spawn()) so
@@ -803,26 +864,3 @@ mob/proc/PlayHealCastSequence(datum/skill/S, mob/target, heal_amount, wasDefendi
 
     canAct = TRUE
     RestoreDefendIfUntouched(wasDefending, mySession)
-
-// -----------------------------
-// Line (reach) melee hits — scans outward from this mob tile by tile in its facing
-// direction, hitting the FIRST mob found (stops there, no pierce). Built for
-// Thornwhip (SkillCatalog.dm). Deliberately NOT built on Projectiles.dm's pierces flag
-// — this is an instant reach attack, no travel time or visible projectile. Walls don't
-// block it yet (unconfirmed from the OG which turfs/objs should).
-// -----------------------------
-mob/proc
-    PerformLineHit(datum/skill/S, reach = 3)
-        var/mult = S ? S.damage_multiplier : 1
-        var/turf/T = src.loc
-
-        for(var/i = 1 to reach)
-            T = get_step(T, dir)
-            if(!T) return
-
-            for(var/mob/M in T.contents)
-                if(M == src) continue
-                if(M.HP <= 0) continue
-
-                ResolvePhysicalHit(M, mult)
-                return  // first mob found ends the scan — no pierce

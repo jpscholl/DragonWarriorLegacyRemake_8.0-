@@ -115,6 +115,12 @@
 #define CAST_METER_SPEED_DIVISOR 10
 #define CAST_METER_MIN_FRAME_DELAY 0.5
 
+// Spell projectile flight speed: step delay = attack delay / divisor, floored at the
+// minimum. Blaze (Combat/Skills/SkillDatum.dm) and the spell bolts (Zap and friends,
+// Combat/Skills/SkillCatalog.dm) share it. Same #include-order reason as above.
+#define PROJECTILE_SPEED_DIVISOR 20
+#define PROJECTILE_MIN_STEP_DELAY 0.3
+
 // heal/healmore/healmost (spells.dmi) are all a real 4-frame animation (1 decisecond
 // per frame, rewind=1 — confirmed via the .dmi's own frame data, not guessed) that
 // plays forward then back once per full cycle: 4 frames * 1 decisecond, doubled for the

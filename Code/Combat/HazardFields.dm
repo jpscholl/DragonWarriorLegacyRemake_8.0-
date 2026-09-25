@@ -98,7 +98,7 @@ obj/hazard_field
                 if(tickDamage > 0)
                     // Direct HP change, not TakeDamage() — same reasoning as poison and
                     // turf/hazard: you don't dodge the ground you're standing on.
-                    M.HP -= tickDamage
+                    M.HP = max(0, M.HP - tickDamage)
                     M.Unhide()  // any damage reveals a hidden mob (Hide, SkillCatalog.dm)
                     flick("hit", M)
                     PlaySFXAt(M, istype(M, /mob/enemy) ? 'enemyhit.wav' : 'hit.wav')
