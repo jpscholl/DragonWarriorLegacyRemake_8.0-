@@ -16,9 +16,9 @@
 // fx_state names a state that doesn't exist yet silently draws nothing rather than
 // erroring, so fx_state can be filled in ahead of the art.
 
-// SKILL_FX_FILE / SKILL_FX_DURATION live in the .dme's shared define block, not here —
-// CombatSystem.dm (PlayHealCastSequence()) needs them and compiles before this file
-// alphabetically, and macros are textual so they have to be defined first. Same reason
+// SKILL_FX_FILE / SKILL_FX_DURATION / IMPACT_FX_DURATION live in the .dme's shared define
+// block, not here — CombatSystem.dm and Projectiles.dm need them and compile before this
+// file alphabetically, and macros are textual so they have to be defined first. Same reason
 // the cast-meter and damage-number constants already sit up there.
 
 // Some FX art ships as VARIANTS of one base name rather than a single state, in two
@@ -50,12 +50,13 @@ proc/ResolveSkillFXState(baseName, dir = 0, alternate = FALSE)
     if(baseName in states) return baseName
     return null
 
-// Flashes one spells.dmi state over any atom — a mob, a turf, an obj.
+// Flashes one spells.dmi state over any atom — a mob, a turf, an obj. Every one-shot
+// effect in the game goes through here: swing art, blasts, hit flashes.
 //
-// FREE-STANDING, not a proc on /mob or /obj, for the same reason FlashTurfEffect()
-// (Projectiles.dm) is: the cleanup sleeps, and if it ran inside a proc owned by an atom
-// that gets deleted meanwhile (a dying monster, a spent projectile) the pending block
-// dies with its owner and the overlay is stranded on screen forever. A global proc has
+// FREE-STANDING, not a proc on /mob or /obj: the cleanup sleeps, and if it ran inside a
+// proc owned by an atom that gets deleted meanwhile (a dying monster, a spent
+// projectile) the pending block dies with its owner and the overlay is stranded on
+// screen forever -- a real bug once, with "blazehit" stuck on walls. A global proc has
 // no src to delete.
 //
 // fxDir picks which of a state's directions to draw -- nearly every weapon/beam state
@@ -70,8 +71,8 @@ proc/FlashSkillFX(atom/A, stateName, duration = SKILL_FX_DURATION, layerOffset =
     fx.pixel_y = pixelY
     // A turf's own layer is far below a mob's, so "just above the turf" would bury an
     // explosion underneath whoever is standing in it. Turf-hosted effects get a fixed
-    // high layer instead, same value and same reason as FlashTurfEffect()
-    // (Projectiles.dm). Mob- and obj-hosted effects sit just above their host.
+    // high layer instead, above /obj/projectile's own (5). Mob- and obj-hosted effects
+    // sit just above their host.
     fx.layer = isturf(A) ? 6 : (A.layer + layerOffset)
     A.overlays += fx
     sleep(duration)
@@ -87,12 +88,27 @@ mob/proc
         var/state = ResolveSkillFXState(S.fx_state, dir, animAlternate)
         if(state) FlashSkillFX(where, state, duration, fxDir = dir, pixelY = isturf(where) ? pixel_y : 0)
 
-    // The burst drawn where a hit LANDS, as opposed to the swing/cast art above.
-    // Several skills ship both halves ("blaze"/"blazehit", "lightning"/"lightninghit",
-    // "icespear"/"icespearhit", "lightsword"/"lightswordblast"); a skill with no
-    // separate impact state falls back to its main fx_state so something still shows.
-    PlaySkillImpactFX(datum/skill/S, atom/where, duration = SKILL_FX_DURATION)
-        if(!S || !where) return
-        var/state = ResolveSkillFXState(S.impact_fx_state, dir, animAlternate)
-        if(!state) state = ResolveSkillFXState(S.fx_state, dir, animAlternate)
-        if(state) FlashSkillFX(where, state, duration, fxDir = dir, pixelY = isturf(where) ? pixel_y : 0)
+// Pins one spells.dmi state to a turf until ClearTurfFX() takes it off -- one piece of
+// a whip or beam that has to stay put while the rest of it grows. Returns the image
+// (null for a null state), which the caller keeps to remove it later.
+proc/AddTurfFX(turf/T, state, fxDir = SOUTH, pixelY = 0)
+    if(!T || !state) return null
+    var/image/fx = image(SKILL_FX_FILE, T, state, dir = fxDir)
+    fx.pixel_y = pixelY
+    fx.layer = 6  // turf-hosted -- same high layer as FlashSkillFX()
+    T.overlays += fx
+    return fx
+
+// Takes down a list of turf = image pieces from AddTurfFX(), one every stepDelay after
+// holding for `hold`. In list order (a beam fading from the caster's end), or reversed
+// with fromTip (a whip pulling back tip-first). FREE-STANDING like FlashSkillFX(): the
+// cleanup has to outlive whoever made the pieces.
+proc/ClearTurfFX(list/segments, hold, stepDelay, fromTip = FALSE)
+    set waitfor = 0
+    if(!segments || !segments.len) return
+    sleep(hold)
+    var/count = segments.len
+    for(var/n = 1 to count)
+        var/turf/T = segments[fromTip ? count - n + 1 : n]
+        if(T && segments[T]) T.overlays -= segments[T]
+        if(n < count) sleep(stepDelay)

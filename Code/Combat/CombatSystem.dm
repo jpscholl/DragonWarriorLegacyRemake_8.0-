@@ -81,9 +81,9 @@ mob/proc
 #define COMBAT_SIDE_PLAYERS  "players"
 #define COMBAT_SIDE_MONSTERS "monsters"
 
-// Bumped whenever isDefending is toggled BY THE PLAYER (Defend.OnUse()) — lets
-// Attack.OnUse() auto-restore a defend stance it dropped mid-swing without stomping a
-// manual toggle that happened in the meantime.
+// Bumped whenever isDefending is toggled BY THE PLAYER (Defend.OnUse()) — lets a swing
+// or cast (RestoreDefendIfUntouched()) auto-restore a defend stance it dropped without
+// stomping a manual toggle that happened in the meantime.
 mob/var/defendToggleSession = 0
 
 mob/proc
@@ -483,15 +483,7 @@ mob/proc
             dir = pick(list(NORTH, SOUTH, EAST, WEST) - dir)
             M = null
 
-        if(!M)
-            var/turf/T = get_step(src, dir)
-            if(!T) return
-            for(var/mob/X in T.contents)
-                if(X.HP <= 0) continue
-                if(!CanHarm(X)) continue  // skip self, ghosts, allies -- not swallow the swing
-                M = X
-                break
-
+        if(!M) M = FindTargetAhead()
         if(!M || M.HP <= 0) return
         // A normal swing can't reach a mob sharing your tile (stacked after a Jump/
         // Quakejump landing) -- including a locked target that moved underneath you
@@ -504,14 +496,63 @@ mob/proc
         // that add an on-hit effect (Magicknife's MP drain).
         if(ResolvePhysicalHit(M, mult)) return M
 
-    // Shared by every physical hit (swings, bolts, Thornwhip) — builds a physical hit and applies
-    // it. The base number comes from ComputePhysicalDamage() (DamageFormula.dm), which
-    // owns every coefficient; only the crit step is applied here.
+    // Damage that skips TakeDamage()'s dodge/defense/coop checks -- poison or fire
+    // already in you, the ground you're standing on. Same feedback and death handling as
+    // a landed hit. killer is credited on a kill (null for terrain and effects);
+    // message, if any, goes to the victim's info panel.
+    TakeDirectDamage(dmg, mob/killer = null, message = null)
+        HP = max(0, HP - dmg)
+        Unhide()  // any damage reveals a hidden mob (Hide, SkillCatalog.dm)
+        flick("hit", src)
+        PlaySFXAt(src, istype(src, /mob/enemy) ? 'enemyhit.wav' : 'hit.wav')
+        if(message) ShowInfo(message)
+        ShowCombatNumber(src, "[dmg]", DAMAGE_NUMBER_COLOR)
+        ShowFloatingHPBar()
+        if(HP <= 0)
+            Die(killer)
+            CleanUpDead()
+
+    // Takes up to `amount` MP off this mob, with a blue "-X MP" pop and the MP bar --
+    // shared by every MP-draining attack (Magicknife, Stopspell). The drainer soaks it
+    // up, as far as their own MaxMP has room (user, 2026-09-25) -- a class with no MP
+    // pool gains nothing. Returns how much was drained.
+    DrainMP(amount, mob/drainer = null)
+        var/drain = min(MP, round(amount))
+        if(drain <= 0) return 0
+        MP -= drain
+        ShowFloatingMPBar()
+        ShowCombatNumber(src, "-[drain] MP", "#6090ff")
+        view(src) << output("[src] loses [drain] MP!", "Info")
+
+        if(drainer && !drainer.isDead)
+            var/gained = min(drain, drainer.MaxMP - drainer.MP)
+            if(gained > 0)
+                drainer.MP += gained
+                drainer.ShowFloatingMPBar()
+                ShowCombatNumber(drainer, "+[gained] MP", "#6090ff")
+        return drain
+
+    // The first live mob on the tile ahead that this mob may hurt -- skipping self,
+    // ghosts and allies rather than letting them swallow the swing. null if none.
+    FindTargetAhead()
+        var/turf/T = get_step(src, dir)
+        if(!T) return null
+        for(var/mob/X in T.contents)
+            if(X.HP > 0 && CanHarm(X)) return X
+        return null
+
+    // Shared by every physical hit (swings, bolts, whips) — builds a physical hit and
+    // applies it. The base number comes from ComputePhysicalDamage() (DamageFormula.dm),
+    // which owns every coefficient; only the crit step is applied here.
     ResolvePhysicalHit(mob/target, mult)
-        var/damage = ComputePhysicalDamage(mult)
+        return ApplyPhysicalDamage(target, ComputePhysicalDamage(mult))
+
+    // A physical hit for an already-worked-out number (Quakejump's ring, Sage Saber's
+    // slam): the crit roll, then TakeDamage(). Returns whether it landed.
+    ApplyPhysicalDamage(mob/target, damage, canDodge = TRUE)
         var/isCrit = RollCrit()
         if(isCrit) damage = round(damage * CRIT_DAMAGE_PERCENT / 100)
-        return target.TakeDamage(damage, src, isMagic = FALSE, isCrit = isCrit)
+        return target.TakeDamage(damage, src, isMagic = FALSE, isCrit = isCrit, canDodge = canDodge)
 
 // OG-confirmed (unsorted.dm:1412, Element()): a real multiplier matrix between the
 // spell's element and the TARGET's own elemental type — not a flat single-string
@@ -588,7 +629,9 @@ mob/proc
         if(wasDefending)
             delay += DEFEND_ATTACK_SPEED_PENALTY
 
-        return delay
+        // Lethargy (StatusEffects.dm) -- slows swing recovery and, through
+        // PlayCastMeter(), spell windups too.
+        return delay * slowFactor
 
 // get_dist()/step_to() use Chebyshev distance (diagonal counts as adjacent), but this
 // game is 4-directional only — true only when exactly one axis differs. The SAME tile
@@ -603,13 +646,21 @@ proc/IsCardinallyAdjacent(atom/A, atom/B, range=1)
 // Whether a tile stops a spell/hazard from occupying it. A dense turf blocks on its own
 // (walls), but so do dense OBJS standing on a passable turf — closed doors and signs.
 // Doors toggle density at runtime, so this reads live state every call rather than
-// anything cached. obj/projectile/IsTileBlocked() (Projectiles.dm) and
-// SpawnHazardBlob() (HazardFields.dm) both route through here so the two can't drift.
+// anything cached. Projectiles (Projectiles.dm), the whips and beams (SkillCatalog.dm)
+// and SpawnHazardBlob() (HazardFields.dm) all route through here so they can't drift.
 proc/IsTurfBlocked(turf/T)
     if(!T) return TRUE
     if(T.density) return TRUE
     for(var/obj/O in T.contents)
         if(O.density) return TRUE
+    return FALSE
+
+// IsTurfBlocked() plus solid MOBS -- TRUE if anything solid stands on T. For moving a
+// mob onto a tile (KnockBack(), the jumps, dummy placement) rather than a spell through it.
+proc/IsTileOccupied(turf/T)
+    if(!T || T.density) return TRUE
+    for(var/atom/movable/A in T)
+        if(A.density) return TRUE
     return FALSE
 
 // Every turf within a Manhattan radius of center — a DIAMOND, not a square. Movement
@@ -645,6 +696,15 @@ proc/GetSquareTurfs(turf/center, radius = 1, skipBlocked = TRUE)
             turfs += T
 
     return turfs
+
+// The 8 tiles around T, diagonals included (null edges of the map dropped). Lightning's
+// chain, Test_SpawnDummyRing.
+proc/GetRingTurfs(turf/T)
+    var/list/ring = list()
+    for(var/d in list(NORTH, NORTHEAST, EAST, SOUTHEAST, SOUTH, SOUTHWEST, WEST, NORTHWEST))
+        var/turf/R = get_step(T, d)
+        if(R) ring += R
+    return ring
 
 mob/proc
     // Real per-area battleModeOn var (Area.dm), set via GM_BattleMode (GMCommands.dm).
@@ -792,10 +852,9 @@ mob/proc
             // callers now draw it through PlaySkillFX() (SkillFX.dm) instead, which
             // reads the right file and layers correctly.
 
-// The cast windup EVERY player spell plays before it takes effect -- Blaze, heals,
-// damage and AoE spells, buffs, Sleep/Stopspell, Return, Revive: 10 castmeter.dmi
-// frames over the caster, paced by GetAttackDelay() so a stronger caster winds up
-// faster. Blaze was the only spell that had it; the rest fired after a flat delay.
+// The cast windup EVERY spell plays before it takes effect, player or monster: 10
+// castmeter.dmi frames over the caster, paced by GetAttackDelay() so a stronger caster
+// winds up faster (and a lethargic one slower), times the skill's cast_meter_slowness.
 //
 // A landed hit mid-windup MAY break the cast (CAST_INTERRUPT_PERCENT, TakeDamage()):
 // the meter stops, the spell never goes off, and the MP stays spent. The caster gets
@@ -840,8 +899,8 @@ mob/proc/PlayCastMeter(datum/skill/S, wasDefending = FALSE)
         return FALSE
     return TRUE
 
-// Real 3-stage cast for GenericSpell's healing branch — only for heal-tier skills with
-// real spells.dmi art (Heal/Healmore/Healmost). Synchronous (sleep(), not spawn()) so
+// Real 3-stage cast for every heal (HealSpell, SkillCatalog.dm) — cast meter, the heal
+// art held on the target, then the heal. Synchronous (sleep(), not spawn()) so
 // nothing downstream can fire out of order relative to what's on screen.
 mob/proc/PlayHealCastSequence(datum/skill/S, mob/target, heal_amount, wasDefending, mySession)
     if(!PlayCastMeter(S, wasDefending)) return  // died mid-cast

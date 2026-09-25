@@ -1,13 +1,15 @@
 // -----------------------------
-// Skill Catalog — generic framework + every named skill from ClassReference.md
+// Skill Catalog — the skill frameworks, then every named skill
 // -----------------------------
-// Every named skill below is a thin subtype of GenericPhysical or GenericSpell,
-// setting only name/icon_state/cost/multiplier. A few skills (status effects, Rest/
-// Return/Meditate, Revive, Classchange, Thornwhip) have a genuinely different shape
-// and get their own OnUse(). Attack/Defend/Fireball/Blaze live in SkillDatum.dm, not
-// here. See Markdowns/CodeNotes.md for placeholder/OG-confirmation history on the
-// numbers below — every damage_multiplier/heal_amount/mana_cost is a tunable guess
-// unless that doc says otherwise.
+// Layout: the shared frameworks first (GenericPhysical, GenericSpell/HealSpell,
+// AoESpell, SpellBolt, BeamSpell), then physical skills, offensive spells, heals, buffs,
+// status bolts and utility skills. Most named skills are a few lines of vars on one of
+// the frameworks; the ones with a genuinely different shape (Club's spin, the jumps,
+// Boomerang, Thornwhip, Sage Saber, Revive...) override OnUse()/PerformHit().
+// Attack and Defend live in SkillDatum.dm.
+//
+// Every damage_multiplier/heal_amount/mana_cost is a tunable guess unless marked OG.
+// Markdowns/Spells.md is the behavior-by-behavior reference (local only).
 
 // -----------------------------
 // Generic Physical — melee weapon/martial skills (Str or Agi gated)
@@ -18,15 +20,13 @@ datum/skill/GenericPhysical
     icon_state = "weapon"
     cast_time = 2
 
-    var
-        isRanged = FALSE
-        // FALSE = skip the one-tile flash of fx_state at swing start, for a skill that
-        // draws its own art in PerformHit() (Thornwhip's extending whip). fx_state stays
-        // set either way -- it's also what hides the portrait's weapon sprite.
-        flashSwingFX = TRUE
+    // FALSE = skip the one-tile flash of fx_state at swing start, for a skill that
+    // draws its own art in PerformHit() (Thornwhip's extending whip). fx_state stays
+    // set either way -- it's also what hides the portrait's weapon sprite.
+    var/flashSwingFX = TRUE
 
     // Hook for how contact is actually resolved — override this alone (e.g.
-    // Thornwhip's line attack below) to change what a swing hits without
+    // Thornwhip's lash, a bolt sword's bolt) to change what a swing hits without
     // duplicating the whole windup/recovery sequence in OnUse().
     proc/PerformHit(mob/user, mob/target)
         user.PerformMeleeHit(src, target)
@@ -37,8 +37,12 @@ datum/skill/GenericPhysical
 
         user.canAct = FALSE
 
+        // Drop the defend stance for the swing+recovery — auto-resumes below, but only
+        // if the player hasn't manually toggled Defend in the meantime.
         var/mySession = user.defendToggleSession
         var/wasDefending = user.DropDefendForAction()
+        // wasDefending (captured before the drop), not user.isDefending (already FALSE),
+        // so the speed penalty still applies to a swing thrown out of a defensive stance.
         var/atkDelay = user.GetAttackDelay(src, wasDefending)
 
         user.PlayAttackAnimation(user, src, target)
@@ -49,98 +53,59 @@ datum/skill/GenericPhysical
         // ("leftclaw"/"rightclaw") always agrees with the hand in the pose.
         if(flashSwingFX) user.PlaySkillFX(src, target || get_step(user, user.dir))
 
+        // The target captured at swing-start (UseSkillSlot()) is passed through rather
+        // than re-scanning the tile ahead once the windup has elapsed.
         spawn(cast_time)
             PerformHit(user, target)
+            // Swing landed — the user may move again, but can't attack again until the
+            // full recovery ends (canAct stays FALSE that whole time).
             if(!user.isDead) user.attackRecoveryOnly = TRUE
 
         spawn(atkDelay)
+            // Died meanwhile — Die() locked canAct as part of the death/respawn flow;
+            // unlocking it here would undo that.
             if(user.isDead) return
             user.canAct = TRUE
             user.attackRecoveryOnly = FALSE
             user.RestoreDefendIfUntouched(wasDefending, mySession)
 
 // -----------------------------
-// Generic Spell — offensive or healing magic (Int gated). isHealing picks the branch;
-// damage spells scale off Intelligence via damage_multiplier, heals use heal_amount.
+// Generic Spell — what every spell shares (Int gated). Each spell shape below brings
+// its own OnUse(); all of them open with PayToCast() (SkillDatum.dm) and the cast meter.
 // -----------------------------
 datum/skill/GenericSpell
     parent_type = /datum/skill
     isSpell = TRUE
     icon_state = "weapon"
-    cast_time = 6
 
-    var
-        isHealing = FALSE
-        heal_amount = 0
-        // TRUE only for heal-tier skills with real spells.dmi art (Heal/Healmore/
-        // Healmost) — routes through PlayHealCastSequence() (CombatSystem.dm), which
-        // holds the heal art on the target before the heal lands.
-        hasHealAnimation = FALSE
+// -----------------------------
+// Heal Spell — a flat heal_amount on the target faced, or on the caster when facing
+// nobody. Usable anywhere, peaceful areas included. Plays through
+// PlayHealCastSequence() (CombatSystem.dm): cast meter, then the heal art held on the
+// target before the heal lands.
+// -----------------------------
+datum/skill/HealSpell
+    parent_type = /datum/skill/GenericSpell
+
+    var/heal_amount = 0
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
-        // Healing is allowed outside battle areas; damage spells are not.
-        if(!isHealing && !user.InBattleArea()) return
 
-        var/mob/actualTarget = isHealing ? (target || user) : target
-
-        // A single-target damage spell with nothing valid in front used to spend the
-        // MP, play the whole cast, and hit nothing.
-        if(!isHealing && (!target || !user.CanHarm(target)))
-            user.ShowInfo("No target.")
+        var/mob/patient = target || user
+        if(patient.HP >= patient.MaxHP)
+            user.ShowInfo("[patient == user ? "You are" : "[patient] is"] already at full HP.")
             return
 
-        if(isHealing && actualTarget && actualTarget.HP >= actualTarget.MaxHP)
-            user.ShowInfo("[actualTarget == user ? "You are" : "[actualTarget] is"] already at full HP.")
-            return
-
-        var/cost = GetManaCost()
-        if(user.MP < cost)
-            user.ShowInfo("Not enough MP to cast [skillName]! (need [cost])")
-            return
-
-        user.MP -= cost
-        user.ShowFloatingMPBar()
-        user.canAct = FALSE
-        user.ShowInfo("You cast [skillName]!")
-
+        if(!PayToCast(user)) return
         var/mySession = user.defendToggleSession
         var/wasDefending = user.DropDefendForAction()
-
-        if(isHealing && hasHealAnimation)
-            user.PlayHealCastSequence(src, actualTarget, heal_amount, wasDefending, mySession)
-            return
-
-        if(!user.PlayCastMeter(src, wasDefending)) return  // died mid-cast
-
-        // The effect art plays once the windup completes, not at cast start.
-        user.PlaySkillFX(src, actualTarget)  // spells.dmi effect art (SkillFX.dm)
-
-        if(isHealing)
-            user.ApplyHeal(actualTarget, heal_amount)
-        else
-            // A skill with separate hit art ("icespear" -> "icespearhit") lets its
-            // main art play out first, so the two read as cast-then-impact.
-            if(impact_fx_state)
-                sleep(SKILL_FX_DURATION)
-                if(user.isDead) return
-            // Base number from ComputeSpellDamage() (DamageFormula.dm), which owns
-            // every offensive coefficient. The impact burst is gated on the hit
-            // actually landing — a dodged spell shouldn't visibly detonate on the
-            // target (same rule obj/projectile/Impact() follows).
-            if(user.ApplySpellDamage(target, user.ComputeSpellDamage(damage_multiplier), src.element) && impact_fx_state)
-                user.PlaySkillImpactFX(src, target)
-
-        user.canAct = TRUE
-        user.RestoreDefendIfUntouched(wasDefending, mySession)
+        user.PlayHealCastSequence(src, patient, heal_amount, wasDefending, mySession)
 
 // -----------------------------
 // AoE Spell — hits everything in a blob instead of one target, and optionally leaves a
 // hazard field on the ground afterwards (HazardFields.dm).
 // -----------------------------
-// Needs its own OnUse() rather than a PerformHit()-style hook because GenericSpell's
-// whole shape assumes a single target (the heal branch, the "already at full HP" check,
-// the one ApplySpellDamage() call).
 datum/skill/AoESpell
     parent_type = /datum/skill/GenericSpell
 
@@ -160,9 +125,12 @@ datum/skill/AoESpell
         // keeps pace with the spell that made it.
         hazard_power_multiplier = 0.5
 
-    // The target's own tile when facing something, otherwise the furthest unblocked
-    // tile up to aoe_range ahead — so casting into open ground puts the blast out in
-    // front of the caster instead of on top of them.
+    GetArtStates()
+        return ..() + blast_fx_state
+
+    // The caster's own tile (aoe_on_caster), else the target's, else the furthest
+    // unblocked tile up to aoe_range ahead — so casting into open ground puts the blast
+    // out in front of the caster instead of on top of them.
     proc/FindBlastCenter(mob/user, mob/target)
         if(aoe_on_caster) return user.loc
         if(target && target.loc) return target.loc
@@ -175,9 +143,8 @@ datum/skill/AoESpell
         return T
 
     // One damage roll shared by everyone caught in the blast, not a separate roll per
-    // victim — an explosion should read as a single event.
-    // fxDir: which way directional blast art faces -- the caster's facing unless a
-    // spell bolt passes its own flight direction.
+    // victim — an explosion should read as a single event. fxDir: which way directional
+    // blast art faces -- the caster's facing unless a spell bolt passes its flight dir.
     proc/ApplyBlast(mob/user, turf/center, damage, fxDir = 0)
         if(!fxDir) fxDir = user.dir
         var/fxState = ResolveSkillFXState(blast_fx_state || fx_state, fxDir, user.animAlternate)
@@ -200,16 +167,7 @@ datum/skill/AoESpell
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
         if(!user.InBattleArea()) return
-
-        var/cost = GetManaCost()
-        if(user.MP < cost)
-            user.ShowInfo("Not enough MP to cast [skillName]! (need [cost])")
-            return
-
-        user.MP -= cost
-        user.ShowFloatingMPBar()
-        user.canAct = FALSE
-        user.ShowInfo("You cast [skillName]!")
+        if(!PayToCast(user)) return
 
         var/mySession = user.defendToggleSession
         var/wasDefending = user.DropDefendForAction()
@@ -218,7 +176,7 @@ datum/skill/AoESpell
         // caster turns during the windup.
         var/turf/center = FindBlastCenter(user, target)
 
-        if(!user.PlayCastMeter(src, wasDefending)) return  // died mid-cast
+        if(!user.PlayCastMeter(src, wasDefending)) return  // died or interrupted
         ApplyBlast(user, center, user.ComputeSpellDamage(damage_multiplier))
 
         user.canAct = TRUE
@@ -260,16 +218,7 @@ datum/skill/SpellBolt
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
         if(!user.InBattleArea()) return
-
-        var/cost = GetManaCost()
-        if(user.MP < cost)
-            user.ShowInfo("Not enough MP to cast [skillName]! (need [cost])")
-            return
-
-        user.MP -= cost
-        user.ShowFloatingMPBar()
-        user.canAct = FALSE
-        user.ShowInfo("You cast [skillName]!")
+        if(!PayToCast(user)) return
 
         // Aim locks at cast start -- turning isn't blocked by canAct.
         var/castDir = user.dir
@@ -277,9 +226,11 @@ datum/skill/SpellBolt
         var/wasDefending = user.DropDefendForAction()
         var/atkDelay = user.GetAttackDelay(src, wasDefending)
 
-        if(!user.PlayCastMeter(src, wasDefending)) return  // died mid-cast
+        if(!user.PlayCastMeter(src, wasDefending)) return  // died or interrupted
 
-        var/stepDelay = max(PROJECTILE_MIN_STEP_DELAY, atkDelay / PROJECTILE_SPEED_DIVISOR) * bolt_slowness
+        // atkDelay / slowFactor: a lethargic caster winds up slower, but the bolt itself
+        // still flies at full speed once it leaves their hands.
+        var/stepDelay = max(PROJECTILE_MIN_STEP_DELAY, atkDelay / user.slowFactor / PROJECTILE_SPEED_DIVISOR) * bolt_slowness
 
         var/turf/front = get_step(user, castDir)
         var/list/spawns = list(front)
@@ -294,14 +245,12 @@ datum/skill/SpellBolt
             P.travelDir = castDir
             P.stepDelay = stepDelay
             P.icon_state = ResolveSkillFXState(fx_state, castDir)
-            P.impactIconState = impact_fx_state
             // Each lane rolls its own damage -- the three Icespears hit separately
             // (user, 2026-09-25). A burst still shares its one roll across its blast.
             P.damage = bolt_status ? 0 : user.ComputeSpellDamage(damage_multiplier)
             P.element = element
             P.pierces = bolt_pierces
             P.maxRange = bolt_range
-            P.flashOnWall = FALSE
             P.blockedByMobs = !bolt_pierces
             P.Launch()
 
@@ -326,7 +275,7 @@ datum/skill/SpellBolt
             return TRUE
 
         var/landed = user.ApplySpellDamage(M, P.damage, element)
-        if(landed && impact_fx_state) FlashTurfEffect(T, P.icon, impact_fx_state)
+        if(landed) FlashSkillFX(T, impact_fx_state, IMPACT_FX_DURATION)
         return landed
 
     // Extra effect when a status bolt takes hold (Stopspell's MP drain). Base: none.
@@ -367,31 +316,25 @@ datum/skill/BeamSpell
         beam_origin_state = null  // first tile's art; null = same as the rest
         beam_range = 6            // tiles beyond the first
 
+    GetArtStates()
+        return ..() + beam_origin_state
+
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
         if(!user.InBattleArea()) return
-
-        var/cost = GetManaCost()
-        if(user.MP < cost)
-            user.ShowInfo("Not enough MP to cast [skillName]! (need [cost])")
-            return
-
-        user.MP -= cost
-        user.ShowFloatingMPBar()
-        user.canAct = FALSE
-        user.ShowInfo("You cast [skillName]!")
+        if(!PayToCast(user)) return
 
         var/castDir = user.dir
         var/mySession = user.defendToggleSession
         var/wasDefending = user.DropDefendForAction()
 
-        if(!user.PlayCastMeter(src, wasDefending)) return  // died mid-cast
+        if(!user.PlayCastMeter(src, wasDefending)) return  // died or interrupted
 
+        // The caster is free once the beam leaves their hands; it grows on its own.
         user.canAct = TRUE
         user.RestoreDefendIfUntouched(wasDefending, mySession)
         Grow(user, castDir, user.ComputeSpellDamage(damage_multiplier))
 
-    // The caster is free once the beam leaves their hands; it grows on its own.
     proc/Grow(mob/user, castDir, damage)
         set waitfor = 0
         var/bodyState = ResolveSkillFXState(fx_state, castDir)
@@ -405,36 +348,19 @@ datum/skill/BeamSpell
             T = get_step(T, castDir)
             if(!T || IsTurfBlocked(T)) break
 
-            var/state = (i == 0) ? originState : bodyState
-            if(state)
-                var/image/seg = image(SKILL_FX_FILE, T, state, dir = castDir)
-                seg.pixel_y = pixelY
-                seg.layer = 6  // turf-hosted -- same high layer as FlashSkillFX()
-                T.overlays += seg
-                segments[T] = seg
+            segments[T] = AddTurfFX(T, (i == 0) ? originState : bodyState, castDir, pixelY)
 
             if(user)
                 for(var/mob/M in T)
                     if(M in struck) continue
                     if(M.HP <= 0 || !user.CanHarm(M)) continue
                     struck += M
-                    if(user.ApplySpellDamage(M, damage, element) && impact_fx_state)
-                        FlashTurfEffect(T, SKILL_FX_FILE, impact_fx_state)
+                    if(user.ApplySpellDamage(M, damage, element))
+                        FlashSkillFX(T, impact_fx_state, IMPACT_FX_DURATION)
 
             if(i < beam_range) sleep(BEAM_STEP_DELAY)
 
-        ClearBeam(segments)
-
-// FREE-STANDING like RetractWhip(): the cleanup must outlive the caster. Clears in
-// growth order -- the end nearest the caster goes first.
-proc/ClearBeam(list/segments)
-    set waitfor = 0
-    if(!segments || !segments.len) return
-    sleep(BEAM_HOLD)
-    for(var/i = 1 to segments.len)
-        var/turf/T = segments[i]
-        if(T && segments[T]) T.overlays -= segments[T]
-        if(i < segments.len) sleep(BEAM_STEP_DELAY)
+        ClearTurfFX(segments, BEAM_HOLD, BEAM_STEP_DELAY)  // caster's end first
 
 // =============================================================================
 // PHYSICAL SKILLS (Str/Agi gated) — damage_multiplier scales Strength
@@ -449,6 +375,65 @@ proc/ClearBeam(list/segments)
 // "claw"/"fireclaw"/"goldclaw" have no bare state at all — the art ships as
 // "leftclaw"/"rightclaw" pairs, which ResolveSkillFXState() picks between using the same
 // swing alternation as the portrait's pose.
+
+// -----------------------------
+// Bolt Sword — melee AND projectile (user's design, 2026-09-25; OG's
+// /proj/thunderswordblast, /proj/icesaberblast and /proj/lightswordblast tie the bolts
+// to these swords). The swing hits the tile ahead like any sword, then a bolt
+// (bolt_state) flies on from that tile until it hits something. A landed hit on a mob
+// the user may harm flashes bolt_hit_state; a dodge lets the bolt fly on; a wall
+// swallows it with no flash.
+//
+// The bolt starts ON the swung tile but ignores everyone standing there -- that tile
+// belongs to the sword, so an adjacent target isn't hit twice by one use.
+// -----------------------------
+#define SWORD_BOLT_STEP_DELAY 0.65  // deciseconds per tile -- invented, obj/projectile's default
+
+datum/skill/BoltSword
+    parent_type = /datum/skill/GenericPhysical
+
+    var
+        bolt_state = null       // spells.dmi, 4 dirs -- the flying bolt
+        bolt_hit_state = null   // spells.dmi -- flashed on a landed hit
+        bolt_multiplier = null  // bolt's own Strength multiplier; null = same as the swing
+
+    GetArtStates()
+        return ..() + bolt_state + bolt_hit_state
+
+    PerformHit(mob/user, mob/target)
+        user.PerformMeleeHit(src, target)
+        if(!user || user.isDead) return
+
+        var/turf/swung = get_step(user, user.dir)
+        if(!swung || IsTurfBlocked(swung)) return  // swinging into a wall -- no bolt
+
+        var/obj/projectile/swordbolt/B = new(swung)
+        B.caster = user
+        B.travelDir = user.dir
+        B.stepDelay = SWORD_BOLT_STEP_DELAY
+        B.icon_state = bolt_state
+        B.impactIconState = bolt_hit_state
+        B.multiplier = isnull(bolt_multiplier) ? damage_multiplier : bolt_multiplier
+        B.skipTurf = swung
+        B.Launch()
+
+obj/projectile/swordbolt
+    var
+        turf/skipTurf   // the swung tile -- the sword already covered it
+        multiplier = 1
+
+    FindTarget(turf/T)
+        if(T == skipTurf) return null
+        return ..()
+
+    // Physical, not a spell: Strength-scaled through the same hit path as the swing
+    // (dodge, crit, TakeDamage), instead of ApplySpellDamage().
+    Impact(turf/T, mob/target = null)
+        if(!target || !caster) return FALSE
+        var/landed = caster.ResolvePhysicalHit(target, multiplier)
+        if(landed) FlashSkillFX(T, impactIconState, IMPACT_FX_DURATION)
+        return landed
+
 datum/skill/Punch
     parent_type = /datum/skill/GenericPhysical
     skillName = "Punch"
@@ -599,13 +584,6 @@ mob/proc/HopStep(hopDir, ontoMobs, glideTime)
         client.camera.TrackTarget(src)
     return moved
 
-// TRUE if a mob or anything else solid stands on T, or T itself is a wall/door.
-proc/IsTileOccupied(turf/T)
-    if(!T || T.density) return TRUE
-    for(var/atom/movable/A in T)
-        if(A.density) return TRUE
-    return FALSE
-
 // Utility (user's design, 2026-09-24): vanish until something gives you away. Hidden,
 // monsters won't target you and single-target skills can't pick you (IsTargetable(),
 // CombatSystem.dm). You reappear on a step, on using any ability (this one included),
@@ -663,26 +641,6 @@ datum/skill/SandToss
         var/mob/M = user.PerformMeleeHit(src, target)
         if(M && M.HP > 0) M.ApplyStatusEffect(/datum/status_effect/blind)
 
-// Takes up to `amount` MP off this mob, with a blue "-X MP" pop and the MP bar -- shared
-// by every MP-draining attack (Magicknife, Stopspell). The drainer soaks it up, as far as
-// their own MaxMP has room (user, 2026-09-25) -- a class with no MP pool gains nothing.
-// Returns how much was drained.
-mob/proc/DrainMP(amount, mob/drainer = null)
-    var/drain = min(MP, round(amount))
-    if(drain <= 0) return 0
-    MP -= drain
-    ShowFloatingMPBar()
-    ShowCombatNumber(src, "-[drain] MP", "#6090ff")
-    view(src) << output("[src] loses [drain] MP!", "Info")
-
-    if(drainer && !drainer.isDead)
-        var/gained = min(drain, drainer.MaxMP - drainer.MP)
-        if(gained > 0)
-            drainer.MP += gained
-            drainer.ShowFloatingMPBar()
-            ShowCombatNumber(drainer, "+[gained] MP", "#6090ff")
-    return drain
-
 // User's design (2026-09-24): thrown, not swung. It flies BOOMERANG_OUT_RANGE tiles
 // ahead, then turns around and comes back along the same line toward the spot it was
 // thrown from. Anything solid ends the flight -- a wall or solid object drops it, and a
@@ -702,7 +660,6 @@ datum/skill/Boomerang
     skillName = "Boomerang"
     fx_state = "boomerang"   // spells.dmi: a 4-frame spin, drawn as the flying boomerang
     damage_multiplier = 1.3
-    isRanged = TRUE
 
     var/obj/projectile/boomerang/inFlight  // per player -- each has their own datum
 
@@ -903,9 +860,7 @@ datum/skill/Quakejump
             // Copy: a successful shove moves M out of T mid-loop.
             for(var/mob/M in T.contents.Copy())
                 if(M.HP <= 0 || !user.CanHarm(M)) continue
-                var/isCrit = user.RollCrit()
-                var/landed = M.TakeDamage(isCrit ? round(ringBase * CRIT_DAMAGE_PERCENT / 100) : ringBase, user, isMagic = FALSE, isCrit = isCrit)
-                if(landed && M && M.HP > 0)
+                if(user.ApplyPhysicalDamage(M, ringBase) && M && M.HP > 0)
                     M.KnockBack(pushDir)
 
 // Shoves this mob one tile in pushDir (diagonals included) without turning it around,
@@ -969,6 +924,9 @@ datum/skill/Thornwhip
         whip_body_state = null
         whip_tip_state = null
 
+    GetArtStates()
+        return ..() + whip_body_state + whip_tip_state
+
     PerformHit(mob/user, mob/target)
         var/whipDir = user.dir
         var/bodyState = ResolveSkillFXState(whip_body_state || fx_state, whipDir)
@@ -984,23 +942,15 @@ datum/skill/Thornwhip
             // The old tip becomes body now that the whip reaches past it.
             if(prevTip && bodyState != tipState)
                 prevTip.overlays -= segments[prevTip]
-                segments[prevTip] = AddWhipSegment(prevTip, bodyState, whipDir, user.pixel_y)
-            segments[T] = AddWhipSegment(T, tipState, whipDir, user.pixel_y)
+                segments[prevTip] = AddTurfFX(prevTip, bodyState, whipDir, user.pixel_y)
+            segments[T] = AddTurfFX(T, tipState, whipDir, user.pixel_y)
             prevTip = T
 
             if(StrikeTile(user, T)) break
             if(i < THORNWHIP_REACH) sleep(THORNWHIP_STEP_DELAY)
             if(!user || user.isDead) break
 
-        RetractWhip(segments)
-
-    proc/AddWhipSegment(turf/T, state, whipDir, pixelY)
-        if(!state) return null
-        var/image/seg = image(SKILL_FX_FILE, T, state, dir = whipDir)
-        seg.pixel_y = pixelY
-        seg.layer = 6  // turf-hosted -- same high layer as FlashSkillFX()
-        T.overlays += seg
-        return seg
+        ClearTurfFX(segments, THORNWHIP_HOLD, THORNWHIP_STEP_DELAY, fromTip = TRUE)
 
     // TRUE if a hit landed on T, which ends the lash there.
     proc/StrikeTile(mob/user, turf/T)
@@ -1009,17 +959,6 @@ datum/skill/Thornwhip
             if(!user.CanHarm(M)) continue
             if(user.ResolvePhysicalHit(M, damage_multiplier)) return TRUE
         return FALSE
-
-// FREE-STANDING for the same reason as FlashSkillFX() (SkillFX.dm): the cleanup sleeps,
-// and must still run if the whip's user is deleted mid-lash.
-proc/RetractWhip(list/segments)
-    set waitfor = 0
-    if(!segments || !segments.len) return
-    sleep(THORNWHIP_HOLD)
-    for(var/i = segments.len to 1 step -1)
-        var/turf/T = segments[i]
-        if(T && segments[T]) T.overlays -= segments[T]
-        if(i > 1) sleep(THORNWHIP_STEP_DELAY)
 
 // spells.dmi has no hit state for this bolt -- a landed hit shows nothing extra.
 // Name one in bolt_hit_state once the art exists.
@@ -1036,8 +975,8 @@ datum/skill/Battleaxe
     fx_state = "battleaxe"
     damage_multiplier = 1.5
 
-// Sage (and GM) skill -- user's memory of the OG, 2026-09-25; the "sagesaber" art is
-// in spells.dmi but no OG skill code survives. Only Sages unlock it (SkillUnlocks.dm), so
+// Sage's top skill -- user's memory of the OG, 2026-09-25; the "sagesaber" art is in
+// spells.dmi but no OG skill code survives. Only Sages unlock it (SkillUnlocks.dm), so
 // knowing it is the gate. The swing sends whoever it lands on flying the way the
 // user is facing, tile by tile, until they slam into a wall, a solid object or
 // another mob. No damage on the swing itself -- it all lands on the slam, and grows
@@ -1056,14 +995,7 @@ datum/skill/SageSaber
     damage_multiplier = 2.0  // the slam's base, before the per-tile growth -- invented
 
     PerformHit(mob/user, mob/target)
-        var/mob/M = target
-        if(!M)
-            var/turf/T = get_step(user, user.dir)
-            if(T)
-                for(var/mob/X in T)
-                    if(X.HP > 0 && user.CanHarm(X))
-                        M = X
-                        break
+        var/mob/M = target || user.FindTargetAhead()
         if(!M || M.HP <= 0 || M.loc == user.loc || !user.CanHarm(M)) return
         if(M.isAirborne) return
         if(M.RollDodge())
@@ -1085,63 +1017,7 @@ datum/skill/SageSaber
         if(!user || M.HP <= 0) return
 
         var/damage = round(min(SAGESABER_DAMAGE_CAP, user.ComputePhysicalDamage(damage_multiplier) * (SAGESABER_GROWTH ** tiles)))
-        var/isCrit = user.RollCrit()
-        if(isCrit) damage = round(damage * CRIT_DAMAGE_PERCENT / 100)
-        M.TakeDamage(damage, user, isMagic = FALSE, isCrit = isCrit, canDodge = FALSE)
-
-// Melee AND projectile (user's design, 2026-09-25; OG's /proj/thunderswordblast,
-// /proj/icesaberblast and /proj/lightswordblast tie the bolts to these swords). The swing hits the
-// tile ahead like any sword, then a bolt (bolt_state) flies on from that tile until it
-// hits something. A landed hit on a mob the user may harm flashes bolt_hit_state; a
-// dodge lets the bolt fly on; a wall swallows it with no flash.
-//
-// The bolt starts ON the swung tile but ignores everyone standing there -- that tile
-// belongs to the sword, so an adjacent target isn't hit twice by one use.
-#define SWORD_BOLT_STEP_DELAY 0.65  // deciseconds per tile -- invented, same as Blaze's default
-
-datum/skill/BoltSword
-    parent_type = /datum/skill/GenericPhysical
-    isRanged = TRUE
-
-    var
-        bolt_state = null       // spells.dmi, 4 dirs -- the flying bolt
-        bolt_hit_state = null   // spells.dmi -- flashed on a landed hit
-        bolt_multiplier = null  // bolt's own Strength multiplier; null = same as the swing
-
-    PerformHit(mob/user, mob/target)
-        user.PerformMeleeHit(src, target)
-        if(!user || user.isDead) return
-
-        var/turf/swung = get_step(user, user.dir)
-        if(!swung || IsTurfBlocked(swung)) return  // swinging into a wall -- no bolt
-
-        var/obj/projectile/swordbolt/B = new(swung)
-        B.caster = user
-        B.travelDir = user.dir
-        B.stepDelay = SWORD_BOLT_STEP_DELAY
-        B.icon_state = bolt_state
-        B.impactIconState = bolt_hit_state
-        B.multiplier = isnull(bolt_multiplier) ? damage_multiplier : bolt_multiplier
-        B.skipTurf = swung
-        B.Launch()
-
-obj/projectile/swordbolt
-    flashOnWall = FALSE
-    var
-        turf/skipTurf   // the swung tile -- the sword already covered it
-        multiplier = 1
-
-    FindTarget(turf/T)
-        if(T == skipTurf) return null
-        return ..()
-
-    // Physical, not a spell: Strength-scaled through the same hit path as the swing
-    // (dodge, crit, TakeDamage), instead of ApplySpellDamage().
-    Impact(turf/T, mob/target = null)
-        if(!target || !caster) return FALSE
-        var/landed = caster.ResolvePhysicalHit(target, multiplier)
-        if(landed) FlashTurfEffect(T, icon, impactIconState)
-        return landed
+        user.ApplyPhysicalDamage(M, damage, canDodge = FALSE)
 
 datum/skill/Flamesword
     parent_type = /datum/skill/BoltSword
@@ -1174,11 +1050,24 @@ datum/skill/Chainsickle
     whip_tip_state = "sickle"    // spells.dmi, 4 dirs
     damage_multiplier = 1.8
 
+// User's own design (2026-09-25 -- the OG behavior isn't known): every landed hit
+// saddles the target with lethargy (datum/status_effect/lethargy, StatusEffects.dm --
+// slower steps, swings and spell windups), and a small chance also puts them to sleep
+// exactly like the Sleep spell. A dodge does neither.
+#define LETHARGY_SWORD_SLEEP_CHANCE 15  // % -- invented, "a slight chance"
+
 datum/skill/SwordOfLethargy
     parent_type = /datum/skill/GenericPhysical
     skillName = "Sword Of Lethargy"
     fx_state = "swordoflethargy"
     damage_multiplier = 1.9
+
+    PerformHit(mob/user, mob/target)
+        var/mob/M = user.PerformMeleeHit(src, target)
+        if(!M || M.HP <= 0) return
+        M.ApplyStatusEffect(/datum/status_effect/lethargy)
+        if(prob(LETHARGY_SWORD_SLEEP_CHANCE))
+            M.ApplyStatusEffect(/datum/status_effect/sleep)
 
 datum/skill/IceSaber
     parent_type = /datum/skill/BoltSword
@@ -1211,15 +1100,38 @@ datum/skill/ThunderSword
 // =============================================================================
 // OFFENSIVE SPELLS (Int gated) — damage_multiplier scales Intelligence
 // =============================================================================
-// Every spell below was wired in one pass (user, 2026-09-25: "wire all spells, tweak
-// after"). Shapes follow the OG where the decompile says so -- nearly every OG spell's
-// use() spawned a /proj, and the /proj's art is used here. Where the OG shape couldn't
-// be read, the shape is a pick, marked "PICK". mana_cost is the real OG SpellCost()
-// value (Markdowns/OGCombatFormulas.md §1); damage_multiplier is still ours.
-// Status/burn side effects from the OG (Firebane's burn trail) are left out for now.
+// Every spell here got a first shape in one pass (2026-09-25); the user is now going
+// through them one at a time, and a spell marked "user" has been confirmed that way.
+// The rest are drafts: the shape follows the OG decompile where it could be read (nearly
+// every OG spell's use() spawned a /proj, and that /proj's art is used here), and is a
+// pick, marked "PICK", where it couldn't. mana_cost is the real OG SpellCost() value
+// (Markdowns/OGCombatFormulas.md §1); damage_multiplier is still ours. OG status/burn
+// side effects (Firebane's burn trail) are left out for now.
 
 // --- Plain bolts: fly until they hit something ---
-// Icebolt: user-confirmed from the OG, 2026-09-25 -- one ice spear, icespearhit on impact.
+
+// OG: /proj/blaze, MP 4, the same Int*2+4 formula as Zap -- so Zap's multiplier.
+datum/skill/Blaze
+    parent_type = /datum/skill/SpellBolt
+    skillName = "Blaze"
+    element = "fire"
+    fx_state = "blaze"
+    impact_fx_state = "blazehit"
+    damage_multiplier = 0.9
+    mana_cost = 4                    // OG
+
+// Blaze's art and flight, just faster and harder (user, from the OG, 2026-09-25).
+// OG: /proj/firebal also flies with "blaze", MP 4, damage round(Int*2.5)+5 vs Blaze's
+// Int*2+4 -- so ~1.25x Blaze's multiplier.
+#define FIREBALL_SLOWNESS 0.5  // flight step delay vs. Blaze's -- 0.5 = twice as fast; invented
+
+datum/skill/Fireball
+    parent_type = /datum/skill/Blaze
+    skillName = "Fireball"
+    damage_multiplier = 1.1
+    bolt_slowness = FIREBALL_SLOWNESS
+
+// One ice spear, icespearhit on impact (user, from the OG, 2026-09-25).
 datum/skill/Icebolt
     parent_type = /datum/skill/SpellBolt
     skillName = "Icebolt"
@@ -1272,7 +1184,7 @@ datum/skill/Lightning
                         if(M.HP <= 0 || !user.CanHarm(M)) continue
                         struck += M
                         if(user.ApplySpellDamage(M, damage, element))
-                            FlashTurfEffect(T, SKILL_FX_FILE, impact_fx_state)
+                            FlashSkillFX(T, impact_fx_state, IMPACT_FX_DURATION)
                             nextSources |= T
             if(!nextSources.len) return
             sources = nextSources
@@ -1435,92 +1347,75 @@ datum/skill/Snowstorm
     mana_cost = 16
 
 // =============================================================================
-// HEALING SPELLS (Int gated) — heal_amount is flat, not stat-scaled
+// HEALING SPELLS (Int gated) — heal_amount is flat, not stat-scaled (HealSpell, top)
 // =============================================================================
-// These four were the only skills in the game already using real spells.dmi art, and
-// they named it through icon_state — the var that everywhere else means "a state on the
-// caster's own portrait". Moved onto fx_state with the rest of the roster;
-// PlayHealCastSequence() (CombatSystem.dm) reads it from there now.
+// Not yet reviewed with the user: the amounts are out of order (Heal outheals
+// Healmore) and the MP costs aren't the OG's (Heal 6, Healmore 15, Healmost 40,
+// Healus 20, Healusmore 60).
 datum/skill/Heal
-    parent_type = /datum/skill/GenericSpell
+    parent_type = /datum/skill/HealSpell
     skillName = "Heal"
     fx_state = "heal"
-    isHealing = TRUE
-    hasHealAnimation = TRUE
     heal_amount = 60
     mana_cost = 4
 
 datum/skill/Healmore
-    parent_type = /datum/skill/GenericSpell
+    parent_type = /datum/skill/HealSpell
     skillName = "Healmore"
     fx_state = "healmore"
-    isHealing = TRUE
-    hasHealAnimation = TRUE
     heal_amount = 30
     mana_cost = 8
 
 // No dedicated "healus" art — reuses Healmore's.
 datum/skill/Healus
-    parent_type = /datum/skill/GenericSpell
+    parent_type = /datum/skill/HealSpell
     skillName = "Healus"
     fx_state = "healmore"
-    isHealing = TRUE
-    hasHealAnimation = TRUE
     heal_amount = 40
     mana_cost = 10
 
 datum/skill/Healmost
-    parent_type = /datum/skill/GenericSpell
+    parent_type = /datum/skill/HealSpell
     skillName = "Healmost"
     fx_state = "healmost"
-    isHealing = TRUE
-    hasHealAnimation = TRUE
     heal_amount = 55
     mana_cost = 12
 
 // No dedicated "healusmore" art — reuses Healmost's.
 datum/skill/Healusmore
-    parent_type = /datum/skill/GenericSpell
+    parent_type = /datum/skill/HealSpell
     skillName = "Healusmore"
     fx_state = "healmost"
-    isHealing = TRUE
-    hasHealAnimation = TRUE
     heal_amount = 75
     mana_cost = 15
 
-// Buff spells target self by default; facing an ally casts it on them instead.
+// =============================================================================
+// BUFF SPELLS — apply statusEffectType (StatusEffects.dm) to self, or to the ally faced
+// =============================================================================
 datum/skill/BuffSpell
-    parent_type = /datum/skill/StatusSpell
+    parent_type = /datum/skill/GenericSpell
 
-    // TRUE = the cast burst plays out in full before the buff (and its standing
-    // overlay) lands, so the two read as separate beats (Upper).
-    var/burst_before_buff = FALSE
+    var
+        statusEffectType = null
+        // TRUE = the cast burst plays out in full before the buff (and its standing
+        // overlay) lands, so the two read as separate beats (Upper).
+        burst_before_buff = FALSE
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
         // Utility, not combat -- usable anywhere, peaceful areas included (like heals/Return).
+        if(!PayToCast(user)) return
 
-        var/cost = GetManaCost()
-        if(user.MP < cost)
-            user.ShowInfo("Not enough MP to cast [skillName]! (need [cost])")
-            return
+        var/mob/buffTarget = target || user
+        if(!user.PlayCastMeter(src)) return  // died or interrupted
 
-        var/mob/actualTarget = target || user
-
-        user.MP -= cost
-        user.ShowFloatingMPBar()
-        user.canAct = FALSE
-        user.ShowInfo("You cast [skillName]!")
-
-        if(!user.PlayCastMeter(src)) return  // died mid-cast
-
-        user.PlaySkillFX(src, actualTarget)  // the cast burst; the buff's own standing
-                                              // indicator is activeFXState on the status
-                                              // effect (StatusEffects.dm)
+        user.PlaySkillFX(src, buffTarget)  // the cast burst; the buff's own standing
+                                           // indicator is activeFXState on the status
+                                           // effect (StatusEffects.dm)
         if(burst_before_buff)
             sleep(SKILL_FX_DURATION)
             if(user.isDead) return
-        if(actualTarget) actualTarget.ApplyStatusEffect(statusEffectType)
+        if(buffTarget) buffTarget.ApplyStatusEffect(statusEffectType)
 
         user.canAct = TRUE
 
@@ -1553,49 +1448,10 @@ datum/skill/Barrier
     mana_cost = 4
 
 // =============================================================================
-// STATUS-EFFECT SKILLS — apply a datum/status_effect (StatusEffects.dm) to the target.
+// STATUS BOLTS — SpellBolts that apply a status effect instead of damage (bolt_status)
 // =============================================================================
-datum/skill/StatusSpell
-    parent_type = /datum/skill
-    icon_state = "weapon"
-    isSpell = TRUE
-    cast_time = 4
-
-    var
-        statusEffectType = null
-        noTargetMessage = "No target."
-
-    OnUse(mob/user, mob/target = null)
-        if(!user.canAct) return
-        if(!user.InBattleArea()) return
-        // Hostile effects obey the same coop / friendly-fire / ghost rule as damage
-        // (CanHarm(), CombatSystem.dm) -- this path never touches TakeDamage(), so it
-        // used to let a player Sleep another player in a coop area, or a ghosted GM.
-        if(!target || !user.CanHarm(target))
-            user.ShowInfo(noTargetMessage)
-            return
-
-        var/cost = GetManaCost()
-        if(user.MP < cost)
-            user.ShowInfo("Not enough MP to cast [skillName]! (need [cost])")
-            return
-
-        user.MP -= cost
-        user.ShowFloatingMPBar()
-        user.canAct = FALSE
-        user.ShowInfo("You cast [skillName]!")
-
-        if(!user.PlayCastMeter(src)) return  // died mid-cast
-
-        // Re-checked: the target may have ghosted, or coop flipped, mid-cast.
-        if(target && user.CanHarm(target))
-            user.PlaySkillFX(src, target)
-            target.ApplyStatusEffect(statusEffectType)
-
-        user.canAct = TRUE
-
-// Status bolts (OG: /proj/sleep, /proj/stopspell -- Collide() applied the effect).
-// "sleep"/"stopspell" fly like any bolt; the sleeping target's own standing overlay is
+// OG: /proj/sleep and /proj/stopspell applied their effect in Collide(). The
+// "sleep"/"stopspell" art flies like any bolt; the sleeping target's own standing overlay is
 // "asleep", set as activeFXState on the status effect (StatusEffects.dm).
 //
 // The OG Sleep always took hold and no hit woke the sleeper. The user wants it able to
@@ -1692,27 +1548,14 @@ datum/skill/Meditate
 
 // Teleports the caster back to the spawn point (GetPlayerSpawnTurf(), Area.dm).
 datum/skill/Return
-    parent_type = /datum/skill
+    parent_type = /datum/skill/GenericSpell
     skillName = "Return"
-    icon_state = "weapon"
-    isSpell = TRUE
     mana_cost = 8
-    cast_time = 6
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
-
-        var/cost = GetManaCost()
-        if(user.MP < cost)
-            user.ShowInfo("Not enough MP to cast Return! (need [cost])")
-            return
-
-        user.MP -= cost
-        user.ShowFloatingMPBar()
-        user.canAct = FALSE
-        user.ShowInfo("You cast Return!")
-
-        if(!user.PlayCastMeter(src)) return  // died mid-cast
+        if(!PayToCast(user)) return
+        if(!user.PlayCastMeter(src)) return  // died or interrupted
 
         user.loc = GetPlayerSpawnTurf()
         if(user.client && user.client.camera)
@@ -1727,12 +1570,9 @@ datum/skill/Return
 #define REVIVE_CAST_SLOWNESS 1.5  // cast meter vs. a normal spell -- invented, same as Upper
 
 datum/skill/Revive
-    parent_type = /datum/skill
+    parent_type = /datum/skill/GenericSpell
     skillName = "Revive"
-    icon_state = "weapon"
-    isSpell = TRUE
     mana_cost = 50                // OG
-    cast_time = 6
     cast_meter_slowness = REVIVE_CAST_SLOWNESS
 
     var
@@ -1750,17 +1590,8 @@ datum/skill/Revive
             user.ShowInfo("[P.name] isn't in need of reviving.")
             return
 
-        var/cost = GetManaCost()
-        if(user.MP < cost)
-            user.ShowInfo("Not enough MP to cast [skillName]! (need [cost])")
-            return
-
-        user.MP -= cost
-        user.ShowFloatingMPBar()
-        user.canAct = FALSE
-        user.ShowInfo("You cast [skillName]!")
-
-        if(!user.PlayCastMeter(src)) return  // died or interrupted mid-cast
+        if(!PayToCast(user)) return
+        if(!user.PlayCastMeter(src)) return  // died or interrupted
 
         if(P && P.isDead)
             if(prob(revive_chance))

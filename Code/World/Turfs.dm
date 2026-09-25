@@ -398,21 +398,11 @@ turf/hazard
 		if(M.isGhostform) return
 		if(M.equipHazardImmune) return
 
-		// Direct HP change, not TakeDamage() — terrain isn't something you dodge.
-		M.HP = max(0, M.HP - stepDamage)
-		M.Unhide()  // any damage reveals a hidden mob (Hide, SkillCatalog.dm)
-		flick("hit", M)
-		PlaySFXAt(M, istype(M, /mob/enemy) ? 'enemyhit.wav' : 'hit.wav')
-		M.ShowInfo("<font color='red'>[hazardMessage] (-[stepDamage] HP)</font>")
-		ShowCombatNumber(M, "[stepDamage]", DAMAGE_NUMBER_COLOR)
-		M.ShowFloatingHPBar()
+		// Not TakeDamage() — terrain isn't something you dodge. No attacker to credit.
+		M.TakeDirectDamage(stepDamage, null, "<font color='red'>[hazardMessage] (-[stepDamage] HP)</font>")
 
-		if(poisonChance && prob(poisonChance))
+		if(M && M.HP > 0 && poisonChance && prob(poisonChance))
 			M.ApplyStatusEffect(/datum/status_effect/poison)
-
-		if(M.HP <= 0)
-			M.Die(null)  // no attacker to credit — terrain isn't a mob
-			M.CleanUpDead()
 
 // Every hazard hurts once per STEP onto it, never per tick -- standing still on one
 // is safe. That includes Dash (each tile it crosses is a step) and Jump's landing.

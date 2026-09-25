@@ -93,7 +93,7 @@ mob
 // Skill FX audit — which skills have art, which don't, and what art nothing claims
 // -----------------------------
 // The counterpart to Debug_ShowZoneColors() above, for the spells.dmi side. Every skill
-// names its effect art in fx_state (SkillCatalog.dm) and ResolveSkillFXState()
+// names its effect art (fx_state and friends, GetArtStates()) and ResolveSkillFXState()
 // (SkillFX.dm) draws nothing when that state doesn't exist, which is deliberate but
 // means a typo or a wrong guess is invisible in play — it just silently looks like a
 // plain swing. This prints the whole mapping so it can be checked without hunting.
@@ -114,28 +114,24 @@ mob
             var/unnamed = 0
 
             for(var/skillType in typesof(/datum/skill))
-                var/fxState = initial(skillType:fx_state)
-                var/sName = initial(skillType:skillName)
-                if(!fxState)
+                // An instance, so GetArtStates() (SkillDatum.dm) can report every piece of
+                // art the skill draws -- bolts, whip pieces, blasts -- not just fx_state.
+                var/datum/skill/S = new skillType
+                var/list/artStates = S.GetArtStates() - null
+                if(!artStates.len)
                     unnamed++
                     continue
 
-                var/resolved = ResolveSkillFXState(fxState)
-                if(resolved)
-                    wired += "[sName] — [fxState] &rarr; [resolved]"
-                    claimed[resolved] = TRUE
+                for(var/art in artStates)
+                    var/resolved = ResolveSkillFXState(art)
+                    if(!resolved)
+                        missing += "[S.skillName] — [art]"
+                        continue
+                    wired += "[S.skillName] — [art] &rarr; [resolved]"
                     // Record the variant siblings too, so a skill using the handed or
                     // directional form doesn't leave its partners looking unclaimed.
-                    for(var/variant in list("[fxState]", "left[fxState]", "right[fxState]", "[fxState]ns", "[fxState]ew"))
+                    for(var/variant in list(resolved, "[art]", "left[art]", "right[art]", "[art]ns", "[art]ew"))
                         if(variant in states) claimed[variant] = TRUE
-                else
-                    missing += "[sName] — [fxState]"
-
-                var/impactState = initial(skillType:impact_fx_state)
-                if(impactState)
-                    var/resolvedImpact = ResolveSkillFXState(impactState)
-                    if(resolvedImpact) claimed[resolvedImpact] = TRUE
-                    else missing += "[sName] (impact) — [impactState]"
 
             usr.ShowInfo("<b>Skill FX report — [states.len] states in spells.dmi</b>")
 
@@ -151,7 +147,7 @@ mob
             for(var/s in states)
                 if(!claimed[s]) unclaimed += s
             usr.ShowInfo("<b>Art nothing claims ([unclaimed.len]):</b> [jointext(unclaimed, ", ")]")
-            usr.ShowInfo("Skills with no fx_state at all: [unnamed]")
+            usr.ShowInfo("Skills (and frameworks) with no art at all: [unnamed]")
 
         // obj/hazard_field (HazardFields.dm) is only reachable in play by casting
         // Explodet, which needs the level and MP for it. This drops the same flame blob
@@ -218,14 +214,6 @@ mob
                 del D
                 removed++
             usr.ShowInfo("Removed [removed] training dummies.")
-
-// The 8 tiles around T (null edges of the map dropped).
-proc/GetRingTurfs(turf/T)
-    var/list/ring = list()
-    for(var/d in list(NORTH, NORTHEAST, EAST, SOUTHEAST, SOUTH, SOUTHWEST, WEST, NORTHWEST))
-        var/turf/R = get_step(T, d)
-        if(R) ring += R
-    return ring
 
 // A punching bag for testing skills (Quakejump's shove especially) against something
 // that survives more than one hit. Never acts on its own -- no AI at all, so it can't

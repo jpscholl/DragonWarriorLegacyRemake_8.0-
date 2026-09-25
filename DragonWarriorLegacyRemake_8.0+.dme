@@ -102,11 +102,10 @@
 // World/Turfs.dm all use this and compile before UI/HUD.dm alphabetically.
 #define DAMAGE_NUMBER_COLOR "#cc0000"
 
-// Cast windup speed, shared by every spell that plays a castmeter.dmi (icon_states "1"
-// through "10") windup — Blaze (Combat/Skills/SkillDatum.dm) and GenericSpell's healing
-// branch (Combat/Skills/SkillCatalog.dm, PlayHealCastSequence(), Combat/CombatSystem.dm)
-// both use it, so a single shared value keeps the windup feel consistent across spells
-// instead of two independently-tuned numbers drifting apart. Total windup = 10 frames *
+// Cast windup speed, shared by every spell's castmeter.dmi (icon_states "1" through
+// "10") windup (PlayCastMeter(), Combat/CombatSystem.dm), so one value keeps the windup
+// feel consistent across spells; a spell that should feel slower sets its own
+// cast_meter_slowness instead of a separate number. Total windup = 10 frames *
 // frameDelay, so at this divisor a fresh level-1 caster winds up in a bit over a second,
 // and a high-Intelligence one noticeably faster. Bigger divisor = snappier cast. Lives
 // here rather than in SkillDatum.dm for the same #include-order reason as the others
@@ -137,6 +136,7 @@
 // swung-weapon and buff-active sprite in the game.
 #define SKILL_FX_FILE 'spells.dmi'
 #define SKILL_FX_DURATION 4
+#define IMPACT_FX_DURATION 3  // a hit/impact flash (blazehit, lightninghit...) -- Projectiles.dm needs it too
 
 // Character-creation step constants (originally only in Code\UI\LoginMenu.dm, which
 // still owns the real creation flow). Same #include-order reason as the others above —

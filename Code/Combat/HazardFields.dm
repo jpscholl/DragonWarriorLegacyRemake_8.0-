@@ -95,18 +95,8 @@ obj/hazard_field
                         else
                             M.ApplyStatusEffect(effectType)
 
-                if(tickDamage > 0)
-                    // Direct HP change, not TakeDamage() — same reasoning as poison and
-                    // turf/hazard: you don't dodge the ground you're standing on.
-                    M.HP = max(0, M.HP - tickDamage)
-                    M.Unhide()  // any damage reveals a hidden mob (Hide, SkillCatalog.dm)
-                    flick("hit", M)
-                    PlaySFXAt(M, istype(M, /mob/enemy) ? 'enemyhit.wav' : 'hit.wav')
-                    ShowCombatNumber(M, "[tickDamage]", DAMAGE_NUMBER_COLOR)
-                    M.ShowFloatingHPBar()
-                    if(M.HP <= 0)
-                        M.Die(owner)
-                        M.CleanUpDead()
+                // Not TakeDamage() — you don't dodge the ground you're standing on.
+                if(tickDamage > 0) M.TakeDirectDamage(tickDamage, owner)
 
         if(src) del src
 

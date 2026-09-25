@@ -180,9 +180,9 @@ mob/enemy
 	proc/TryHeal()
 		if(!healSkills.len || !SpellReady() || !canAct || isSilenced) return FALSE
 
-		// Typed as GenericSpell so heal_amount is compile-checked — a healSkills list
+		// Typed as HealSpell so heal_amount is compile-checked — a healSkills list
 		// that accidentally names a non-healing skill fails safe here.
-		var/datum/skill/GenericSpell/S = spellInstances[pick(healSkills)]
+		var/datum/skill/HealSpell/S = spellInstances[pick(healSkills)]
 		if(!istype(S)) return FALSE
 		var/cost = S.GetManaCost()
 		if(MP < cost) return FALSE
@@ -285,7 +285,7 @@ mob/enemy
 		                              // fx_state), real art for a monster whose
 		                              // attackSkill is a named one like Chainsickle
 		PerformMeleeHit(attackSkill, M)
-		spawn(attackCooldown)
+		spawn(attackCooldown * slowFactor)  // Lethargy stretches it (StatusEffects.dm)
 			canAct = TRUE
 
 	// Pet AI — runs instead of RunWildAI() once this mob has an owner, branching on

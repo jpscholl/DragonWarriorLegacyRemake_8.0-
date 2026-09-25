@@ -88,7 +88,8 @@ mob/New()
 
 var/global/gameMinuteOfDay = 720  // minutes since midnight; OG's documented start (12:00 PM)
 
-// Human-readable clock, e.g. "6:00 PM" — shown in the Status panel (StatPanels.dm).
+// Human-readable clock, e.g. "6:00 PM". Unused while the auto day/night clock is off
+// (RP-mode only, commit bdff599); kept for when it comes back to the Status panel.
 proc/GetGameTimeString()
     var/hour24 = round(gameMinuteOfDay / 60)
     var/minute = gameMinuteOfDay % 60

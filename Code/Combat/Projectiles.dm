@@ -1,31 +1,14 @@
 // -----------------------------
-// Spell Projectiles
+// Projectiles
 // -----------------------------
-// Base moving-projectile entity for ranged spells (confirmed design, see
-// TODOList.md's "Real spell system" entry). A projectile is spawned already facing
-// its travel direction (see datum/skill/SpellBolt, SkillCatalog.dm) and Launch()es itself:
-// steps forward one tile at a time, checking for a valid target (whoever the caster
-// may hurt — CanHarm(), CombatSystem.dm, which applies coop mode and friendly fire) or
-// a dense obstacle, stopping and showing an impact icon_state either way. Falls off the
-// edge of the map cleanly if it never hits anything.
-
-// Shows a short-lived impact effect on a turf. Deliberately a FREE-STANDING proc, not
-// a proc on /obj/projectile — that was a real bug: the cleanup used to run in a
-// spawn() block owned by the projectile, and Launch()'s `del src` immediately after
-// impact killed that pending block before it could fire, so the "blazehit" overlay
-// stayed on the turf forever (confirmed in playtest against walls). A global proc has
-// no src to delete, so its cleanup always runs. Precedent for free-standing procs in
-// this codebase: IsCardinallyAdjacent() in CombatSystem.dm.
-proc/FlashTurfEffect(turf/T, iconFile, iconState, duration = 3)
-	set waitfor = 0
-	if(!T || !iconFile || !iconState) return
-
-	var/image/fx = image(iconFile, T, iconState)
-	fx.layer = 6  // just above /obj/projectile's own layer (5, below) so the burst
-	               // draws over anything on the tile rather than behind it
-	T.overlays += fx
-	sleep(duration)
-	T.overlays -= fx
+// Base moving projectile. Spawned already facing its travel direction by whatever fires
+// it (SpellBolt and BoltSword, SkillCatalog.dm), then Launch()es itself: one tile at a
+// time, checking each tile for a mob the caster may hurt (CanHarm(), CombatSystem.dm --
+// coop mode and friendly fire) and looking ahead for walls. Subtypes decide what a hit
+// does (Impact()) and what happens where the flight ends (Finish()).
+//
+// Hit art only ever shows on a landed hit on a mob -- a wall, an ally or the map edge
+// just ends the flight.
 
 obj/projectile
 	icon = 'spells.dmi'
@@ -40,28 +23,23 @@ obj/projectile
 	                       // player's own step_delay (1.36, SmoothMovement.dm) or the
 	                       // spell can literally be outrun — which is exactly what
 	                       // happened in the first playtest, when this was ~3. Lower =
-	                       // faster. Set per-launch by whatever skill spawns this.
-	var/pierces = FALSE  // confirmed per-skill, not universal — Blaze stops on its
-	                       // first hit; a future skill like Thornwhip would set this
-	                       // TRUE instead of needing a whole separate projectile type
-	var/impactIconState = null
-	var/flashOnWall = TRUE  // FALSE = the impact art is for mobs only; a wall just
-	                        // swallows the shot (ThunderSword's bolt)
+	                       // faster. Set per-launch by whatever fires it.
+	var/pierces = FALSE        // TRUE = a landed hit doesn't stop it (Infernos, Firebane)
+	var/impactIconState = null // spells.dmi state flashed by the default Impact()
 	var/blockedByMobs = FALSE  // TRUE = any solid mob it can't hurt (an ally) stops it
 	                           // too, with no impact art -- a dodger still lets it by
 	var/maxRange = 0  // tiles it may travel past its spawn tile; 0 = until it hits something
 	var/list/alreadyHit  // piercing shots: each mob is hit at most once per shot
-
-	// Shared with SpawnHazardBlob() (HazardFields.dm) — the real check lives in
-	// IsTurfBlocked() (CombatSystem.dm) so "what stops a spell" is defined once.
-	proc/IsTileBlocked(turf/T)
-		return IsTurfBlocked(T)
 
 	// Called once, on the open tile where the shot ends -- a landed hit, the tile in
 	// front of a wall or blocking mob, the end of its range, or the map edge. Not called
 	// when it spawns point-blank inside a wall. A burst spell detonates here.
 	proc/Finish(turf/T)
 		return
+
+	proc/End(turf/T)
+		Finish(T)
+		del src
 
 	proc/Launch()
 		set waitfor = 0
@@ -76,62 +54,45 @@ obj/projectile
 			// Point-blank into a wall/door/sign — only reachable on the very first
 			// iteration, since the look-ahead below stops us before entering a
 			// blocked tile otherwise.
-			if(IsTileBlocked(currentTurf))
-				if(flashOnWall) FlashTurfEffect(currentTurf, icon, impactIconState)
+			if(IsTurfBlocked(currentTurf))
 				del src
 				return
 
-			// Check the tile we're STANDING ON before moving. This is what makes an
-			// adjacent target work: the projectile spawns on the tile directly in
-			// front of the caster, so if an enemy is right there it has to be caught
-			// here — the look-ahead below would skip straight past them. That was a
-			// real bug (projectile spawned under an adjacent monster and flew through
-			// it) found in the first playtest.
+			// Check the tile we're STANDING ON before moving. The projectile spawns on
+			// the tile directly in front of the caster, so an adjacent enemy has to be
+			// caught here — the look-ahead below would skip straight past them (a real
+			// bug from the first playtest).
 			var/mob/hitTarget = FindTarget(currentTurf)
 			if(hitTarget)
-				// A dodge (landed == FALSE) never stops the shot, pierces or not —
-				// nothing actually hit, so there's no reason for it to stop here.
-				// Only a landed, non-piercing hit consumes the projectile; a landed
-				// piercing hit or a dodge both fall through and keep flying, giving
-				// it a real chance at whoever's standing beyond this target.
+				// Only a landed, non-piercing hit consumes the projectile. A dodge never
+				// stops it, and a piercing hit remembers the victim and flies on.
 				var/landed = Impact(currentTurf, hitTarget)
-				if(landed && pierces)
+				if(landed && !pierces)
+					End(currentTurf)
+					return
+				if(landed)
 					if(!alreadyHit) alreadyHit = list()
 					alreadyHit += hitTarget
-				if(landed && !pierces)
-					Finish(currentTurf)
-					del src
-					return
 			else if(blockedByMobs && HasSolidMob(currentTurf))
-				Finish(currentTurf)
-				del src
+				End(currentTurf)
 				return
 
 			if(maxRange && traveled >= maxRange)
-				Finish(currentTurf)
-				del src
+				End(currentTurf)
 				return
 
 			var/turf/nextTurf = get_step(src, travelDir)
-			if(!nextTurf)
-				Finish(currentTurf)
-				del src  // ran off the edge of the map — no impact effect
-				return
-
-			// Safety valve: if we somehow aren't actually advancing (e.g. travelDir
-			// ended up 0/invalid), bail instead of looping forever on one tile as an
-			// undeletable object. Shouldn't happen — travelDir comes from a mob's dir —
-			// but a stuck immortal projectile would be a nasty thing to track down.
-			if(nextTurf == currentTurf)
-				del src
+			// Off the map edge, or (safety valve) not actually advancing because
+			// travelDir ended up invalid -- a stuck immortal projectile would be a nasty
+			// thing to track down.
+			if(!nextTurf || nextTurf == currentTurf)
+				End(currentTurf)
 				return
 
 			// Look ahead for walls/doors/signs so the projectile visually stops AT
 			// the obstacle rather than briefly drawing on top of it.
-			if(IsTileBlocked(nextTurf))
-				if(flashOnWall) FlashTurfEffect(nextTurf, icon, impactIconState)
-				Finish(currentTurf)
-				del src
+			if(IsTurfBlocked(nextTurf))
+				End(currentTurf)
 				return
 
 			loc = nextTurf
@@ -157,16 +118,11 @@ obj/projectile
 			return M
 		return null
 
-	// Returns whether the shot actually landed (see TakeDamage()'s own note,
-	// CombatSystem.dm) — Launch() uses this to decide whether to stop here or keep
-	// flying. A dodged target doesn't get an impact flash either: nothing was hit,
-	// so nothing should visibly explode on their tile while the projectile flies on
-	// past them.
+	// Returns whether the shot actually landed (TakeDamage(), CombatSystem.dm) —
+	// Launch() uses this to decide whether to stop here or keep flying. The default is a
+	// spell hit; subtypes swap in their own (a sword bolt's physical hit, a SpellBolt's
+	// status or burst). A dodged target gets no hit flash -- nothing was hit.
 	proc/Impact(turf/T, mob/target = null)
-		// ApplySpellDamage() (CombatSystem.dm) already handles the elemental
-		// weakness/resistance modifier and routes into TakeDamage() (dodge, hit
-		// sound, death) — this reuses that whole pipeline rather than duplicating it.
 		var/landed = (target && caster) ? caster.ApplySpellDamage(target, damage, element) : FALSE
-		if(landed)
-			FlashTurfEffect(T, icon, impactIconState)
+		if(landed) FlashSkillFX(T, impactIconState, IMPACT_FX_DURATION)
 		return landed

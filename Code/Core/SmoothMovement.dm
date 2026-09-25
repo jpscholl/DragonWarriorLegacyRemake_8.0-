@@ -22,6 +22,9 @@ mob
             if(!canAct && !attackRecoveryOnly)
                 return 0
 
+            // Lethargy (Sword Of Lethargy, StatusEffects.dm) stretches every step.
+            delay *= slowFactor
+
             // Throttle stepping: only allow step if enough time has passed. The >= tick_lag/10
             // slack (not a plain world.time < next_step check) matters because world.time is a
             // float — comparing it for exact equality is fragile, and at "clean" framerates like

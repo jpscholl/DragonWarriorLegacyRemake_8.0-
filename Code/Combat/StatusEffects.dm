@@ -13,14 +13,15 @@ datum/status_effect
 		effectName = "Unnamed Effect"
 		mob/holder            // who this is attached to
 		duration = 0          // total deciseconds; 0 = lasts until removed explicitly
-		tickInterval = 10     // deciseconds between OnTick() calls
+		// Deciseconds between OnTick() calls (Poison, Burn). 0 = no ticking at all: the
+		// effect only does OnApply()/OnExpire(), and the loop just waits for expiry.
+		tickInterval = 0
 		expiresAt = 0         // world.time when this ends; 0 = never (see duration)
 		active = FALSE
 
 		// A spells.dmi state drawn on the holder for as long as the effect is active —
 		// the standing indicator, as opposed to the one-shot burst the casting spell
-		// draws. spells.dmi already ships these for several effects ("upperon",
-		// "barrieron", "asleep"), which is what they're clearly for. Leave null for an
+		// draws ("upper", "barrieron", "asleep"). Leave null for an
 		// effect with no such art and nothing is drawn. Resolved through
 		// ResolveSkillFXState() (SkillFX.dm), so naming a state that doesn't exist yet
 		// is safe and starts working the moment the art is added.
@@ -66,7 +67,12 @@ datum/status_effect
 	proc/EffectLoop()
 		set waitfor = 0
 		while(active && holder)
-			sleep(tickInterval)
+			// A non-ticking effect sleeps straight to its expiry -- re-read every pass,
+			// so a Refresh() mid-effect extends it exactly instead of overshooting by a
+			// whole extra duration.
+			if(tickInterval) sleep(tickInterval)
+			else if(expiresAt) sleep(max(world.tick_lag, expiresAt - world.time))
+			else sleep(10)  // permanent and non-ticking: just watch for death/removal
 
 			// Re-check after the sleep — the holder may have died, been deleted, or
 			// had the effect cleared while this was waiting.
@@ -74,7 +80,7 @@ datum/status_effect
 			if(holder.isDead) break
 			if(expiresAt && world.time >= expiresAt) break
 
-			OnTick()
+			if(tickInterval) OnTick()
 
 		Stop()
 
@@ -166,24 +172,8 @@ datum/status_effect/poison
 			dmg = min(dmg, max(0, holder.HP - 1))  // never drops below 1 HP
 			if(dmg <= 0) return
 
-		// Direct HP change, not TakeDamage() — you shouldn't be able to dodge poison
-		// already in your veins. Death handling below mirrors TakeDamage() so nothing
-		// gets skipped by going around it.
-		holder.HP = max(0, holder.HP - dmg)
-		holder.Unhide()  // any damage reveals a hidden mob (Hide, SkillCatalog.dm)
-
-		flick("hit", holder)
-		var/isEnemy = istype(holder, /mob/enemy)
-		PlaySFXAt(holder, isEnemy ? 'enemyhit.wav' : 'hit.wav')
-
-		holder.ShowInfo("<font color='green'>The poison burns! (-[dmg] HP)</font>")
-		ShowCombatNumber(holder, "[dmg]", DAMAGE_NUMBER_COLOR)
-		holder.ShowFloatingHPBar()
-
-		if(holder.HP <= 0)
-			var/mob/dying = holder
-			dying.Die(null)        // no attacker to credit — poison isn't a mob
-			dying.CleanUpDead()
+		// Not TakeDamage() — you can't dodge poison already in your veins.
+		holder.TakeDirectDamage(dmg, null, "<font color='green'>The poison burns! (-[dmg] HP)</font>")
 
 	OnExpire()
 		if(holder && !holder.isDead)
@@ -234,23 +224,8 @@ datum/status_effect/burn
 		var/reduction = rand(round(B / 3), round(B * 2 / 3))
 		var/dmg = max(1, round(power * GetElementalMultiplier(element, holder.mobElement)) - reduction)
 
-		// Direct HP change, not TakeDamage() — same reasoning as Poison above, fire
-		// already caught you, dodging isn't in the picture anymore.
-		holder.HP = max(0, holder.HP - dmg)
-		holder.Unhide()  // any damage reveals a hidden mob (Hide, SkillCatalog.dm)
-
-		flick("hit", holder)
-		var/isEnemy = istype(holder, /mob/enemy)
-		PlaySFXAt(holder, isEnemy ? 'enemyhit.wav' : 'hit.wav')
-
-		holder.ShowInfo("<font color='orange'>The burn sears you! (-[dmg] HP)</font>")
-		ShowCombatNumber(holder, "[dmg]", DAMAGE_NUMBER_COLOR)
-		holder.ShowFloatingHPBar()
-
-		if(holder.HP <= 0)
-			var/mob/dying = holder
-			dying.Die(null)        // no attacker to credit — burn isn't a mob
-			dying.CleanUpDead()
+		// Not TakeDamage() — same as Poison: the fire already caught you.
+		holder.TakeDirectDamage(dmg, null, "<font color='orange'>The burn sears you! (-[dmg] HP)</font>")
 
 	OnExpire()
 		if(holder && !holder.isDead)
@@ -285,8 +260,7 @@ datum/status_effect/sleep
 	New()
 		..()
 		effectName = "Sleep"
-		duration = rand(SLEEP_DURATION_MIN, SLEEP_DURATION_MAX)
-		tickInterval = duration        // no ticking — just OnApply/OnExpire
+		duration = rand(SLEEP_DURATION_MIN, SLEEP_DURATION_MAX)  // no ticking — OnApply/OnExpire only
 		activeFXState = "asleep"       // spells.dmi; "sleep" is the cast burst instead
 
 	OnApply()
@@ -306,7 +280,6 @@ datum/status_effect/sleep/more
 	New()
 		..()
 		duration = rand(SLEEP_MORE_DURATION_MIN, SLEEP_MORE_DURATION_MAX)
-		tickInterval = duration
 
 // -----------------------------
 // Buffs — Upper (attack), Increase (defense), Barrier (magic defense). Applied
@@ -337,7 +310,6 @@ datum/status_effect/buff
 	New()
 		..()
 		duration = BUFF_DURATION
-		tickInterval = BUFF_DURATION  // no ticking — OnApply/OnExpire only
 
 	OnApply()
 		if(holder)
@@ -360,7 +332,6 @@ datum/status_effect/buff/upper
 		..()
 		effectName = "Upper"
 		duration = UPPER_DURATION
-		tickInterval = UPPER_DURATION
 		bonusVar = "attackBonus"
 		bonusAmount = UPPER_ATTACK_BONUS
 		activeFXState = "upper"
@@ -391,6 +362,36 @@ datum/status_effect/buff/barrier
 		expireMsg = "Your barrier fades."
 
 // -----------------------------
+// Lethargy — Sword Of Lethargy (SkillCatalog.dm; user's design, 2026-09-25). Everything
+// the holder does takes LETHARGY_SLOW_FACTOR times as long: each step (Step(),
+// SmoothMovement.dm), swing recovery and spell windups (GetAttackDelay(), CombatSystem.dm)
+// and a monster's attack cooldown (EnemyNPCs.dm). Their spells still fly at full speed.
+// -----------------------------
+#define LETHARGY_SLOW_FACTOR 1.6  // 1.6 = everything 60% slower -- invented
+#define LETHARGY_DURATION 80      // deciseconds -- invented
+
+mob/var/tmp/slowFactor = 1
+
+datum/status_effect/lethargy
+	parent_type = /datum/status_effect
+
+	New()
+		..()
+		effectName = "Lethargy"
+		duration = LETHARGY_DURATION
+
+	OnApply()
+		if(holder)
+			holder.slowFactor = LETHARGY_SLOW_FACTOR
+			holder.ShowInfo("<font color='#9080c0'>Your body feels heavy...</font>")
+
+	OnExpire()
+		if(holder)
+			holder.slowFactor = 1
+			if(!holder.isDead)
+				holder.ShowInfo("<font color='#9080c0'>The heaviness lifts.</font>")
+
+// -----------------------------
 // Blind — Sand Toss (SkillCatalog.dm; user's design, 2026-09-25). The blinded mob can
 // still act and attack, but misses more (BLIND_MISS_PERCENT, TakeDamage()) and sometimes
 // swings at the wrong tile (BLIND_WRONG_TILE_PERCENT, PerformMeleeHit()) -- both in
@@ -407,7 +408,6 @@ datum/status_effect/blind
 		..()
 		effectName = "Blind"
 		duration = BLIND_DURATION
-		tickInterval = BLIND_DURATION
 
 	OnApply()
 		if(holder)
@@ -436,7 +436,6 @@ datum/status_effect/silence
 		..()
 		effectName = "Silence"
 		duration = SILENCE_DURATION
-		tickInterval = SILENCE_DURATION
 
 	OnApply()
 		if(holder)
