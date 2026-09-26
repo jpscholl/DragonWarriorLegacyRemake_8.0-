@@ -80,29 +80,48 @@ datum/skill/GenericSpell
 
 // -----------------------------
 // Heal Spell — a flat heal_amount on the target faced, or on the caster when facing
-// nobody. Usable anywhere, peaceful areas included. Plays through
-// PlayHealCastSequence() (CombatSystem.dm): cast meter, then the heal art held on the
-// target before the heal lands.
+// nobody. A party heal (heal_party) instead covers the caster plus every party member
+// in view. Usable anywhere, peaceful areas included. Plays through
+// PlayHealCastSequence() (CombatSystem.dm): cast meter, then the heal art held on each
+// patient before the heal lands.
 // -----------------------------
 datum/skill/HealSpell
     parent_type = /datum/skill/GenericSpell
 
     var
         heal_amount = 0
-        heal_full = FALSE  // TRUE = restores the patient to full HP instead (HealAll)
+        heal_full = FALSE   // TRUE = restores each patient to full HP instead (Healmost)
+        heal_party = FALSE  // TRUE = caster + party members in view (Healus, Healusmore)
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
 
-        var/mob/patient = target || user
-        if(patient.HP >= patient.MaxHP)
-            user.ShowInfo("[patient == user ? "You are" : "[patient] is"] already at full HP.")
+        // Only the ones who need it -- a party heal still goes off if anyone's hurt.
+        var/list/patients = list()
+        for(var/mob/M in GetPatients(user, target))
+            if(M.HP < M.MaxHP) patients += M
+        if(!patients.len)
+            if(heal_party) user.ShowInfo("Everyone is already at full HP.")
+            else user.ShowInfo("[(target || user) == user ? "You are" : "[target] is"] already at full HP.")
             return
 
         if(!PayToCast(user)) return
         var/mySession = user.defendToggleSession
         var/wasDefending = user.DropDefendForAction()
-        user.PlayHealCastSequence(src, patient, heal_full ? patient.MaxHP : heal_amount, wasDefending, mySession)
+        user.PlayHealCastSequence(src, patients, wasDefending, mySession)
+
+    proc/GetPatients(mob/user, mob/target)
+        if(!heal_party) return list(target || user)
+        var/list/L = list(user)
+        var/mob/player/P = user
+        if(istype(P) && P.Party)
+            for(var/mob/player/M in P.Party.members)
+                if(M == user || M.isDead) continue
+                if(M in view(user)) L += M
+        return L
+
+    proc/HealAmountFor(mob/M)
+        return heal_full ? M.MaxHP : heal_amount
 
 // -----------------------------
 // AoE Spell — hits everything in a blob instead of one target, and optionally leaves a
@@ -1028,13 +1047,13 @@ datum/skill/Fireclaw
     bolt_hit_state = "flamespearhit"
     damage_multiplier = 1.4
 
-// Not in the OG decompile, but the user remembers it (2026-09-25) and is drawing
+// Not in the OG decompile, but the user remembers it (2026-09-25) and drew
 // "lefticeclaw"/"righticeclaw" from Fireclaw's art. Mirrors Fireclaw: the claw swing,
-// then IceSaber's bolt. Until the art lands the swing shows only the portrait's pose.
+// then IceSaber's bolt.
 datum/skill/Iceclaw
     parent_type = /datum/skill/BoltSword
     skillName = "Iceclaw"
-    fx_state = "iceclaw"  // -> lefticeclaw/righticeclaw once they exist in spells.dmi
+    fx_state = "iceclaw"  // -> lefticeclaw/righticeclaw
     bolt_state = "iceblast"
     bolt_hit_state = "icespearhit"
     damage_multiplier = 1.4
@@ -1437,7 +1456,7 @@ datum/skill/Infernos
     fx_state = "infernos"            // 4-frame gust, no directions
     impact_fx_state = "blazehit"     // PICK -- no infernos hit art
     bolt_pierces = TRUE
-    bolt_range = 4
+    bolt_range = 6                   // user: gone after 7 tiles (6 past the first)
     bolt_slowness = 2
     bolt_knockback_chance = 20       // invented
     bolt_knockback_max = 1
@@ -1450,6 +1469,7 @@ datum/skill/Infermore
     fx_state = "infermore"
     impact_fx_state = "blazemorehit"
     bolt_lanes = 3                   // PICK -- the bigger tier rolls three wide
+    bolt_range = 9                   // user: reaches 10 tiles (9 past the first)
     bolt_knockback_chance = 45       // invented
     bolt_knockback_again_chance = 50 // invented -- so 2 tiles ~1 in 2, 3 tiles ~1 in 4
     bolt_knockback_max = 3           // invented
@@ -1592,21 +1612,25 @@ datum/skill/Snowstorm
 // =============================================================================
 // HEALING SPELLS (Int gated) — heal_amount is flat, not stat-scaled (HealSpell, top)
 // =============================================================================
-// Not yet reviewed with the user: the amounts are out of order (Heal outheals
-// Healmore) and the MP costs aren't the OG's (Heal 6, Healmore 15, Healmost 40,
+// User, 2026-09-25: Heal small, Healmore bigger, Healmost a full heal; Healus is Healmore
+// for the caster and party members in view, Healusmore is Healmost for them. Amounts are
+// invented; MP costs are still drafts, not the OG's (Heal 6, Healmore 15, Healmost 40,
 // Healus 20, Healusmore 60).
+#define HEAL_AMOUNT 30      // invented
+#define HEALMORE_AMOUNT 75  // invented
+
 datum/skill/Heal
     parent_type = /datum/skill/HealSpell
     skillName = "Heal"
     fx_state = "heal"
-    heal_amount = 60
+    heal_amount = HEAL_AMOUNT
     mana_cost = 4
 
 datum/skill/Healmore
     parent_type = /datum/skill/HealSpell
     skillName = "Healmore"
     fx_state = "healmore"
-    heal_amount = 30
+    heal_amount = HEALMORE_AMOUNT
     mana_cost = 8
 
 // No dedicated "healus" art — reuses Healmore's.
@@ -1614,24 +1638,27 @@ datum/skill/Healus
     parent_type = /datum/skill/HealSpell
     skillName = "Healus"
     fx_state = "healmore"
-    heal_amount = 40
+    heal_amount = HEALMORE_AMOUNT
+    heal_party = TRUE
     mana_cost = 10
 
-// The OG's Healmost, renamed HealAll and made a full heal (user, 2026-09-25). The type
-// path stays /Healmost so saved characters who know it keep it.
+// The OG's Healmost, a full heal (user, 2026-09-25 -- briefly renamed HealAll, then
+// the user confirmed the OG name).
 datum/skill/Healmost
     parent_type = /datum/skill/HealSpell
-    skillName = "HealAll"
+    skillName = "Healmost"
     fx_state = "healmost"
     heal_full = TRUE
     mana_cost = 12
 
-// No dedicated "healusmore" art — reuses Healmost's.
+// The OG's Healusmore: Healmost for the caster and party members in view. No dedicated
+// "healusmore" art — reuses Healmost's.
 datum/skill/Healusmore
     parent_type = /datum/skill/HealSpell
     skillName = "Healusmore"
     fx_state = "healmost"
-    heal_amount = 75
+    heal_full = TRUE
+    heal_party = TRUE
     mana_cost = 15
 
 // =============================================================================
@@ -1678,10 +1705,12 @@ datum/skill/Upper
     statusEffectType = /datum/status_effect/buff/upper
     mana_cost = 3
 
+// A stronger Upper (user, 2026-09-25): same slow cast, same art, same minute -- it just
+// cuts physical damage further (INCREASE_DEFENSE_BONUS, StatusEffects.dm). No
+// "increase" art exists, so it borrows Upper's.
 datum/skill/Increase
-    parent_type = /datum/skill/BuffSpell
+    parent_type = /datum/skill/Upper
     skillName = "Increase"
-    fx_state = "increase"  // no art yet
     statusEffectType = /datum/status_effect/buff/increase
     mana_cost = 3
 
@@ -1709,7 +1738,7 @@ datum/skill/Barrier
 // fail (2026-09-25): a roll on contact, and a fail shows "miss". Waking on damage is
 // SLEEP_WAKE_ON_HIT_PERCENT (CombatSystem.dm); nap length is StatusEffects.dm's.
 #define SLEEP_CHANCE 70       // % Sleep takes hold -- invented
-#define SLEEPMORE_CHANCE 85   // % Sleepmore takes hold -- invented
+#define SLEEPMORE_CHANCE 85   // % Sleepmore takes hold -- invented; user: higher than Sleep
 
 datum/skill/Sleep
     parent_type = /datum/skill/SpellBolt
@@ -1856,32 +1885,56 @@ datum/skill/Revive
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
-        if(!target || !istype(target, /mob/player))
-            user.ShowInfo("[skillName] only works on a fallen ally.")
-            return
-
-        var/mob/player/P = target
-        if(!P.isDead)
-            user.ShowInfo("[P.name] isn't in need of reviving.")
+        var/mob/M = FindFallen(user, target)
+        if(!M)
+            if(target && !IsFallen(target)) user.ShowInfo("[target.name] isn't in need of reviving.")
+            else user.ShowInfo("[skillName] only works on a fallen ally or pet.")
             return
 
         if(!PayToCast(user)) return
         if(!user.PlayCastMeter(src)) return  // died or interrupted
 
-        if(P && P.isDead)
+        // A pet's corpse may have faded during the windup -- then there's nothing left.
+        if(M && IsFallen(M))
             if(prob(revive_chance))
-                P.isDead = FALSE
-                P.density = 1
-                P.icon_state = "world"
-                P.canAct = TRUE
-                P.HP = max(1, round(P.MaxHP * revive_hp_percent / 100))
-                P.ShowInfo("You have been revived by [user.name]!")
+                Raise(user, M)
             else
-                user.ShowInfo("[skillName] fails to revive [P.name].")
-                P.ShowInfo("[user.name]'s [skillName] fails to revive you.")
-                ShowCombatNumber(P, "miss", "#ffffff")
+                user.ShowInfo("[skillName] fails to revive [M.name].")
+                M.ShowInfo("[user.name]'s [skillName] fails to revive you.")
+                ShowCombatNumber(M, "miss", "#ffffff")
 
         user.canAct = TRUE
+
+    // A dead player, or a fallen pet whose corpse hasn't faded yet (user, 2026-09-25).
+    proc/IsFallen(mob/M)
+        if(istype(M, /mob/player)) return M.isDead
+        var/mob/enemy/E = M
+        return istype(E) && E.IsRevivablePet()
+
+    // The given target, else the first fallen mob on the tile faced -- the skill slots
+    // never pick a corpse as the target themselves (UseSkillSlot() skips HP <= 0).
+    proc/FindFallen(mob/user, mob/target)
+        if(target) return IsFallen(target) ? target : null
+        var/turf/T = get_step(user, user.dir)
+        if(!T) return null
+        for(var/mob/M in T)
+            if(M != user && IsFallen(M)) return M
+        return null
+
+    proc/Raise(mob/user, mob/M)
+        if(istype(M, /mob/player))
+            var/mob/player/P = M
+            P.isDead = FALSE
+            P.density = 1
+            P.icon_state = "world"
+            P.canAct = TRUE
+            P.HP = max(1, round(P.MaxHP * revive_hp_percent / 100))
+            P.ShowInfo("You have been revived by [user.name]!")
+            return
+        var/mob/enemy/E = M
+        E.RevivePet(revive_hp_percent)
+        view(E) << output("[E.name] is revived by [user.name]!", "Info")
+        if(E.owner && E.owner != user) E.owner.ShowInfo("[user.name] revived your pet [E.name]!")
 
 // Revive at a coin flip -- same slow windup (user, from the OG, 2026-09-25).
 #define VIVIFY_CHANCE 50           // user's number

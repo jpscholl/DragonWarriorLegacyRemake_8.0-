@@ -213,8 +213,9 @@ mob/enemy
 	// then hands off to HandlePetTick() if owned, RunWildAI() if not.
 	proc/AILoop()
 		set waitfor = 0
+		var/myLife = lifeSession  // a revived pet starts fresh loops -- this one bows out
 		while(src)
-			if(HP <= 0)
+			if(HP <= 0 || lifeSession != myLife)
 				moveIntent = ENEMY_MOVE_NONE
 				return
 
@@ -361,10 +362,11 @@ mob/enemy
 	// of one glide-step per (much slower) AI decision tick.
 	proc/MovementLoop()
 		set waitfor = 0
+		var/myLife = lifeSession
 		while(src)
 			// AILoop() also stops on death, but only checks once per aiTickDelay (up
 			// to a full second) — checking HP here too stops the corpse immediately.
-			if(HP <= 0)
+			if(HP <= 0 || lifeSession != myLife)
 				return
 			// Something mid-Jump is passing over or landing on this tile -- hold still
 			// until it's fully down. Stepping away while it was still in the air read
@@ -492,6 +494,24 @@ mob/enemy
 		if(AirborneOverhead()) return  // someone's landing on us -- don't read as a shove
 		if(prob(wanderChance))
 			Step(pick(NORTH, SOUTH, EAST, WEST))
+
+	// A fallen pet can be brought back by Revive/Vivify (SkillCatalog.dm) while its corpse
+	// still lingers (CORPSE_LINGER_TIME, CombatSystem.dm) -- user, 2026-09-25. After that
+	// it's deleted and gone for good. A wild monster's corpse can't be revived.
+	proc/IsRevivablePet()
+		return owner && HP <= 0 && loc
+
+	proc/RevivePet(hpPercent)
+		lifeSession++  // the pending CleanUpDead() deletion now leaves this pet alone
+		HP = max(1, round(MaxHP * hpPercent / 100))
+		density = 1
+		icon_state = "world"
+		firstAttacker = null
+		target = null
+		ShowFloatingHPBar()
+		// Both loops returned when it died -- start them again.
+		AILoop()
+		MovementLoop()
 
 	// GM double-click on an unowned mob offers "Assign Pet"; owner double-click opens
 	// the rename/mode/release menu. Anyone else falls through to default click behavior.

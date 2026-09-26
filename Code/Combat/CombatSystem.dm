@@ -18,6 +18,12 @@
 mob/var/isDead = FALSE
 mob/var/deathTime = 0
 
+// A monster corpse's time before it's deleted (CleanUpDead()) -- also a fallen pet's
+// window to be revived. Bumped by every revival so a stale deletion timer can't fire
+// on a pet that's alive again.
+#define CORPSE_LINGER_TIME 100  // deciseconds
+mob/var/tmp/lifeSession = 0
+
 // Whoever landed the FIRST hit on this mob — Die() credits them, not whoever landed
 // the killing blow, so a fight can't be sniped at the last moment.
 mob/var/mob/firstAttacker = null
@@ -217,7 +223,9 @@ mob/proc
         // always breaks (not OG -- a remake call: nobody naps through a monster
         // hitting them).
         if(prob(SLEEP_WAKE_ON_HIT_PERCENT))
-            RemoveStatusEffect(/datum/status_effect/sleep)
+            // Every sleep at once -- Sleep and Sleepmore can both be on a mob.
+            for(var/datum/status_effect/sleep/S in statusEffects.Copy())
+                S.Stop()
         WakeUp()
 
         // A landed hit mid-windup might break the cast (PlayCastMeter() reads the flag).
@@ -294,10 +302,15 @@ mob/proc
 
 mob/proc
     // Never applies to players, who go through the isDead/respawn flow in Die() instead.
+    // The corpse lingers briefly before it disappears -- long enough for a fallen pet to
+    // be brought back with Revive/Vivify (RevivePet(), EnemyNPCs.dm), which bumps
+    // lifeSession so this old timer leaves the living pet alone.
     CleanUpDead()
         if(istype(src, /mob/player)) return
-        spawn(100)  // lets the corpse linger briefly before it disappears
-            del src
+        var/thisLife = lifeSession
+        spawn(CORPSE_LINGER_TIME)
+            if(src && HP <= 0 && lifeSession == thisLife)
+                del src
 
 mob/proc
     // Credit the attacker (not whoever landed the finishing blow), then branch on
@@ -914,26 +927,27 @@ mob/proc/PlayCastMeter(datum/skill/S, wasDefending = FALSE)
     return TRUE
 
 // Real 3-stage cast for every heal (HealSpell, SkillCatalog.dm) — cast meter, the heal
-// art held on the target, then the heal. Synchronous (sleep(), not spawn()) so
-// nothing downstream can fire out of order relative to what's on screen.
-mob/proc/PlayHealCastSequence(datum/skill/S, mob/target, heal_amount, wasDefending, mySession)
+// art held on every patient at once, then the heals. Synchronous (sleep(), not spawn())
+// so nothing downstream can fire out of order relative to what's on screen.
+mob/proc/PlayHealCastSequence(datum/skill/HealSpell/S, list/patients, wasDefending, mySession)
     if(!PlayCastMeter(S, wasDefending)) return  // died mid-cast
 
-    // Resolution: the TARGET plays the skill's own spells.dmi state at its own baked
+    // Resolution: each PATIENT plays the skill's own spells.dmi state at its own baked
     // frame speed, held for HEAL_ANIM_DURATION before the heal lands and the number pops.
-    // Reads S.fx_state through ResolveSkillFXState() (SkillFX.dm) — the heals were the
-    // one place that used icon_state to name a spells.dmi state, which is what fx_state
-    // is for everywhere else.
-    if(target)
-        var/healState = ResolveSkillFXState(S.fx_state)
-        if(healState)
-            var/image/healFx = image(SKILL_FX_FILE, target, healState)
-            healFx.layer = target.layer + 0.1
-            target.overlays += healFx
-            sleep(HEAL_ANIM_DURATION)
-            if(target) target.overlays -= healFx
+    var/healState = ResolveSkillFXState(S.fx_state)
+    if(healState)
+        var/list/shown = list()  // patient = its overlay
+        for(var/mob/M in patients)
+            var/image/healFx = image(SKILL_FX_FILE, M, healState)
+            healFx.layer = M.layer + 0.1
+            M.overlays += healFx
+            shown[M] = healFx
+        sleep(HEAL_ANIM_DURATION)
+        for(var/mob/M in shown)
+            M.overlays -= shown[M]
 
-    ApplyHeal(target, heal_amount)
+    for(var/mob/M in patients)
+        if(!M.isDead) ApplyHeal(M, S.HealAmountFor(M))
 
     canAct = TRUE
     RestoreDefendIfUntouched(wasDefending, mySession)

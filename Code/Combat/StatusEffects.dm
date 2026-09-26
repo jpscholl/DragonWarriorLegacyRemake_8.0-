@@ -254,7 +254,8 @@ mob/proc/ApplyBurn(power, element)
 // Sleep — locks canAct until it expires, or until a landed hit wakes the sleeper
 // (a SLEEP_WAKE_ON_HIT_PERCENT roll per hit, CombatSystem.dm's TakeDamage()).
 // Each nap rolls its own length (user, from the OG, 2026-09-25: Sleep lasted
-// 2-8 seconds). Sleepmore's range is invented -- the OG gave it a bigger base value.
+// 2-8 seconds). Sleepmore: a better chance and possibly longer naps (user, 2026-09-25);
+// its range is invented -- the OG gave it a bigger base value.
 #define SLEEP_DURATION_MIN 20        // deciseconds
 #define SLEEP_DURATION_MAX 80
 #define SLEEP_MORE_DURATION_MIN 40   // invented
@@ -276,6 +277,11 @@ datum/status_effect/sleep
 
 	OnExpire()
 		if(holder)
+			// Sleepmore on someone already under Sleep is a second, separate effect (the
+			// refresh check matches by type, and plain Sleep isn't a Sleepmore) -- the
+			// first to end mustn't wake them while the other is still running.
+			for(var/datum/status_effect/sleep/other in holder.statusEffects)
+				if(other != src && other.active) return
 			// Only hand movement back if not dead — Die() locks canAct as part of the
 			// death/respawn flow, and an unconditional unlock here would undo that.
 			if(!holder.isDead)
@@ -294,7 +300,7 @@ datum/status_effect/sleep/more
 // -----------------------------
 #define BUFF_DURATION 300              // deciseconds
 #define UPPER_DEFENSE_BONUS 5          // flat added to physical defense (user, 2026-09-25: Upper cuts physical damage)
-#define INCREASE_DEFENSE_BONUS 4       // flat added to physical defense
+#define INCREASE_DEFENSE_BONUS 10      // flat added to physical defense -- user: more than Upper; invented
 #define BARRIER_MAGIC_DEFENSE_BONUS 6  // flat added to magic defense
 
 mob/var/defenseBonus = 0
@@ -348,11 +354,10 @@ datum/status_effect/buff/increase
 	New()
 		..()
 		effectName = "Increase"
+		duration = UPPER_DURATION  // user: the same minute as Upper
 		bonusVar = "defenseBonus"
 		bonusAmount = INCREASE_DEFENSE_BONUS
-		// No "increaseon" art exists yet — named anyway, so adding that state to
-		// spells.dmi is the only step needed to light this up.
-		activeFXState = "increaseon"
+		activeFXState = "upper"    // no Increase art -- Upper's
 		applyMsg = "Your defense rises!"
 		expireMsg = "Your defense returns to normal."
 

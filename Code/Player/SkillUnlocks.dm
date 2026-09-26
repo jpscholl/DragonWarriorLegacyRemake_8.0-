@@ -303,6 +303,7 @@ mob/player/Goofoff/GetSkillUnlocks()
 proc/BuildPilgrimSkillUnlocks()
     return list(
         new /datum/skillUnlock(/datum/skill/Sleep, 5, "Intelligence", 9),
+        new /datum/skillUnlock(/datum/skill/Club, 5, "Strength", 6),  // OG /playerlearn/pilgrim/club -- was missing
         new /datum/skillUnlock(/datum/skill/Upper, 6, "Intelligence", 10),
         new /datum/skillUnlock(/datum/skill/Increase, 7, "Intelligence", 11),
         new /datum/skillUnlock(/datum/skill/Infernos, 9, "Intelligence", 12),
@@ -347,25 +348,36 @@ proc/BuildWizardSkillUnlocks()
 mob/player/Wizard/GetSkillUnlocks()
     return BuildWizardSkillUnlocks()
 
-// Sage's list = union of Hero+Wizard+Pilgrim's tables — composed from the same three
-// building procs above so there's no way for Sage's numbers to drift from whichever
-// class a skill is "from." A skill listed in more than one source table keeps
-// whichever source's entry is encountered FIRST — Hero, then Wizard, then Pilgrim.
-// Unlike Hero/Wizard, Sage doesn't start with Fireball/Blaze, so both need their own
-// unlock entries here.
+// Sage learns exactly the OG's /playerlearn/sage spells (Markdowns/types.dm ~1692; user,
+// 2026-09-25) -- no weapons, no Fireball or Icebolt. Each one's level/stat comes from
+// the Hero, Wizard or Pilgrim table (the building procs above), so Sage's numbers can't
+// drift from the class a spell is "from". A spell in more than one table keeps the
+// FIRST entry found -- Hero, then Wizard, then Pilgrim. Blaze also sits in Sage's
+// starting kit; its entry here is the OG list's and a no-op for a new Sage.
 mob/player/Sage/GetSkillUnlocks()
+    var/static/list/sageSpells = list(
+        /datum/skill/Bang, /datum/skill/Barrier, /datum/skill/Blaze, /datum/skill/Blazemore,
+        /datum/skill/Blazemost, /datum/skill/Blizzard, /datum/skill/Boom, /datum/skill/Explodet,
+        /datum/skill/Firebane, /datum/skill/Firevolt, /datum/skill/Healmore, /datum/skill/Healmost,
+        /datum/skill/Healus, /datum/skill/Healusmore, /datum/skill/Icespears, /datum/skill/Increase,
+        /datum/skill/Infermore, /datum/skill/Infernos, /datum/skill/Lightning, /datum/skill/Meditate,
+        /datum/skill/Return, /datum/skill/Revive, /datum/skill/Sleep, /datum/skill/Sleepmore,
+        /datum/skill/Snowstorm, /datum/skill/Stopspell, /datum/skill/Thordain, /datum/skill/Upper,
+        /datum/skill/Vivify,
+    )
+
     var/list/merged = list()
     var/list/seenTypes = list()
 
     for(var/datum/skillUnlock/U in BuildHeroSkillUnlocks() + BuildWizardSkillUnlocks() + BuildPilgrimSkillUnlocks())
+        if(!(U.skillType in sageSpells)) continue
         if(U.skillType in seenTypes) continue
         seenTypes[U.skillType] = TRUE
         merged += U
 
-    merged += new /datum/skillUnlock(/datum/skill/Fireball, 8, "Intelligence", 8)
     merged += new /datum/skillUnlock(/datum/skill/Blaze, 10, "Intelligence", 9)
-    // Sage-only, and its last unlock (user, 2026-09-25) -- above everything the Hero/
-    // Wizard/Pilgrim tables reach (ThunderSword, 40). Level/stat invented.
+    // Sage-only, and its last unlock (user, 2026-09-25) -- above everything else Sage
+    // learns (Explodet, 38). Level/stat invented.
     merged += new /datum/skillUnlock(/datum/skill/SageSaber, 45, "Intelligence", 35)
 
     return merged
