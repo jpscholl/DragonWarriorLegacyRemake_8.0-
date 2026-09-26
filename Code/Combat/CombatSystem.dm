@@ -97,22 +97,24 @@ mob/proc
 #define COMBAT_SIDE_MONSTERS "monsters"
 
 // Bumped whenever isDefending is toggled BY THE PLAYER (Defend.OnUse()) — lets a swing
-// or cast (RestoreDefendIfUntouched()) auto-restore a defend stance it dropped without
-// stomping a manual toggle that happened in the meantime.
+// or cast (EndAction()) auto-restore a defend stance it dropped without stomping a
+// manual toggle that happened in the meantime.
 mob/var/defendToggleSession = 0
 
 mob/proc
     // Drops an active defend stance for an attack/cast. Returns whether it was
-    // actually defending, which the caller passes to RestoreDefendIfUntouched().
+    // actually defending, which the caller passes to EndAction().
     DropDefendForAction()
         if(!isDefending) return FALSE
         isDefending = FALSE
         icon_state = "world"
         return TRUE
 
-    // Re-raises the stance DropDefendForAction() dropped, unless the player toggled
-    // Defend themselves in the meantime (mySession = defendToggleSession at drop time).
-    RestoreDefendIfUntouched(wasDefending, mySession)
+    // The end of an action DropDefendForAction() started: free to act again, and the
+    // stance it dropped raised again -- unless the player toggled Defend themselves in
+    // the meantime (mySession = defendToggleSession at drop time).
+    EndAction(wasDefending, mySession)
+        canAct = TRUE
         if(wasDefending && defendToggleSession == mySession)
             isDefending = TRUE
             icon_state = "defend"
@@ -191,19 +193,17 @@ mob/proc
             ShowCombatNumber(src, "miss", "#ffffff")
             return FALSE
 
-        var/isEnemy = istype(src, /mob/enemy)
-
         if(canDodge && (RollDodge() || (attacker && attacker.isBlinded && prob(BLIND_MISS_PERCENT))))
             // view(src), not bare view() — bare view() centers on usr, which is
             // unreliable outside a code path triggered directly by a verb (e.g. an
             // enemy's AILoop() calling this via PerformMeleeHit()).
-            PlaySFXAt(src, isEnemy ? 'enemydodge.wav' : 'dodge.wav')
+            PlaySFXAt(src, istype(src, /mob/enemy) ? 'enemydodge.wav' : 'dodge.wav')
             view(src) << output("[src] dodges the attack!", "Info")
             ShowCombatNumber(src, "miss", "#ffffff")
             return FALSE
 
         flick("hit", src)
-        PlaySFXAt(src, isEnemy ? 'enemyhit.wav' : 'hit.wav')
+        PlayHitSound()
 
         damage = MitigateDamage(damage, isMagic)  // DamageFormula.dm
 
@@ -317,6 +317,13 @@ mob/proc
     Die(mob/attacker)
         view(src) << output("[src] has been defeated!", "Info")
 
+        // Monsters too, not just players: every "stop if the caster died" check in the
+        // skill code reads isDead, and a monster killed mid-cast used to finish the
+        // spell from its corpse -- a heal on itself left an HP-carrying corpse that
+        // CleanUpDead() never removed. Set before ClearStatusEffects() so the effects
+        // ending below don't hand canAct back or print their "wears off" lines.
+        isDead = TRUE
+
         // Reward the first attacker (TakeDamage()'s firstAttacker), falling back to
         // the killer when there's no recorded first hit (poison, GM_KillMonsters, etc).
         if(firstAttacker)
@@ -383,7 +390,6 @@ mob/proc
             DropLoot(attacker)
 
         if(istype(src, /mob/player))
-            isDead = TRUE
             deathTime = world.time
             // Exp is per-level progress (LevelCheck() resets it on every level-up), so
             // flooring at 0 already means a death penalty can never de-level you.
@@ -542,11 +548,12 @@ mob/proc
     // here so N is what actually landed after Barrier's cut (damageReductionPercent,
     // StatusEffects.dm). reducible = FALSE skips that cut (Defeat's instant kill).
     TakeDirectDamage(dmg, mob/killer = null, text = null, color = "red", reducible = TRUE)
+        if(HP <= 0) return  // already dead -- a second Die() would pay out the kill twice
         if(reducible) dmg = ApplyDamageReduction(dmg)  // DamageFormula.dm
         HP = max(0, HP - dmg)
         Unhide()  // any damage reveals a hidden mob (Hide, SkillCatalog.dm)
         flick("hit", src)
-        PlaySFXAt(src, istype(src, /mob/enemy) ? 'enemyhit.wav' : 'hit.wav')
+        PlayHitSound()
         if(text) ShowInfo("<font color='[color]'>[text] (-[dmg] HP)</font>")
         ShowCombatNumber(src, "[dmg]", DAMAGE_NUMBER_COLOR)
         ShowFloatingHPBar()
@@ -641,9 +648,11 @@ mob/proc
 
 mob/proc
     // Symmetric to ApplySpellDamage() but restores HP, capped at MaxHP. No dodge/
-    // elemental interaction.
+    // elemental interaction. Never on the dead: HP on a corpse left a player "dead" but
+    // hittable (a second death, a second penalty) and a monster corpse that
+    // CleanUpDead() never removed. Bringing someone back is Revive's job.
     ApplyHeal(mob/target, amount)
-        if(!target) return
+        if(!target || target.HP <= 0 || target.isDead) return
         // Number shown is the spell's full rated power, not whatever actually landed
         // after the MaxHP cap — confirmed real-game behavior.
         target.HP = min(target.MaxHP, target.HP + amount)
@@ -813,6 +822,14 @@ mob/proc/ResolveAnimState(baseName)
     if(hasLeft) return leftName
     return null
 
+// A swing's and a hit's sound, monster or player version. View()-wide (PlaySFXAt()), not
+// "src <<" -- that only reaches the mob's own client, so enemies' never played at all.
+mob/proc/PlayAttackSound()
+    PlaySFXAt(src, istype(src, /mob/enemy) ? 'enemyattack.wav' : 'attack.wav', base = 60)
+
+mob/proc/PlayHitSound()
+    PlaySFXAt(src, istype(src, /mob/enemy) ? 'enemyhit.wav' : 'hit.wav')
+
 // Per-direction pixel nudge for the floating weapon overlay below — it renders on the
 // tile ADJACENT to the attacker, not the attacker's own tile, so there's a real 32px
 // seam between "hand" and "weapon" that redrawing the sprite itself can't close.
@@ -848,9 +865,7 @@ mob/proc
                 spawn(S.cast_time)
                     if(icon_state == attackState)
                         icon_state = priorState
-            // A view()-wide sound, not "src <<" — the latter only reaches the
-            // attacker's own client, so this silently never played for enemies at all.
-            PlaySFXAt(src, istype(src, /mob/enemy) ? 'enemyattack.wav' : 'attack.wav', base = 60)
+            PlayAttackSound()
             // A skill with its own spells.dmi art (Club's club, a claw, an axe) shows
             // THAT instead of the portrait's generic "weapon" state -- the caller draws
             // it via PlaySkillFX(). Drawing both stacked the skill's art on top of a
@@ -890,17 +905,20 @@ mob/proc
 // castmeter.dmi frames over the caster, paced by GetAttackDelay() so a stronger caster
 // winds up faster (and a lethargic one slower), times the skill's cast_meter_slowness.
 //
-// A landed hit mid-windup MAY break the cast (CAST_INTERRUPT_PERCENT, TakeDamage()):
-// the meter stops, the spell never goes off, and the MP stays spent. The caster gets
-// canAct back here, since the caller just returns.
+// A landed hit mid-windup MAY break the cast (CAST_INTERRUPT_PERCENT, TakeDamage()), and
+// being put to sleep or silenced mid-windup always does: the meter stops, the spell never
+// goes off, and the MP stays spent. The caster gets canAct back here, and a defend stance
+// the cast dropped (wasDefending/mySession, as EndAction() takes them) is
+// raised again, since the caller just returns. Asleep, Sleep keeps canAct and hands it
+// back itself when it ends.
 //
 // Synchronous -- sleeps through the whole windup. Returns FALSE if the caster died or
 // was interrupted mid-cast; the caller must then stop WITHOUT touching canAct (Die()
-// owns it on a death; this proc already restored it on an interrupt).
+// owns it on a death; this proc already dealt with it on an interrupt).
 mob/var/tmp/isCasting = FALSE
 mob/var/tmp/castInterrupted = FALSE
 
-mob/proc/PlayCastMeter(datum/skill/S, wasDefending = FALSE)
+mob/proc/PlayCastMeter(datum/skill/S, wasDefending = FALSE, mySession = null)
     PlaySFXAt(src, 'spell.wav', base = 70)
 
     var/atkDelay = GetAttackDelay(S, wasDefending)
@@ -920,16 +938,18 @@ mob/proc/PlayCastMeter(datum/skill/S, wasDefending = FALSE)
         overlays += meterFrame
         prevFrame = meterFrame
         sleep(frameDelay)
-        if(castInterrupted || isDead) break
+        if(castInterrupted || isDead || IsAsleep() || isSilenced) break
     if(prevFrame) overlays -= prevFrame
 
     isCasting = FALSE
     if(isDead) return FALSE
-    if(castInterrupted)
+    var/asleep = IsAsleep()
+    if(castInterrupted || asleep || isSilenced)
         castInterrupted = FALSE
         view(src) << output("[src]'s [S ? S.skillName : "spell"] is interrupted!", "Info")
         ShowCombatNumber(src, "interrupted", "#b0b0ff")
-        canAct = TRUE
+        if(!asleep)
+            EndAction(wasDefending, mySession)
         return FALSE
     return TRUE
 
@@ -937,7 +957,7 @@ mob/proc/PlayCastMeter(datum/skill/S, wasDefending = FALSE)
 // art held on every patient at once, then the heals. Synchronous (sleep(), not spawn())
 // so nothing downstream can fire out of order relative to what's on screen.
 mob/proc/PlayHealCastSequence(datum/skill/HealSpell/S, list/patients, wasDefending, mySession)
-    if(!PlayCastMeter(S, wasDefending)) return  // died mid-cast
+    if(!PlayCastMeter(S, wasDefending, mySession)) return  // died or interrupted
 
     // Resolution: each PATIENT plays the skill's own spells.dmi state at its own baked
     // frame speed, held for HEAL_ANIM_DURATION before the heal lands and the number pops.
@@ -954,7 +974,6 @@ mob/proc/PlayHealCastSequence(datum/skill/HealSpell/S, list/patients, wasDefendi
             M.overlays -= shown[M]
 
     for(var/mob/M in patients)
-        if(!M.isDead) ApplyHeal(M, S.HealAmountFor(M))
+        ApplyHeal(M, S.HealAmountFor(M))  // skips anyone who died during the cast
 
-    canAct = TRUE
-    RestoreDefendIfUntouched(wasDefending, mySession)
+    EndAction(wasDefending, mySession)

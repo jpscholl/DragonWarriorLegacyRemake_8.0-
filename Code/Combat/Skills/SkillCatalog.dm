@@ -56,6 +56,7 @@ datum/skill/GenericPhysical
         // The target captured at swing-start (UseSkillSlot()) is passed through rather
         // than re-scanning the tile ahead once the windup has elapsed.
         spawn(cast_time)
+            if(!user || user.isDead) return  // died in the windup -- no posthumous hit
             PerformHit(user, target)
             // Swing landed — the user may move again, but can't attack again until the
             // full recovery ends (canAct stays FALSE that whole time).
@@ -65,9 +66,8 @@ datum/skill/GenericPhysical
             // Died meanwhile — Die() locked canAct as part of the death/respawn flow;
             // unlocking it here would undo that.
             if(user.isDead) return
-            user.canAct = TRUE
             user.attackRecoveryOnly = FALSE
-            user.RestoreDefendIfUntouched(wasDefending, mySession)
+            user.EndAction(wasDefending, mySession)
 
 // -----------------------------
 // Generic Spell — what every spell shares (Int gated). Each spell shape below brings
@@ -220,11 +220,10 @@ datum/skill/AoESpell
         // caster turns during the windup.
         var/turf/center = FindBlastCenter(user, target)
 
-        if(!user.PlayCastMeter(src, wasDefending)) return  // died or interrupted
+        if(!user.PlayCastMeter(src, wasDefending, mySession)) return  // died or interrupted
         ApplyBlast(user, center, user.ComputeSpellDamage(damage_multiplier))
 
-        user.canAct = TRUE
-        user.RestoreDefendIfUntouched(wasDefending, mySession)
+        user.EndAction(wasDefending, mySession)
 
 // -----------------------------
 // Spell Bolt — every "cast, then something flies" spell (user's design, 2026-09-25;
@@ -293,7 +292,7 @@ datum/skill/SpellBolt
         var/wasDefending = user.DropDefendForAction()
         var/atkDelay = user.GetAttackDelay(src, wasDefending)
 
-        if(!user.PlayCastMeter(src, wasDefending)) return  // died or interrupted
+        if(!user.PlayCastMeter(src, wasDefending, mySession)) return  // died or interrupted
 
         // atkDelay / slowFactor: a lethargic caster winds up slower, but the bolt itself
         // still flies at full speed once it leaves their hands.
@@ -338,8 +337,7 @@ datum/skill/SpellBolt
                 if(!P.maxRange) P.maxRange = HOMING_MAX_TILES
             P.Launch()
 
-        user.canAct = TRUE
-        user.RestoreDefendIfUntouched(wasDefending, mySession)
+        user.EndAction(wasDefending, mySession)
 
     // What a bolt does to the mob it reached. Returns TRUE when the bolt should stop
     // (or, piercing, count this mob as hit).
@@ -479,11 +477,10 @@ datum/skill/BeamSpell
         var/mySession = user.defendToggleSession
         var/wasDefending = user.DropDefendForAction()
 
-        if(!user.PlayCastMeter(src, wasDefending)) return  // died or interrupted
+        if(!user.PlayCastMeter(src, wasDefending, mySession)) return  // died or interrupted
 
         // The caster is free once the beam leaves their hands; it grows on its own.
-        user.canAct = TRUE
-        user.RestoreDefendIfUntouched(wasDefending, mySession)
+        user.EndAction(wasDefending, mySession)
         Grow(user, castDir, user.ComputeSpellDamage(damage_multiplier))
 
     proc/Grow(mob/user, castDir, damage)
@@ -622,7 +619,7 @@ datum/skill/Club
 
     proc/Spin(mob/user, wasDefending, mySession)
         set waitfor = 0
-        PlaySFXAt(user, istype(user, /mob/enemy) ? 'enemyattack.wav' : 'attack.wav', base = 60)  // once for the whole spin
+        user.PlayAttackSound()  // once for the whole spin
         for(var/side = 1 to 4)
             if(!user || user.isDead) return
             user.animAlternate = !user.animAlternate  // handed portraits alternate hands
@@ -637,8 +634,7 @@ datum/skill/Club
         // Four right turns later it's facing where it started.
         if(!user || user.isDead) return
         user.icon_state = "world"
-        user.canAct = TRUE
-        user.RestoreDefendIfUntouched(wasDefending, mySession)
+        user.EndAction(wasDefending, mySession)
 
 datum/skill/IronClaw
     parent_type = /datum/skill/GenericPhysical
@@ -676,8 +672,7 @@ datum/skill/Jump
         if(!user.PerformHop(ontoMobs = TRUE, allowExtend = TRUE)) return  // died in the air
 
         user.next_step = world.time  // free to walk the moment you land
-        user.canAct = TRUE
-        user.RestoreDefendIfUntouched(wasDefending, mySession)
+        user.EndAction(wasDefending, mySession)
 
 // The hop Jump and Quakejump share: one tile forward in the facing direction, arcing
 // up JUMP_HEIGHT and back down over JUMP_AIR_TIME, airborne (untouchable) the whole
@@ -848,8 +843,7 @@ datum/skill/Boomerang
 
         sleep(max(0, user.GetAttackDelay(src, wasDefending) - cast_time))
         if(!user || user.isDead) return
-        user.canAct = TRUE
-        user.RestoreDefendIfUntouched(wasDefending, mySession)
+        user.EndAction(wasDefending, mySession)
 
 obj/projectile/boomerang
     icon_state = "boomerang"
@@ -962,8 +956,7 @@ datum/skill/Dash
             if(!user || user.isDead) return
 
         user.next_step = world.time  // free to walk the moment the dash ends
-        user.canAct = TRUE
-        user.RestoreDefendIfUntouched(wasDefending, mySession)
+        user.EndAction(wasDefending, mySession)
 
 // User's design (2026-09-24): Jump's hop, landing as an attack. You come down one tile
 // forward (two if still holding that direction at the top of the arc, same as Jump) --
@@ -1001,13 +994,12 @@ datum/skill/Quakejump
         sleep(max(QUAKEJUMP_RING_DURATION, user.GetAttackDelay(src, wasDefending) - JUMP_AIR_TIME))
         if(!user || user.isDead) return
         user.next_step = world.time
-        user.canAct = TRUE
-        user.RestoreDefendIfUntouched(wasDefending, mySession)
+        user.EndAction(wasDefending, mySession)
 
     proc/Quake(mob/user)
         var/turf/center = user.loc
         if(!center) return
-        PlaySFXAt(user, istype(user, /mob/enemy) ? 'enemyattack.wav' : 'attack.wav', base = 60)
+        user.PlayAttackSound()
 
         // One roll for the whole landing, like an AoE spell's blast.
         var/base = user.ComputePhysicalDamage(damage_multiplier)
@@ -1713,7 +1705,9 @@ datum/skill/BuffSpell
         if(burst_before_buff)
             sleep(SKILL_FX_DURATION)
             if(user.isDead) return
-        if(buffTarget) buffTarget.ApplyStatusEffect(statusEffectType)
+        // An ally who died during the cast gets nothing -- a buff on a fallen pet
+        // would still be running when Revive brought it back.
+        if(buffTarget && !buffTarget.isDead) buffTarget.ApplyStatusEffect(statusEffectType)
 
         user.canAct = TRUE
 

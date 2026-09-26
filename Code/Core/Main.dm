@@ -464,6 +464,7 @@ mob/proc/SaveAndLogout()
                 P.saveManager.SaveCharacter(P, P.saveSlot || 1)
             P.saveManager.Close()
         P.LeavePartyIfAny()  // before the del() below — see the proc's own note (Party.dm)
+        P.ReleasePetIfAny()  // same reason (EnemyNPCs.dm)
 
     players << output("[src.name] has left the world!!", "Messages")
     LogChat("[src.name]([src.key]) logs out at [client ? client.address : "unknown"].")

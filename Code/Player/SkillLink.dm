@@ -48,19 +48,24 @@ obj/SkillLink
             // `skills`/known and `skillSlots`/equipped are tracked separately
             // (ClassReference.md's "Skills vs. equipped skills"), so it shows up there
             // automatically next refresh.
+            var/datum/skill/moved = S
             var/datum/skill/displaced = target.S
             if(slotNum != null)
                 P.skillSlots[slotNum] = displaced
-            P.skillSlots[target.slotNum] = S
+                S = displaced
+            P.skillSlots[target.slotNum] = moved
+            target.S = moved
         else
             // Dropped onto the Free Skills area or an existing free-skill link —
             // unequip src if it was equipped. Dragging a Free Skill onto Free Skills
             // is already a no-op state, nothing to do.
             if(slotNum == null) return
             P.skillSlots[slotNum] = null
+            S = null
 
         // Immediate feedback — the next Stat() refresh would confirm this from
-        // skillSlots either way, this just avoids a beat of stale display.
+        // skillSlots either way, this just avoids a beat of stale display. The links'
+        // own S is updated above first, or the names showed the old skills.
         UpdateName()
         target.UpdateName()
 
@@ -71,4 +76,5 @@ obj/SkillLink
         if(slotNum == null || !S) return
 
         P.skillSlots[slotNum] = null
+        S = null
         UpdateName()

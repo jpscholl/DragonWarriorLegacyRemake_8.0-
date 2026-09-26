@@ -180,11 +180,13 @@ proc/SpawnHazardLine(turf/center, lineDir, reach, fieldType, mob/owner = null, p
             if(PlaceHazardField(T, fieldType, owner, power, element, duration, fieldDir)) placed++
     return placed
 
-// One tile of a field. A tile that already holds a field of this type gets that one
-// refreshed rather than a second one stacked on it. Returns the NEW field, or null.
+// One tile of a field. A tile that already holds a field of exactly this type gets that
+// one refreshed rather than a second one stacked on it. Exactly: locate() also matches
+// subtypes, so Explodet's flame landing on Firebane's fire used to refresh the firebane
+// field instead of drawing its own. Returns the NEW field, or null.
 proc/PlaceHazardField(turf/T, fieldType, mob/owner, power, element, duration, fieldDir = SOUTH)
-    var/obj/hazard_field/existing = locate(fieldType) in T
-    if(existing)
+    for(var/obj/hazard_field/existing in T)
+        if(existing.type != fieldType) continue
         existing.Refresh(power, duration)
         return null
 

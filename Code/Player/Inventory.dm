@@ -17,6 +17,10 @@ obj/item
     var/amount = 1
     var/maxStack = 1
 
+    // TRUE for the one kind of item a dead player may use (the leaf, on themselves) --
+    // see mob/CanUseItem() below.
+    var/usableWhileDead = FALSE
+
     // Called whenever `amount` changes on a stackable item, so the displayed name
     // picks up "x[amount]". No-op on the base type; consumable overrides it.
     proc/UpdateStackName()
@@ -36,7 +40,7 @@ obj/item
     Click()
         if(ismob(loc))
             var/mob/M = loc
-            UseItem(M)
+            if(M.CanUseItem(src)) UseItem(M)
 
     // Standing on a loose item and pressing Interact picks it up.
     OnInteract(mob/user)
@@ -161,6 +165,7 @@ obj/item/consumable/tea
 obj/item/consumable/leaf
     name = "leaf of the world tree"
     description = "Revives a fallen ally."
+    usableWhileDead = TRUE
 
     OnConsume(mob/user)
         if(user.isDead)
@@ -185,9 +190,6 @@ obj/item/consumable/wyvernwing
     description = "Returns you to town."
 
     OnConsume(mob/user)
-        if(user.isDead)
-            user.ShowInfo("But the strange force contains the wing's powers!")
-            return FALSE
         user.TeleportTo(GetPlayerSpawnTurf())
         user.ShowInfo("You return to town!")
         return TRUE
@@ -480,6 +482,15 @@ obj/item/amulet/luck
 // StatsDatum.dm). round() with one arg floors in DM.
 mob/proc/GetInventoryCapacity()
     return BASE_INVENTORY_CAPACITY + round(GetEffectiveStrength() / STR_PER_CAPACITY)
+
+// Whether this mob may use I right now -- clicking it in the Inventory tab or the quick
+// item key (UseQuickItem(), PlayerVerbs.dm). Dead: only an item made for it (the leaf).
+// Alive: the same canAct gate as every other action, so no herbs mid-swing, asleep, or
+// halfway through a warp. The click path used to have no check at all -- a dead player
+// could eat a herb, carry HP as a corpse, and be killed (and penalized) a second time.
+mob/proc/CanUseItem(obj/item/I)
+    if(isDead) return I.usableWhileDead
+    return RequireCanAct()
 
 mob/proc/GetInventoryCount()
     var/count = 0

@@ -36,11 +36,22 @@ mob
     proc/RequireCanAct()
         return canAct
 
-    // The gates every player-started skill passes, whichever way it was started: a
+    // Every player-started skill comes through here, whichever way it was started: a
     // numpad slot (UseSkillSlot()), an F-key quick spell (UseQuickSpell()) or the
-    // cast-on-player menu (CastAtPlayer(), PlayerVerbs.dm). Encumbrance blocks every
-    // skill (Inventory.dm); Stopspell's silence blocks spells.
+    // cast-on-player menu (CastAtPlayer(), PlayerVerbs.dm).
+    proc/StartSkill(datum/skill/S, mob/target)
+        if(!S || !CanStartSkill(S)) return
+        // Using any ability gives a hidden player away. Hide handles itself, since
+        // using it while hidden is how you come out on purpose.
+        if(!istype(S, /datum/skill/Hide))
+            Unhide()
+        S.OnUse(src, target)
+
+    // The gates StartSkill() applies. Dead, nothing works -- Defend and Hide skip the
+    // canAct check every other skill makes, and flipped a corpse's icon back upright.
+    // Encumbrance blocks every skill (Inventory.dm); Stopspell's silence blocks spells.
     proc/CanStartSkill(datum/skill/S)
+        if(isDead) return FALSE
         if(BlockedByEncumbrance()) return FALSE
         if(S.isSpell && isSilenced)
             ShowInfo("You are silenced and cannot cast!")
@@ -189,15 +200,7 @@ mob/player
     // Triggered by the Numpad9/7/3/1/0 macros (Interface.dmf) via
     // client/verb/UseSkillKey (SmoothMovement.dm).
     proc/UseSkillSlot(slotNum)
-        var/datum/skill/S = skillSlots[slotNum]
-        if(!S || !CanStartSkill(S)) return
-
-        // Using any ability gives a hidden player away. Hide handles itself, since
-        // using it while hidden is how you come out on purpose.
-        if(!istype(S, /datum/skill/Hide))
-            Unhide()
-
-        S.OnUse(src, FindFacedTarget())
+        StartSkill(skillSlots[slotNum], FindFacedTarget())
 
     // Starting-kit granting and leveled unlocks both live in SkillUnlocks.dm.
 
@@ -540,13 +543,27 @@ mob/player/proc/BecomeSage()
     newMob.StatPoints = 0  // StatAllocation() enforces spending every point first
 
     // Skills carry over as-is, including anything the old class could learn that
-    // Sage's own table never would — you don't unlearn things by changing class.
+    // Sage's own table never would — you don't unlearn things by changing class. The
+    // save keeps them too (knownSkillTypes, SaveData.dm).
     newMob.skills = skills
     newMob.skillSlots = skillSlots
+    // Plus Sage's own starting kit, which Sage's unlock table leaves out -- a slot the
+    // player already filled keeps its skill and the kit skill goes to Free Skills.
+    for(var/list/entry in newMob.GetStartingKit())
+        var/slotNum = entry[2]
+        newMob.EquipSkill(entry[1], (!isnull(slotNum) && !newMob.skillSlots[slotNum]) ? slotNum : null)
+    // The F5-F7 quick spells point at those same skill datums.
+    newMob.quickSpells = quickSpells
+    newMob.turnWalkMode = turnWalkMode
 
     // Items live directly in mob.contents (Inventory.dm) — this IS the transfer.
     for(var/obj/item/I in contents)
         I.loc = newMob
+    newMob.quickItem = quickItem
+
+    // The pet follows the character too -- left behind, the del below would null its
+    // owner and turn it wild.
+    if(pet) pet.TransferTo(newMob)
 
     newMob.isCharacter = isCharacter
     newMob.saveSlot = saveSlot

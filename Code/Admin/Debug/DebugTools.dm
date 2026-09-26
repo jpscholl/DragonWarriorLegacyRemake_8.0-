@@ -202,7 +202,8 @@ mob
 
             var/pick = input(P, "Learn which skill?", "Test_LearnSkill") as null|anything in choices
             if(!pick) return
-            P.EquipSkill(choices[pick])
+            var/datum/skill/S = P.EquipSkill(choices[pick])
+            if(S) S.debugGranted = TRUE  // left out of the save (SaveData.dm)
             P.ShowInfo("Learned [pick]. Equip it from Free Skills.")
 
         Test_ClearDummies()

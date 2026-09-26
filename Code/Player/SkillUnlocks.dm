@@ -66,9 +66,9 @@ mob/player
     // cache (PlayerTemplate.dm).
     var/list/cachedSkillUnlocks = null
 
-    // silent = TRUE re-syncs already-earned unlocks (e.g. after loading a save, since
-    // `skills` isn't part of the save blob) without spamming "You learned X!" for
-    // something the player already knew before disconnecting.
+    // silent = TRUE re-syncs already-earned unlocks (e.g. after loading a save) without
+    // spamming "You learned X!" for something the player already knew before
+    // disconnecting.
     proc/CheckSkillUnlocks(silent = FALSE)
         if(!cachedSkillUnlocks)
             cachedSkillUnlocks = GetSkillUnlocks()

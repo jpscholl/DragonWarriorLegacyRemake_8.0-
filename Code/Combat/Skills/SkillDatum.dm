@@ -39,6 +39,9 @@ datum/skill
         // -- 1.5 = a windup half again as long. For a spell that should feel slow to cast.
         cast_meter_slowness = 1
 
+        // Granted by Test_LearnSkill (DebugTools.dm): never saved, so a relog clears it.
+        debugGranted = FALSE
+
     proc/OnUse(mob/user, mob/target = null)
         return
 
@@ -88,11 +91,11 @@ datum/skill/Defend
 
     OnUse(mob/user, mob/target = null)
         if(!user.InBattleArea()) return
-        if(user.isSleeping) return  // can't raise a shield in bed -- wake up first
+        if(user.isSleeping || user.IsAsleep()) return  // in bed or under Sleep -- wake up first
         if(world.time - lastToggleTime < DEFEND_TOGGLE_COOLDOWN) return
         lastToggleTime = world.time
         // Marks this as a real manual toggle — an attack's auto-resume
-        // (RestoreDefendIfUntouched()) checks this so it never overrides an explicit
+        // (EndAction()) checks this so it never overrides an explicit
         // toggle made mid-swing.
         user.defendToggleSession++
 

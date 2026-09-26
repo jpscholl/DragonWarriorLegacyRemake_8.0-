@@ -126,7 +126,6 @@ mob/verb/ScrollQuickItem()
 mob/verb/UseQuickItem()
     set hidden = 1
 
-    if(!RequireCanAct()) return
     if(!quickItem)
         src.ShowInfo("No quick item selected. Press * on your numpad to choose one.")
         return
@@ -137,7 +136,7 @@ mob/verb/UseQuickItem()
         src.ShowInfo("You no longer have that item.")
         return
 
-    quickItem.UseItem(src)
+    if(CanUseItem(quickItem)) quickItem.UseItem(src)  // Inventory.dm
 
 // -----------------------------
 // Quick cast — F5 / F6 / F7. Three spell hotkeys separate from the five numpad skill
@@ -185,10 +184,7 @@ mob/verb/UseQuickSpell(slot as num)
     if(!S)
         src.ShowInfo("No spell assigned to F[slot].")
         return
-    if(!CanStartSkill(S)) return
-
-    Unhide()  // casting gives a hidden player away, same as a numpad slot
-    S.OnUse(src, FindFacedTarget())
+    StartSkill(S, FindFacedTarget())
 
 // -----------------------------
 // Player click menu — clicking another player opens a small action menu, the only
@@ -263,11 +259,15 @@ mob/player
         var/datum/skill/S = castable[choice]
         if(!S) return
 
+        // The menu waits on the player -- the target may have logged out or walked off
+        // since it opened.
+        if(!target || get_dist(src, target) > PLAYER_MENU_RANGE)
+            src.ShowInfo("They're out of range.")
+            return
+
         // Same gates as a numpad slot -- neither encumbrance nor Stopspell is
         // bypassable just by clicking a player.
-        if(!CanStartSkill(S)) return
-        Unhide()
-        S.OnUse(src, target)
+        StartSkill(S, target)
 
 mob/verb/Interact()
     set hidden = 1
@@ -399,6 +399,7 @@ mob/player/verb/LogoutToMenu()
     C << sound('dw3conti.mid', repeat = 1, volume = C.ScaledVolume(isMusic = TRUE), channel = 1)
 
     LeavePartyIfAny()  // before the del() below — see the proc's own note (Party.dm)
+    ReleasePetIfAny()  // same reason (EnemyNPCs.dm)
 
     // MUST run before ShowLoginMenu() -- that call blocks on input() for the player's
     // entire character-select/creation session, so del-ing src AFTER it (as originally

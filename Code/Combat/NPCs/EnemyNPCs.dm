@@ -502,11 +502,18 @@ mob/enemy
 
 	proc/RevivePet(hpPercent)
 		lifeSession++  // the pending CleanUpDead() deletion now leaves this pet alone
+		isDead = FALSE
 		HP = max(1, round(MaxHP * hpPercent / 100))
 		density = 1
 		icon_state = "world"
+		// A pet that died inside a swing's cooldown (TryMeleeAttack()) or mid-cast never
+		// got canAct back -- those timers only hand it back to the living -- and Step()
+		// won't move a mob without it, so it came back frozen for good.
+		canAct = TRUE
+		attackRecoveryOnly = FALSE
 		firstAttacker = null
 		target = null
+		huntTarget = null
 		ShowFloatingHPBar()
 		// Both loops returned when it died -- start them again.
 		AILoop()
@@ -600,6 +607,23 @@ mob/enemy
 		target = null
 		huntTarget = null
 		moveTowardAtom = null
+
+	// The same pet under a new owner mob -- the reclass swap (BecomeSage(),
+	// PlayerTemplate.dm) moves it across with everything else the character keeps.
+	proc/TransferTo(mob/player/newOwner)
+		if(owner && owner.pet == src)
+			owner.pet = null
+		owner = newOwner
+		newOwner.pet = src
+		target = null
+		huntTarget = null
+
+// Every path that deletes a player mob (logging out, returning to character select)
+// lets their pet go first. Pets aren't saved, and deleting the owner used to null
+// `owner` out from under the pet -- turning it into a wild monster that still wore
+// its pet name and went for its old owner's friends.
+mob/player/proc/ReleasePetIfAny()
+	if(pet) pet.ReleaseToWild()
 
 // Every concrete monster lives in MonsterRoster.dm — this file is only the shared
 // AI/pet behavior they all inherit.

@@ -307,6 +307,11 @@ datum/status_effect/sleep/more
 		..()
 		duration = rand(SLEEP_MORE_DURATION_MIN, SLEEP_MORE_DURATION_MAX)
 
+// Under the Sleep spell (either kind) -- not bed sleep, which is isSleeping (Turfs.dm).
+// A sleeper can't finish a cast (PlayCastMeter(), CombatSystem.dm) or raise a shield.
+mob/proc/IsAsleep()
+	return HasStatusEffect(/datum/status_effect/sleep)
+
 // -----------------------------
 // Buffs — Upper and Increase (attack power), Barrier (cuts all damage taken). Applied
 // additively to a separate bonus var rather than mutating the stat itself, so it can't

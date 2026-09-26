@@ -56,11 +56,16 @@ datum/CharacterSaveData
     var/mainColor
     var/accentColor
 
-    // WHICH skills are known isn't saved here — it's fully derivable from
-    // Level/stats plus the fixed starting kit, both re-applied on load. WHICH numpad
-    // slot each known skill sits in IS the player's own drag-and-drop customization,
-    // not derivable from anything else — that's what this stores: slotNum -> skill
-    // typepath (or null for an empty slot).
+    // Every skill this character knows, by type. Most of it is re-derived on load anyway
+    // (the starting kit and leveled unlocks are both re-run), but not a skill carried
+    // over from an old class by a reclass (BecomeSage(), PlayerTemplate.dm): a Sage that
+    // was a Goof-off keeps Club, and without this lost it on the next login. null on a
+    // save from before this existed.
+    var/list/knownSkillTypes
+
+    // WHICH numpad slot each known skill sits in is the player's own drag-and-drop
+    // customization, not derivable from anything else — that's what this stores:
+    // slotNum -> skill typepath (or null for an empty slot).
     var/list/equippedSkillTypes
 
     // One entry per obj/item in contents: a plain type + the couple of bits of
@@ -97,6 +102,10 @@ datum/CharacterSaveData/proc/BuildFromCharacter(mob/player/P)
 
     basePlayerIcon = P.basePlayerIcon
     zoneColors = P.zoneColors ? P.zoneColors.Copy() : null
+
+    knownSkillTypes = list()
+    for(var/datum/skill/S in P.skills)
+        if(!S.debugGranted) knownSkillTypes += S.type
 
     equippedSkillTypes = alist(9 = null, 7 = null, 3 = null, 1 = null, 0 = null)
     for(var/slotNum in P.skillSlots)
@@ -189,10 +198,19 @@ datum/CharacterSaveData/proc/MigrateLegacyAppearance(mob/player/P)
     if(!GetPlayerIcon(P.basePlayerIcon) && baseIcon)
         P.baseIcon = baseIcon
 
+// Re-grants every saved skill the kit and unlocks didn't already bring back -- the ones
+// a reclass carried over. Learned into Free Skills; ApplySkillSlots() below puts back
+// any that were equipped. A type since removed from the game is skipped.
+datum/CharacterSaveData/proc/ApplyKnownSkills(mob/player/P)
+    if(!knownSkillTypes) return
+    for(var/skillType in knownSkillTypes)
+        if(ispath(skillType, /datum/skill)) P.EquipSkill(skillType)
+
 // Restores the saved numpad slot arrangement — separate from ApplyToCharacter() above
 // because it has to run LAST in LoadCharacter() (SaveSystem.dm), after every skill the
 // slots could reference has actually been (re-)granted: the fixed starting kit
-// (EquipStartingKit()) AND any leveled unlocks (CheckSkillUnlocks()). Falls back to
+// (EquipStartingKit()), any leveled unlocks (CheckSkillUnlocks()) and the rest of the
+// saved skills (ApplyKnownSkills()). Falls back to
 // leaving a slot as whatever EquipStartingKit() already put there if the saved type
 // can't be resolved (e.g. P doesn't know that skill for some reason) rather than
 // silently clearing it.

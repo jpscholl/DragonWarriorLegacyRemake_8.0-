@@ -496,8 +496,7 @@ proc/ApplyPlayerClass(class_name)
     var/type = GetPlayerClassType(class_name)
     if(type) newPlayer = new type
 
-    // Skills aren't persisted in save data (Code/Save/SaveData.dm) — every fresh
-    // character needs its starting kit equipped from scratch, per its own
+    // Every fresh character needs its starting kit equipped from scratch, per its own
     // GetStartingKit() (Code/Player/SkillUnlocks.dm).
     if(newPlayer)
         newPlayer.EquipStartingKit()

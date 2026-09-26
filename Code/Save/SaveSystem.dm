@@ -84,9 +84,9 @@ datum/SaveManager
         newPlayer.saveSlot = slot
         newPlayer.saveManager = src
 
-        // Skills aren't part of the save blob (Code/Save/SaveData.dm) — re-equip the
-        // starting kit every load, same as a fresh character, per its own
-        // GetStartingKit() (Code/Player/SkillUnlocks.dm).
+        // Re-equip the starting kit every load, same as a fresh character, per its own
+        // GetStartingKit() (Code/Player/SkillUnlocks.dm) -- so a kit change reaches
+        // existing characters too.
         newPlayer.EquipStartingKit()
 
         // Apply saved snapshot to the mob
@@ -102,6 +102,9 @@ datum/SaveManager
         // defaults until ApplyToCharacter() sets them from the save — running it too
         // early is exactly why a Fireball learned mid-session was vanishing on relog.
         newPlayer.CheckSkillUnlocks(silent = TRUE)
+
+        // Whatever else they knew -- skills a reclass carried over (SaveData.dm).
+        D.ApplyKnownSkills(newPlayer)
 
         // Restore the numpad slot arrangement — must run LAST, after every skill it
         // could reference is actually known.
