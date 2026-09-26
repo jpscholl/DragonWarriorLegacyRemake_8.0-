@@ -10,6 +10,16 @@ mob/proc/PlayAreaMusic(music_file)
 	client << sound(music_file, repeat = 1, volume = client.ScaledVolume(isMusic = TRUE), channel = 1)
 	current_music = music_file
 
+// The music this mob should hear in area A. Curse night (isCurseNight, Main.dm)
+// overrides every area's own track for its duration; otherwise A's areaMusic, if any.
+// Walking into an area (area/Entered() below) and every teleport that lands somewhere
+// new (stairs and warps, Turfs.dm) come through here.
+mob/proc/PlayMusicForArea(area/A)
+	if(isCurseNight)
+		PlayAreaMusic(CURSE_NIGHT_MUSIC)
+	else if(istype(A) && A.areaMusic)
+		PlayAreaMusic(A.areaMusic)
+
 area
 	icon = 'environment.dmi'
 	var/areaMusic   // set on a subtype to auto-play music when a mob enters
@@ -92,13 +102,7 @@ area
 			// instead of silently doing nothing like it does everywhere else.
 			if(respectWallOpacity) M.sight &= ~SEE_THRU
 
-			// Curse night (isCurseNight, Main.dm) overrides every area's own music for
-			// its duration — without this check, walking into a new area mid-curse-night
-			// would immediately switch back to that area's normal track.
-			if(isCurseNight)
-				M.PlayAreaMusic(CURSE_NIGHT_MUSIC)
-			else if(areaMusic)
-				M.PlayAreaMusic(areaMusic)
+			M.PlayMusicForArea(src)
 
 	// Restores SEE_THRU on the way out of a respectWallOpacity area — but only if the
 	// destination isn't ALSO one, same "don't flicker sight on between two adjoining

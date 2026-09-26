@@ -36,6 +36,29 @@ mob
     proc/RequireCanAct()
         return canAct
 
+    // The gates every player-started skill passes, whichever way it was started: a
+    // numpad slot (UseSkillSlot()), an F-key quick spell (UseQuickSpell()) or the
+    // cast-on-player menu (CastAtPlayer(), PlayerVerbs.dm). Encumbrance blocks every
+    // skill (Inventory.dm); Stopspell's silence blocks spells.
+    proc/CanStartSkill(datum/skill/S)
+        if(BlockedByEncumbrance()) return FALSE
+        if(S.isSpell && isSilenced)
+            ShowInfo("You are silenced and cannot cast!")
+            return FALSE
+        return TRUE
+
+    // The mob a faced skill is aimed at: the first live, targetable one on the tile
+    // directly in front -- a swing should only threaten what you're actually facing.
+    // Hidden or ghosted mobs can't be picked, and neither can a corpse (Revive/Vivify
+    // look for those themselves).
+    proc/FindFacedTarget()
+        var/turf/T = get_step(src, dir)
+        if(!T) return null
+        for(var/mob/M in T)
+            if(M == src || M.HP <= 0 || !M.IsTargetable()) continue
+            return M
+        return null
+
     // Basic character info
     var
         class = null
@@ -167,34 +190,14 @@ mob/player
     // client/verb/UseSkillKey (SmoothMovement.dm).
     proc/UseSkillSlot(slotNum)
         var/datum/skill/S = skillSlots[slotNum]
-        if(!S) return
-
-        if(BlockedByEncumbrance()) return  // Inventory.dm -- every skill, attacks too
-
-        // Every skill funnels through here, so this is the one place silence needs
-        // enforcing (not duplicated in each skill's own OnUse()).
-        if(S.isSpell && isSilenced)
-            src.ShowInfo("You are silenced and cannot cast!")
-            return
+        if(!S || !CanStartSkill(S)) return
 
         // Using any ability gives a hidden player away. Hide handles itself, since
         // using it while hidden is how you come out on purpose.
         if(!istype(S, /datum/skill/Hide))
             Unhide()
 
-        // Only the tile directly in front — a melee swing should only threaten what
-        // you're actually facing.
-        var/mob/target = null
-        var/turf/stepTile = get_step(src, src.dir)
-        if(stepTile)
-            for(var/mob/M in stepTile.contents)
-                if(M == src) continue
-                if(M.HP <= 0) continue
-                if(!M.IsTargetable()) continue  // hidden or ghosted -- can't be picked
-                target = M
-                break
-
-        S.OnUse(src, target)
+        S.OnUse(src, FindFacedTarget())
 
     // Starting-kit granting and leveled unlocks both live in SkillUnlocks.dm.
 
@@ -320,8 +323,9 @@ mob/player/Sage
     class = "Sage"
     HPfactor = 0.7
     MPfactor = 1.3
-    // Slowest of the real classes. Its spell list is the Hero+Wizard+Pilgrim union and
-    // it restarts at level 1 on reclass, so the pace is the cost of the ceiling.
+    // Slowest of the real classes. It learns the widest spell list (the OG's Sage
+    // list, SkillUnlocks.dm) and restarts at level 1 on reclass, so the pace is the
+    // cost of the ceiling.
     exp_start = 20
     capStrength = 40
     capAgility = 40
@@ -386,7 +390,7 @@ proc/GetClassStatCaps(class_name)
         "Vitality"     = initial(type:capVitality),
         "Agility"      = initial(type:capAgility),
         "Intelligence" = initial(type:capIntelligence),
-        "Spirit"         = initial(type:capSpirit)
+        "Spirit"       = initial(type:capSpirit)
     )
 
     classStatCapCache[class_name] = caps
@@ -415,6 +419,21 @@ mob/player/proc/ExitReclassPreview()
     icon_state = "world"
     ShowFloatingHPBar()
     ShowFloatingMPBar()
+
+// The checks both ways into Sage share -- Classchange (SkillCatalog.dm) and the Dharma
+// Scroll (Inventory.dm). FALSE, with the reason shown, when P can't reclass yet.
+mob/player/proc/CanBecomeSage()
+    if(istype(src, /mob/player/Sage))
+        ShowInfo("You are already a Sage.")
+        return FALSE
+    if(Level < CLASSCHANGE_MIN_LEVEL)
+        ShowInfo("You must be at least level [CLASSCHANGE_MIN_LEVEL] to change your class.")
+        return FALSE
+    for(var/obj/item/amulet/A in contents)
+        if(A.worn)
+            ShowInfo("You must unequip everything before you can change your class.")
+            return FALSE
+    return TRUE
 
 // Sage reclass flow — Classchange (SkillCatalog.dm) calls this BEFORE BecomeSage()
 // below. Re-runs the real character creation flow (icon, colors, stats) on the

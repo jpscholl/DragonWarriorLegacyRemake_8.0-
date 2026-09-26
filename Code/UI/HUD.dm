@@ -243,7 +243,7 @@ proc/ShowCombatNumber(atom/target, text, colorHex)
 // free and are visible to everyone who can see it. Always rebuilds a fresh /image
 // rather than mutating icon_state on an existing one — BYOND's overlays list stores an
 // immutable snapshot at add-time, so mutating an already-added image silently stops
-// updating (the same bug already found and fixed for the Blaze cast meter, SkillDatum.dm).
+// updating (the same bug already found and fixed for the cast meter, PlayCastMeter(), CombatSystem.dm).
 // -----------------------------
 mob
     var

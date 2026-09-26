@@ -185,22 +185,10 @@ mob/verb/UseQuickSpell(slot as num)
     if(!S)
         src.ShowInfo("No spell assigned to F[slot].")
         return
+    if(!CanStartSkill(S)) return
 
-    if(BlockedByEncumbrance()) return
-
-    if(isSilenced)
-        src.ShowInfo("You are silenced and cannot cast!")
-        return
-
-    var/mob/target = null
-    var/turf/stepTile = get_step(src, src.dir)
-    if(stepTile)
-        for(var/mob/M in stepTile.contents)
-            if(M == src) continue
-            target = M
-            break
-
-    S.OnUse(src, target)
+    Unhide()  // casting gives a hidden player away, same as a numpad slot
+    S.OnUse(src, FindFacedTarget())
 
 // -----------------------------
 // Player click menu — clicking another player opens a small action menu, the only
@@ -255,12 +243,7 @@ mob/player
         var/choice = input(src, "Give which item?", "Give Item") in items + "Cancel"
         if(!choice || choice == "Cancel") return
 
-        var/obj/item/I = items[choice]
-        if(!I) return
-
-        target.PickUpItem(I)
-        src.ShowInfo("You give [I.name] to [target.name].")
-        target.ShowInfo("[src.name] gives you [I.name].")
+        GiveHeldItem(items[choice], target)
 
     // Casts one of this player's known skills directly at the clicked player,
     // bypassing UseSkillSlot()'s "whoever is on the tile in front of me" targeting —
@@ -280,13 +263,10 @@ mob/player
         var/datum/skill/S = castable[choice]
         if(!S) return
 
-        // Same central gates UseSkillSlot() enforces — a second casting entry point, so
-        // neither encumbrance nor Stopspell is bypassable just by clicking a player.
-        if(BlockedByEncumbrance()) return
-        if(isSilenced)
-            src.ShowInfo("You are silenced and cannot cast!")
-            return
-
+        // Same gates as a numpad slot -- neither encumbrance nor Stopspell is
+        // bypassable just by clicking a player.
+        if(!CanStartSkill(S)) return
+        Unhide()
         S.OnUse(src, target)
 
 mob/verb/Interact()
@@ -436,40 +416,30 @@ mob/player/verb/LogoutToMenu()
 mob/verb/SetMasterVolume()
     set category = "Settings"
     set desc = "Overall volume, scales Music and SFX together"
-    if(!client) return
-    if(!RequireCanAct()) return
-
-    var/v = input(src, "Master volume (0-100):", "Settings", client.masterVolume) as num
-    if(isnull(v)) return
-    client.masterVolume = max(0, min(100, round(v)))
-    client.saveManager.SaveVolumeSettings(client)
-    src.ShowInfo("Master volume set to [client.masterVolume]%.")
-    // Re-apply immediately — Master affects the currently-playing track too, not just
-    // future sounds. SOUND_UPDATE adjusts the playing sound's volume in place instead
-    // of restarting it from the top.
-    if(current_music) client << sound(null, channel = 1, volume = client.ScaledVolume(isMusic = TRUE), status = SOUND_UPDATE)
+    PromptVolume("masterVolume", "Master volume")
 
 mob/verb/SetMusicVolume()
     set category = "Settings"
     set desc = "Area background music volume"
-    if(!client) return
-    if(!RequireCanAct()) return
-
-    var/v = input(src, "Music volume (0-100):", "Settings", client.musicVolume) as num
-    if(isnull(v)) return
-    client.musicVolume = max(0, min(100, round(v)))
-    client.saveManager.SaveVolumeSettings(client)
-    src.ShowInfo("Music volume set to [client.musicVolume]%.")
-    if(current_music) client << sound(null, channel = 1, volume = client.ScaledVolume(isMusic = TRUE), status = SOUND_UPDATE)
+    PromptVolume("musicVolume", "Music volume")
 
 mob/verb/SetSFXVolume()
     set category = "Settings"
     set desc = "Combat/event sound effect volume"
+    PromptVolume("sfxVolume", "Sound effects volume")
+
+// Shared by the three sliders above: asks for 0-100, stores it on the client var named
+// by volumeVar, and saves it.
+mob/proc/PromptVolume(volumeVar, label)
     if(!client) return
     if(!RequireCanAct()) return
 
-    var/v = input(src, "Sound effects volume (0-100):", "Settings", client.sfxVolume) as num
+    var/v = input(src, "[label] (0-100):", "Settings", client.vars[volumeVar]) as num
     if(isnull(v)) return
-    client.sfxVolume = max(0, min(100, round(v)))
+    client.vars[volumeVar] = max(0, min(100, round(v)))
     client.saveManager.SaveVolumeSettings(client)
-    src.ShowInfo("Sound effects volume set to [client.sfxVolume]%.")
+    src.ShowInfo("[label] set to [client.vars[volumeVar]]%.")
+    // Re-apply to the track already playing -- Master and Music both change it.
+    // SOUND_UPDATE adjusts its volume in place instead of restarting it from the top.
+    if(volumeVar != "sfxVolume" && current_music)
+        client << sound(null, channel = 1, volume = client.ScaledVolume(isMusic = TRUE), status = SOUND_UPDATE)

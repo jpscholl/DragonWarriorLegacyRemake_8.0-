@@ -27,6 +27,12 @@ obj/item
     proc/UseItem(mob/user)
         return
 
+    // Called on EVERY way an item leaves a mob -- dropped (DropHeldItem()), handed to
+    // someone else (PickUpItem()), put in storage (Obj.dm) -- before it moves, so a worn
+    // amulet always takes its bonuses with it. Base: nothing to undo.
+    proc/OnLeaveOwner(mob/owner)
+        return
+
     Click()
         if(ismob(loc))
             var/mob/M = loc
@@ -46,8 +52,7 @@ obj/item
         if(!ismob(loc)) return
         var/mob/M = loc
         if(!M.RequireCanAct()) return
-        loc = M.loc   // falls on the turf you're standing on
-        M.ShowInfo("You drop [src.name].")
+        M.DropHeldItem(src)
 
     // "in view(5, usr)" restricts the target picker to players within 5 tiles.
     verb/Give(mob/player/target in view(5, usr))
@@ -62,9 +67,7 @@ obj/item
             M.ShowInfo("You can't give an item to yourself.")
             return
 
-        target.PickUpItem(src)
-        M.ShowInfo("You give [src.name] to [target.name].")
-        target.ShowInfo("[M.name] gives you [src.name].")
+        M.GiveHeldItem(src, target)
 
 // A named key. Grants access to any lockable object whose own name matches keyName —
 // see obj/door's OnInteract() override in Code/World/Obj.dm.
@@ -146,27 +149,31 @@ obj/item/consumable/tea
             user.ShowInfo("You are at full MP!")
             return FALSE
         user.MP = min(user.MaxMP, user.MP + restoreAmount)
+        user.ShowFloatingMPBar()
         user.ShowInfo("You restore [restoreAmount] MP! (MP: [user.MP]/[user.MaxMP])")
         return TRUE
 
 // OG usage note, verbatim: "Face another player to use this item, or give it to them
 // while they are dead." Only the facing case is implemented — give-to-a-dead-player
 // already works, since a dead player can just use it themselves once it's theirs.
+// Revives on the spot at full HP (ReviveInPlace(), CombatSystem.dm) -- it used to send
+// the revived player back to the respawn point.
 obj/item/consumable/leaf
     name = "leaf of the world tree"
     description = "Revives a fallen ally."
 
     OnConsume(mob/user)
         if(user.isDead)
-            user.RespawnPlayer()
+            user.ReviveInPlace(user.MaxHP)
             return TRUE
 
         var/turf/facing = get_step(user, user.dir)
         if(facing)
             for(var/mob/player/P in facing.contents)
                 if(!P.isDead) continue
-                P.RespawnPlayer()
+                P.ReviveInPlace(P.MaxHP)
                 user.ShowInfo("You revive [P.name] with [src.name].")
+                P.ShowInfo("[user.name] revives you with [src.name]!")
                 return TRUE
 
         user.ShowInfo("Face another player to use this item, or give it to them while they are dead.")
@@ -181,9 +188,7 @@ obj/item/consumable/wyvernwing
         if(user.isDead)
             user.ShowInfo("But the strange force contains the wing's powers!")
             return FALSE
-        user.loc = GetPlayerSpawnTurf()
-        if(user.client && user.client.camera)
-            user.client.camera.SnapTo(user)  // direct .loc change bypasses client/Move(), the only place the camera normally tracks
+        user.TeleportTo(GetPlayerSpawnTurf())
         user.ShowInfo("You return to town!")
         return TRUE
 
@@ -198,19 +203,7 @@ obj/item/consumable/dharmaScroll
     OnConsume(mob/user)
         if(!istype(user, /mob/player)) return FALSE
         var/mob/player/P = user
-
-        if(istype(P, /mob/player/Sage))
-            P.ShowInfo("You are already a Sage.")
-            return FALSE
-
-        if(P.Level < CLASSCHANGE_MIN_LEVEL)
-            P.ShowInfo("You must be at least level [CLASSCHANGE_MIN_LEVEL] to change your class.")
-            return FALSE
-
-        for(var/obj/item/amulet/A in P.contents)
-            if(A.worn)
-                P.ShowInfo("You must unequip everything before you can change your class.")
-                return FALSE
+        if(!P.CanBecomeSage()) return FALSE
 
         var/confirm = alert(P, "Read the Dharma Scroll and change your class to Sage? (You will keep all your items and gold, but you will be set back to level 1.)", "Dharma Scroll", "Yes", "No")
         if(confirm != "Yes") return FALSE
@@ -317,26 +310,10 @@ obj/item/amulet
 
         user.ShowInfo("You remove [initial(name)].")
 
-    // A worn amulet has to strip its bonus when it leaves, or the stats stay behind on a
-    // player who no longer owns it — but ONLY if it actually left. Stripping up front
-    // (what this used to do) also fired on the paths where the parent verb bails out and
-    // the amulet never moves: a Drop refused by RequireCanAct(), or a Give the target's
-    // full inventory rejects. Both silently took the bonuses off a player still wearing
-    // it. Unequip() takes its target as an argument rather than reading loc, so the
-    // original owner can be handed in after the move has already happened.
-    Drop()
-        var/mob/owner = ismob(loc) ? loc : null
-        var/wasWorn = worn
-        ..()
-        if(wasWorn && owner && loc != owner)
-            Unequip(owner)
-
-    Give(mob/player/target in view(5, usr))
-        var/mob/owner = ismob(loc) ? loc : null
-        var/wasWorn = worn
-        ..()
-        if(wasWorn && owner && loc != owner)
-            Unequip(owner)
+    // A worn amulet leaving its wearer strips its bonus, or the stats would stay behind
+    // on a player who no longer owns it.
+    OnLeaveOwner(mob/owner)
+        if(worn) Unequip(owner)
 
 // --- Raw stat amulets -------------------------------------------------------
 obj/item/amulet/strength
@@ -528,6 +505,10 @@ mob/proc/BlockedByEncumbrance()
 // not a new slot. Anything left always goes in: past capacity you're just encumbered
 // (IsEncumbered() above), warned as it happens.
 mob/proc/PickUpItem(obj/item/I)
+    // Handed over by another mob (a Give): it gives up what it had on.
+    if(ismob(I.loc) && I.loc != src)
+        I.OnLeaveOwner(I.loc)
+
     if(I.maxStack > 1)
         for(var/obj/item/existing in contents)
             if(existing.type != I.type || existing == I) continue
@@ -550,6 +531,25 @@ mob/proc/PickUpItem(obj/item/I)
     if(IsEncumbered())
         src.ShowInfo("<font color='orange'>You're carrying too much -- you're encumbered and can't use skills until you drop something.</font>")
     return TRUE
+
+// Onto the tile you're standing on. Every drop path (the Drop verb, DropItem()) uses
+// this, so a worn amulet always comes off first (OnLeaveOwner()).
+mob/proc/DropHeldItem(obj/item/I)
+    if(!I || I.loc != src) return
+    I.OnLeaveOwner(src)
+    I.loc = loc
+    ShowInfo("You drop [I.name].")
+
+// Every give path (the Give verb, the player click menu -- PlayerVerbs.dm). The name is
+// read up front, after a worn amulet comes off (dropping its "(Equipped)" tag):
+// PickUpItem() can merge I into a stack the receiver already has and delete it.
+mob/proc/GiveHeldItem(obj/item/I, mob/target)
+    if(!I || !target || I.loc != src) return
+    I.OnLeaveOwner(src)
+    var/itemName = I.name
+    ShowInfo("You give [itemName] to [target.name].")
+    target.ShowInfo("[name] gives you [itemName].")
+    target.PickUpItem(I)
 
 // TRUE if this mob is carrying a key whose keyName matches lockName.
 mob/proc/HasMatchingKey(lockName)
@@ -578,8 +578,4 @@ mob/verb/DropItem()
     var/choice = input(src, "Drop which item?", "Drop Item") in items + "Cancel"
     if(!choice || choice == "Cancel") return
 
-    var/obj/item/toDrop = items[choice]
-    if(!toDrop) return
-
-    toDrop.loc = loc   // falls on the turf you're standing on
-    src.ShowInfo("You drop [toDrop.name].")
+    DropHeldItem(items[choice])

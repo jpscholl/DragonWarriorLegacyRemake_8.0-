@@ -119,6 +119,10 @@ datum/SaveManager
         // trims it, so the clamp below covers a recompute that shrank the max instead.
         newPlayer.RecalculateVitals()
         newPlayer.HP = min(newPlayer.HP, newPlayer.MaxHP)
+        // Logged out while dead: isDead isn't saved, so they'd load "alive" at 0 HP --
+        // which TakeDamage() and regen both treat as a corpse, leaving them unhittable
+        // and never healing. They come back respawned instead.
+        if(newPlayer.HP <= 0) newPlayer.HP = newPlayer.MaxHP
 
         // Full mana on login, every time — not just whatever was saved.
         newPlayer.MP = newPlayer.MaxMP
@@ -149,9 +153,7 @@ datum/SaveManager
         newPlayer.loc = restoreTurf || GetPlayerSpawnTurf()
         C.AttachCamera(newPlayer)  // camera (SmoothMovement.dm) takes over as eye from here on
 
-        var/area/spawnArea = newPlayer.loc?.loc
-        if(spawnArea && spawnArea.areaMusic)
-            newPlayer.PlayAreaMusic(spawnArea.areaMusic)
+        newPlayer.PlayMusicForArea(newPlayer.loc?.loc)
 
         players += newPlayer
         del M

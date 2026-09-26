@@ -179,7 +179,7 @@ datum/status_effect/poison
 			if(dmg <= 0) return
 
 		// Not TakeDamage() — you can't dodge poison already in your veins.
-		holder.TakeDirectDamage(dmg, null, "<font color='green'>The poison burns! (-[dmg] HP)</font>")
+		holder.TakeDirectDamage(dmg, null, "The poison burns!", "green")
 
 	OnExpire()
 		if(holder && !holder.isDead)
@@ -198,7 +198,7 @@ datum/status_effect/poison
 // hit" — an earlier attempt wired it that way and it was wrong. The real OG mechanic is
 // that Explodet deals its impact damage and leaves a circle of flame on the ground, and
 // standing in THAT is what burns you. So the only thing that applies this is
-// obj/hazard_field/flame (HazardFields.dm), spawned by datum/skill/Explodet and Firebane
+// obj/hazard_field/flame (HazardFields.dm), left by Explodet, Firebane and Firevolt
 // (SkillCatalog.dm), re-applying it every tick to whoever is standing in the fire.
 // -----------------------------
 #define BURN_TICK_INTERVAL 20         // deciseconds between ticks — same cadence as Poison
@@ -231,7 +231,7 @@ datum/status_effect/burn
 		var/dmg = max(1, round(power * GetElementalMultiplier(element, holder.mobElement)) - reduction)
 
 		// Not TakeDamage() — same as Poison: the fire already caught you.
-		holder.TakeDirectDamage(dmg, null, "<font color='orange'>The burn sears you! (-[dmg] HP)</font>")
+		holder.TakeDirectDamage(dmg, null, "The burn sears you!", "orange")
 
 	OnExpire()
 		if(holder && !holder.isDead)
@@ -261,19 +261,33 @@ mob/proc/ApplyBurn(power, element)
 #define SLEEP_MORE_DURATION_MIN 40   // invented
 #define SLEEP_MORE_DURATION_MAX 100  // invented
 
+// Re-locks canAct every SLEEP_RELOCK_INTERVAL: a swing's or cast's own recovery timer
+// hands canAct back when it ends (GenericPhysical, TryMeleeAttack()...), and a Sleep
+// landing inside that window used to wake the sleeper within a second.
+#define SLEEP_RELOCK_INTERVAL 2  // deciseconds
+
 datum/status_effect/sleep
 	parent_type = /datum/status_effect
 
 	New()
 		..()
 		effectName = "Sleep"
-		duration = rand(SLEEP_DURATION_MIN, SLEEP_DURATION_MAX)  // no ticking — OnApply/OnExpire only
+		duration = rand(SLEEP_DURATION_MIN, SLEEP_DURATION_MAX)
+		tickInterval = SLEEP_RELOCK_INTERVAL
 		activeFXState = "asleep"       // spells.dmi; "sleep" is the cast burst instead
 
 	OnApply()
 		if(holder)
-			holder.canAct = FALSE
+			Lock()
 			holder.ShowInfo("<font color='purple'>You fall asleep!</font>")
+
+	OnTick()
+		Lock()
+
+	proc/Lock()
+		if(!holder) return
+		holder.canAct = FALSE
+		holder.attackRecoveryOnly = FALSE  // no walking off mid-recovery either
 
 	OnExpire()
 		if(holder)
@@ -294,17 +308,19 @@ datum/status_effect/sleep/more
 		duration = rand(SLEEP_MORE_DURATION_MIN, SLEEP_MORE_DURATION_MAX)
 
 // -----------------------------
-// Buffs — Upper and Increase (physical defense), Barrier (magic defense). Applied
+// Buffs — Upper and Increase (attack power), Barrier (cuts all damage taken). Applied
 // additively to a separate bonus var rather than mutating the stat itself, so it can't
 // show in the Battle panel, trip stat-cap checks, or get saved-in permanently.
 // -----------------------------
-#define BUFF_DURATION 300              // deciseconds
-#define UPPER_DEFENSE_BONUS 5          // flat added to physical defense (user, 2026-09-25: Upper cuts physical damage)
-#define INCREASE_DEFENSE_BONUS 10      // flat added to physical defense -- user: more than Upper; invented
-#define BARRIER_MAGIC_DEFENSE_BONUS 6  // flat added to magic defense
+#define BUFF_DURATION 600                // deciseconds -- user, from the OG: about a minute
+#define UPPER_ATTACK_BONUS 5             // flat added to Strength for damage purposes -- invented
+#define INCREASE_ATTACK_BONUS 10         // user: a stronger Upper -- invented
+#define BARRIER_DAMAGE_REDUCTION 25      // % off every hit taken -- invented
 
-mob/var/defenseBonus = 0
-mob/var/magicDefenseBonus = 0
+// user, 2026-09-25: Upper and Increase raise attack damage, Barrier lowers all damage
+// taken (MitigateDamage(), DamageFormula.dm).
+mob/var/attackBonus = 0
+mob/var/damageReductionPercent = 0
 
 // Upper/Increase/Barrier only ever differed by which bonus var they touch, the
 // amount, the color, and the two messages — factored into one parametrized base
@@ -312,7 +328,7 @@ mob/var/magicDefenseBonus = 0
 // OnApply()/OnExpire() exist once instead of three times.
 datum/status_effect/buff
 	parent_type = /datum/status_effect
-	var/bonusVar        // mob var name this buff adds to, e.g. "defenseBonus"
+	var/bonusVar        // mob var name this buff adds to, e.g. "attackBonus"
 	var/bonusAmount = 0
 	var/buffColor = "orange"
 	var/applyMsg
@@ -334,40 +350,33 @@ datum/status_effect/buff
 				holder.ShowInfo("<font color='[buffColor]'>[expireMsg]</font>")
 
 // Upper and Barrier (user, from the OG, 2026-09-25): the "...on" state is the cast
-// flash, the bare name the overlay that stays -- and they last about a minute, not
-// BUFF_DURATION.
-#define UPPER_DURATION 600    // deciseconds
-#define BARRIER_DURATION 600  // deciseconds
-
+// flash, the bare name the overlay that stays.
 datum/status_effect/buff/upper
 	New()
 		..()
 		effectName = "Upper"
-		duration = UPPER_DURATION
-		bonusVar = "defenseBonus"
-		bonusAmount = UPPER_DEFENSE_BONUS
+		bonusVar = "attackBonus"
+		bonusAmount = UPPER_ATTACK_BONUS
 		activeFXState = "upper"
-		applyMsg = "Your defense rises!"
-		expireMsg = "Your defense returns to normal."
+		applyMsg = "Your attack power rises!"
+		expireMsg = "Your attack power returns to normal."
 
 datum/status_effect/buff/increase
 	New()
 		..()
 		effectName = "Increase"
-		duration = UPPER_DURATION  // user: the same minute as Upper
-		bonusVar = "defenseBonus"
-		bonusAmount = INCREASE_DEFENSE_BONUS
+		bonusVar = "attackBonus"
+		bonusAmount = INCREASE_ATTACK_BONUS
 		activeFXState = "upper"    // no Increase art -- Upper's
-		applyMsg = "Your defense rises!"
-		expireMsg = "Your defense returns to normal."
+		applyMsg = "Your attack power rises greatly!"
+		expireMsg = "Your attack power returns to normal."
 
 datum/status_effect/buff/barrier
 	New()
 		..()
 		effectName = "Barrier"
-		duration = BARRIER_DURATION
-		bonusVar = "magicDefenseBonus"
-		bonusAmount = BARRIER_MAGIC_DEFENSE_BONUS
+		bonusVar = "damageReductionPercent"
+		bonusAmount = BARRIER_DAMAGE_REDUCTION
 		activeFXState = "barrier"
 		buffColor = "cyan"
 		applyMsg = "A magical barrier surrounds you!"
@@ -466,9 +475,9 @@ datum/status_effect/blind
 				holder.ShowInfo("<font color='#c8a060'>You can see again.</font>")
 
 // -----------------------------
-// Silence — blocks spell casting. Enforced centrally in UseSkillSlot()
-// (PlayerTemplate.dm), the one place every skill use funnels through, rather than each
-// spell's own OnUse() checking isSilenced itself.
+// Silence — blocks spell casting. Enforced where a skill use starts, not in each
+// spell's own OnUse(): UseSkillSlot() (PlayerTemplate.dm), UseQuickSpell() and the
+// cast-on-player menu (PlayerVerbs.dm), and the monster AI (EnemyNPCs.dm).
 // -----------------------------
 #define SILENCE_DURATION 150  // deciseconds
 

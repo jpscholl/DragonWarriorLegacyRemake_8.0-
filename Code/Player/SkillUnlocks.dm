@@ -139,82 +139,30 @@ mob/player/Sage/GetStartingKit()
 
 // Archsage's whole point is testing every skill/spell on one character — every real
 // skill is granted here at creation, no level/stat gating (GetSkillUnlocks() stays
-// empty). Only the 5 numpad slots get a starting equip; the rest land in Free Skills.
+// empty). Built from the skill types themselves, so a new skill needs no entry here.
+// Only the 5 numpad slots get a starting equip; the rest land in Free Skills.
 // Classchange is excluded — it would turn this character into a Sage.
 mob/player/Archsage/GetStartingKit()
-    return list(
+    var/list/kit = list(
         list(/datum/skill/Attack, 9),
         list(/datum/skill/Defend, 7),
         list(/datum/skill/Blaze, 3),
         list(/datum/skill/Heal, 1),
         list(/datum/skill/Return, 0),
-
-        list(/datum/skill/Fireball, null),
-        list(/datum/skill/Punch, null),
-        list(/datum/skill/Club, null),
-        list(/datum/skill/IronClaw, null),
-        list(/datum/skill/Jump, null),
-        list(/datum/skill/Hide, null),
-        list(/datum/skill/Magicknife, null),
-        list(/datum/skill/SandToss, null),
-        list(/datum/skill/Boomerang, null),
-        list(/datum/skill/Boomerang/Masterang, null),
-        list(/datum/skill/Morningstar, null),
-        list(/datum/skill/Dash, null),
-        list(/datum/skill/Quakejump, null),
-        list(/datum/skill/Fireclaw, null),
-        list(/datum/skill/Iceclaw, null),
-        list(/datum/skill/Thornwhip, null),
-        list(/datum/skill/Lightsword, null),
-        list(/datum/skill/Battleaxe, null),
-        list(/datum/skill/Flamesword, null),
-        list(/datum/skill/Falconsword, null),
-        list(/datum/skill/Goldclaw, null),
-        list(/datum/skill/Chainsickle, null),
-        list(/datum/skill/SwordOfLethargy, null),
-        list(/datum/skill/IceSaber, null),
-        list(/datum/skill/Demonhammer, null),
-        list(/datum/skill/DragonKiller, null),
-        list(/datum/skill/Gemsword, null),
-        list(/datum/skill/Demonsword, null),
-        list(/datum/skill/Zenithiansword, null),
-        list(/datum/skill/ThunderSword, null),
-        list(/datum/skill/SageSaber, null),
-        list(/datum/skill/Icebolt, null),
-        list(/datum/skill/Zap, null),
-        list(/datum/skill/Lightning, null),
-        list(/datum/skill/Lightning/DarkLightning, null),
-        list(/datum/skill/Infernos, null),
-        list(/datum/skill/Icespears, null),
-        list(/datum/skill/Flamespears, null),
-        list(/datum/skill/Blazemore, null),
-        list(/datum/skill/Blizzard, null),
-        list(/datum/skill/Boom, null),
-        list(/datum/skill/Bang, null),
-        list(/datum/skill/Infermore, null),
-        list(/datum/skill/Thordain, null),
-        list(/datum/skill/Thordain/DarkThordain, null),
-        list(/datum/skill/Firevolt, null),
-        list(/datum/skill/Firebane, null),
-        list(/datum/skill/Snowstorm, null),
-        list(/datum/skill/Blazemost, null),
-        list(/datum/skill/Explodet, null),
-        list(/datum/skill/Healmore, null),
-        list(/datum/skill/Healus, null),
-        list(/datum/skill/Healmost, null),
-        list(/datum/skill/Healusmore, null),
-        list(/datum/skill/Vivify, null),
-        list(/datum/skill/Upper, null),
-        list(/datum/skill/Increase, null),
-        list(/datum/skill/Barrier, null),
-        list(/datum/skill/Sleep, null),
-        list(/datum/skill/Sleepmore, null),
-        list(/datum/skill/Stopspell, null),
-        list(/datum/skill/Defeat, null),
-        list(/datum/skill/Rest, null),
-        list(/datum/skill/Meditate, null),
-        list(/datum/skill/Revive, null),
     )
+    var/list/skip = list(/datum/skill/Attack, /datum/skill/Defend, /datum/skill/Blaze,
+                         /datum/skill/Heal, /datum/skill/Return, /datum/skill/Classchange)
+    for(var/skillType in typesof(/datum/skill))
+        if(skillType in skip) continue
+        if(!IsLearnableSkillType(skillType)) continue
+        kit[++kit.len] = list(skillType, null)
+    return kit
+
+// Every concrete skill, as opposed to a framework (GenericPhysical, SpellBolt, Recover...)
+// -- those never set a skillName. Archsage's kit and Test_LearnSkill (DebugTools.dm).
+proc/IsLearnableSkillType(skillType)
+    var/datum/skill/S = skillType
+    return initial(S.skillName) != "Unnamed Skill"
 
 // -----------------------------
 // Per-class leveled unlocks — real tables built from ClassReference.md. Hero's table

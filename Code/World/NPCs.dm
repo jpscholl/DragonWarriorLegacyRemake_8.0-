@@ -135,12 +135,7 @@ mob/npc/merchant
         var/obj/item/I = sellable[choice]
         if(!I) return
 
-        // A worn amulet has to come off before it's sold, or its stat bonus stays
-        // applied to a player who no longer owns it — same reasoning as Drop()/Give()
-        // (Inventory.dm), which this same case had been missing.
-        if(istype(I, /obj/item/amulet))
-            var/obj/item/amulet/A = I
-            if(A.worn) A.Unequip(P)
+        I.OnLeaveOwner(P)  // a worn amulet comes off before it's sold (Inventory.dm)
 
         P.Gold += round(stock[I.type] * buybackPercent / 100)
 

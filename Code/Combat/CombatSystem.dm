@@ -56,7 +56,7 @@ mob/proc
         ShowInfo("You vanish from sight.")
 
     // Called from every reveal trigger: a step (Step(), SmoothMovement.dm), using any
-    // other ability (UseSkillSlot(), PlayerTemplate.dm), a landed hit (TakeDamage()),
+    // other ability (UseSkillSlot()/UseQuickSpell()/CastAtPlayer()), a landed hit (TakeDamage()),
     // and every direct-damage path -- poison, burn, hazard fields, hazard terrain.
     // No-op when not hidden, so callers don't need to check first.
     Unhide()
@@ -144,15 +144,14 @@ mob/proc
 #define MAGIC_DEFENSE_DIVISOR 4
 
 mob/proc
-    // defenseBonus/magicDefenseBonus are Upper+Increase/Barrier buffs (StatusEffects.dm);
-    // equipDefenseBonus/equipMagicDefenseBonus are their amulet equivalents
-    // (Inventory.dm) — added here rather than to the stats so neither trips a
-    // stat-cap check or gets baked into a mid-buff/mid-equip save.
+    // equipDefenseBonus/equipMagicDefenseBonus are amulets (Inventory.dm) — added here
+    // rather than to the stats so neither trips a stat-cap check or gets baked into a
+    // mid-equip save.
     GetDefense()
-        return round((GetEffectiveAgility() + GetEffectiveVitality()) / PHYSICAL_DEFENSE_DIVISOR) + defenseBonus + equipDefenseBonus
+        return round((GetEffectiveAgility() + GetEffectiveVitality()) / PHYSICAL_DEFENSE_DIVISOR) + equipDefenseBonus
 
     GetMagicDefense()
-        return round((GetEffectiveVitality() + GetEffectiveIntelligence()) / MAGIC_DEFENSE_DIVISOR) + magicDefenseBonus + equipMagicDefenseBonus
+        return round((GetEffectiveVitality() + GetEffectiveIntelligence()) / MAGIC_DEFENSE_DIVISOR) + equipMagicDefenseBonus
 
 // Rolled by the ATTACKER (reads src's own Spirit). Applies to both melee and spell
 // damage — nothing says crit is melee-only.
@@ -349,31 +348,27 @@ mob/proc
 
             var/attackerGoldGained = 0
 
+            // Eligible = same party (with exp sharing on), alive, within 8 levels of the
+            // killer. Fewer than two eligible is just a solo kill.
+            var/list/mob/player/eligible = list()
             if(attacker.Party && attacker.Party.shareExp)
-                // Eligible = same party, alive, within 8 levels of the killer.
-                var/list/mob/player/eligible = list()
                 for(var/mob/player/M in attacker.Party.members)
                     if(M.isDead) continue
                     if(abs(M.Level - attacker.Level) > 8) continue
                     eligible += M
 
-                if(eligible.len <= 1)
-                    attackerGoldGained = baseGold
-                    attacker.Exp += baseExp
-                    attacker.Gold += baseGold
-                    attacker.LevelCheck()
-                else
-                    var/n = eligible.len
-                    // (n-1)*0.25 + 1: solo pool = 100%, a 2-person party shares 125% of
-                    // it, 3-person 150%, etc — and each member gets that share, not a
-                    // further split. "+ 0.99" rounds the per-member share UP.
-                    var/expShare = round(baseExp * ((n - 1) * 0.25 + 1) / n + 0.99)
-                    var/goldShare = round(baseGold * ((n - 1) * 0.25 + 1) / n + 0.99)
-                    for(var/mob/player/M in eligible)
-                        M.Exp += expShare
-                        M.Gold += goldShare
-                        M.LevelCheck()
-                        if(M == attacker) attackerGoldGained = goldShare
+            if(eligible.len > 1)
+                var/n = eligible.len
+                // (n-1)*0.25 + 1: solo pool = 100%, a 2-person party shares 125% of
+                // it, 3-person 150%, etc — and each member gets that share, not a
+                // further split. "+ 0.99" rounds the per-member share UP.
+                var/expShare = round(baseExp * ((n - 1) * 0.25 + 1) / n + 0.99)
+                var/goldShare = round(baseGold * ((n - 1) * 0.25 + 1) / n + 0.99)
+                for(var/mob/player/M in eligible)
+                    M.Exp += expShare
+                    M.Gold += goldShare
+                    M.LevelCheck()
+                    if(M == attacker) attackerGoldGained = goldShare
             else
                 attackerGoldGained = baseGold
                 attacker.Exp += baseExp
@@ -432,9 +427,22 @@ mob/proc
         // fight for every later death, handing a second killer's exp to the first one.
         firstAttacker = null
         ClearStatusEffects()
-        loc = GetRespawnTurf()
+        TeleportTo(GetRespawnTurf())
         canAct = TRUE
         src.ShowInfo("You respawn.")
+
+    // Brought back where they fell, with hp HP -- Revive/Vivify (SkillCatalog.dm) and the
+    // leaf of the world tree (Inventory.dm). Unlike RespawnPlayer() there's no trip
+    // back to the respawn point and MP stays as it was.
+    ReviveInPlace(hp)
+        if(!isDead) return
+        isDead = FALSE
+        density = 1
+        icon_state = "world"
+        canAct = TRUE
+        HP = max(1, min(MaxHP, round(hp)))
+        firstAttacker = null  // same reset RespawnPlayer() does -- that fight is over
+        ShowFloatingHPBar()
 
 // Exp curve. OG-CONFIRMED SHAPE (unsorted.dm:6777, LevelCheck()):
 //
@@ -473,23 +481,32 @@ mob/proc
     // (a high-value monster at low level, or a shared party kill) used to grant exactly
     // one level and silently bin the entire remainder.
     LevelCheck()
-        while(src.Level < MAX_LEVEL && src.Exp >= src.Nexp)
-            src.Exp -= src.Nexp
-            src.Level += 1
-            src.Nexp = GetNexpForLevel(src.Level, src.exp_start)
-            // OG-confirmed (unsorted.dm:6777, LevelCheck()): round(level/2) + 5, using
-            // the level just incremented to above — NOT a flat +6 past the very first
-            // level-up (that's only true for level 1->2: round(2/2)+5 = 6).
-            src.StatPoints += round(src.Level / 2) + 5
-            src.RecalculateVitals()  // Level affects MaxHP/MaxMP too
-            src.ShowInfo("You are now Level [src.Level]")
+        while(Level < MAX_LEVEL && Exp >= Nexp)
+            Exp -= Nexp
+            GainLevel()
+
+    // Everything one level-up brings -- LevelCheck() above and GM_LevelIncrease
+    // (GMCommands.dm) share it, so a GM-granted level can't skip a step (it used to
+    // leave Nexp on the old level's curve). FALSE at MAX_LEVEL.
+    GainLevel(announce = TRUE)
+        if(Level >= MAX_LEVEL) return FALSE
+        Level += 1
+        Nexp = GetNexpForLevel(Level, exp_start)
+        // OG-confirmed (unsorted.dm:6777, LevelCheck()): round(level/2) + 5, using the
+        // level just incremented to above — NOT a flat +6 past the very first level-up
+        // (that's only true for level 1->2: round(2/2)+5 = 6).
+        StatPoints += round(Level / 2) + 5
+        RecalculateVitals()  // Level affects MaxHP/MaxMP too
+        if(announce)
+            ShowInfo("You are now Level [Level]")
             src << sound('levelup.wav', channel = 2, volume = client ? client.ScaledVolume() : 100)
 
-            // Enemies also route through this (Die()'s attacker.LevelCheck() call
-            // above), so guard skill-learning to players only.
-            if(istype(src, /mob/player))
-                var/mob/player/P = src
-                P.CheckSkillUnlocks()
+        // Enemies also route through this (Die()'s attacker.LevelCheck() call above), so
+        // guard skill-learning to players only.
+        if(istype(src, /mob/player))
+            var/mob/player/P = src
+            P.CheckSkillUnlocks()
+        return TRUE
 
 mob/proc
     // M, when passed, is the target captured at the INSTANT the swing started
@@ -521,13 +538,16 @@ mob/proc
     // Damage that skips TakeDamage()'s dodge/defense/coop checks -- poison or fire
     // already in you, the ground you're standing on. Same feedback and death handling as
     // a landed hit. killer is credited on a kill (null for terrain and effects);
-    // message, if any, goes to the victim's info panel.
-    TakeDirectDamage(dmg, mob/killer = null, message = null)
+    // text, if any, goes to the victim's info panel as "text (-N HP)" in color -- built
+    // here so N is what actually landed after Barrier's cut (damageReductionPercent,
+    // StatusEffects.dm). reducible = FALSE skips that cut (Defeat's instant kill).
+    TakeDirectDamage(dmg, mob/killer = null, text = null, color = "red", reducible = TRUE)
+        if(reducible) dmg = ApplyDamageReduction(dmg)  // DamageFormula.dm
         HP = max(0, HP - dmg)
         Unhide()  // any damage reveals a hidden mob (Hide, SkillCatalog.dm)
         flick("hit", src)
         PlaySFXAt(src, istype(src, /mob/enemy) ? 'enemyhit.wav' : 'hit.wav')
-        if(message) ShowInfo(message)
+        if(text) ShowInfo("<font color='[color]'>[text] (-[dmg] HP)</font>")
         ShowCombatNumber(src, "[dmg]", DAMAGE_NUMBER_COLOR)
         ShowFloatingHPBar()
         if(HP <= 0)
@@ -656,8 +676,8 @@ mob/proc
         if(wasDefending)
             delay += DEFEND_ATTACK_SPEED_PENALTY
 
-        // Lethargy (StatusEffects.dm) -- slows swing recovery and, through
-        // PlayCastMeter(), spell windups too.
+        // Slows (Lethargy, Chill -- slowFactor, StatusEffects.dm) stretch swing recovery
+        // and, through PlayCastMeter(), spell windups too.
         return delay * slowFactor
 
 // get_dist()/step_to() use Chebyshev distance (diagonal counts as adjacent), but this
@@ -673,8 +693,9 @@ proc/IsCardinallyAdjacent(atom/A, atom/B, range=1)
 // Whether a tile stops a spell/hazard from occupying it. A dense turf blocks on its own
 // (walls), but so do dense OBJS standing on a passable turf — closed doors and signs.
 // Doors toggle density at runtime, so this reads live state every call rather than
-// anything cached. Projectiles (Projectiles.dm), the whips and beams (SkillCatalog.dm)
-// and SpawnHazardBlob() (HazardFields.dm) all route through here so they can't drift.
+// anything cached. Projectiles (Projectiles.dm), the whips, beams and blasts
+// (SkillCatalog.dm) and hazard fields (HazardFields.dm) all route through here so they
+// can't drift.
 proc/IsTurfBlocked(turf/T)
     if(!T) return TRUE
     if(T.density) return TRUE
@@ -800,78 +821,64 @@ mob/proc/ResolveAnimState(baseName)
 // negative=left/positive=right; pixel_y is BYOND's bottom-up axis, negative=down/
 // positive=up. See Markdowns/CodeNotes.md for the full sign-convention writeup.
 proc/GetWeaponOverlayNudge(iconFilename, dir)
-    if(iconFilename != "Cere.dmi")
-        return list(0, 0)
-
-    switch(dir)
-        if(EAST)  return list(-10, -9)
-        if(WEST)  return list(10, -5)
-        if(NORTH) return list(0, 0)
-        if(SOUTH) return list(0, 0)
+    if(iconFilename == "Cere.dmi")
+        switch(dir)
+            if(EAST) return list(-10, -9)
+            if(WEST) return list(10, -5)
     return list(0, 0)
 
 mob/proc
     // duration (deciseconds) is how long the melee weapon overlay stays visible —
     // callers pass their real attack-cycle length so it lingers/resets in step with
     // how often the attacker can actually swing again.
-    PlayAttackAnimation(mob/user, datum/skill/S, mob/target = null, duration = 2)
+    PlayAttackAnimation(datum/skill/S, mob/target = null, duration = 2)
         if(S.isMelee)
             // One flip per swing (not per state lookup) so the pose and its weapon
             // overlay always agree on which hand is being used.
-            user.animAlternate = !user.animAlternate
+            animAlternate = !animAlternate
 
-            var/attackState = user.ResolveAnimState("attack")
+            var/attackState = ResolveAnimState("attack")
             if(attackState)
                 // Held manually for S.cast_time rather than relying on flick()'s own
                 // (too-short/single-frame) baked duration. Only reverts if nothing
                 // else changed icon_state meanwhile (death, a second swing already
                 // started).
-                var/priorState = user.icon_state
-                user.icon_state = attackState
+                var/priorState = icon_state
+                icon_state = attackState
                 spawn(S.cast_time)
-                    if(user.icon_state == attackState)
-                        user.icon_state = priorState
-            // view(user), not "user <<" — the latter only reaches the attacker's own
-            // client, so this silently never played for enemies at all.
-            PlaySFXAt(user, istype(user, /mob/enemy) ? 'enemyattack.wav' : 'attack.wav', base = 60)
+                    if(icon_state == attackState)
+                        icon_state = priorState
+            // A view()-wide sound, not "src <<" — the latter only reaches the
+            // attacker's own client, so this silently never played for enemies at all.
+            PlaySFXAt(src, istype(src, /mob/enemy) ? 'enemyattack.wav' : 'attack.wav', base = 60)
             // A skill with its own spells.dmi art (Club's club, a claw, an axe) shows
             // THAT instead of the portrait's generic "weapon" state -- the caller draws
             // it via PlaySkillFX(). Drawing both stacked the skill's art on top of a
             // plain sword. Only a skill with no art of its own (plain Attack) falls
             // through to the portrait weapon below.
-            if(ResolveSkillFXState(S.fx_state, user.dir, user.animAlternate))
+            if(ResolveSkillFXState(S.fx_state, dir, animAlternate))
                 return
-            var/list/weaponNudge = GetWeaponOverlayNudge(user.basePlayerIcon, user.dir)
-            if(target)
-                // Layered on the mob being hit, not the turf. Only the deliberate
-                // nudge is added here, not target.pixel_y — overlays already inherit
-                // their parent atom's own pixel_y automatically.
-                var/image/weaponOverlay = image(icon = user.icon, icon_state = user.ResolveAnimState(S.icon_state), dir = user.dir)
-                weaponOverlay.pixel_x = weaponNudge[1]
-                weaponOverlay.pixel_y = weaponNudge[2]
-                weaponOverlay.layer = target.layer + 0.1
-                target.overlays += weaponOverlay
-                spawn(duration)
-                    target.overlays -= weaponOverlay
-            else
-                // Swinging at an empty tile — layered above the ATTACKER (not
-                // targetTile, whose own layer is far below a mob's), since a big
-                // enough nudge can pull this visually back onto the attacker's tile;
-                // without this it silently renders behind the attacker's sprite.
-                var/turf/targetTile = get_step(user, user.dir)
-                if(targetTile)
-                    var/image/weaponOverlay = image(icon = user.icon, icon_state = user.ResolveAnimState(S.icon_state), dir = user.dir)
-                    weaponOverlay.pixel_x = weaponNudge[1]
-                    weaponOverlay.pixel_y = user.pixel_y + weaponNudge[2]
-                    weaponOverlay.layer = user.layer + 0.1
-                    targetTile.overlays += weaponOverlay
-                    spawn(duration)
-                        targetTile.overlays -= weaponOverlay
+
+            // Drawn on the mob being hit, or on the empty tile ahead when there isn't
+            // one. On a mob only the deliberate nudge is added, not its pixel_y --
+            // overlays inherit their parent's own pixel_y. On a tile it's layered above
+            // the ATTACKER (a turf's own layer is far below a mob's), since a big enough
+            // nudge can pull it visually back onto the attacker's tile.
+            var/atom/host = target || get_step(src, dir)
+            if(!host) return
+            var/list/weaponNudge = GetWeaponOverlayNudge(basePlayerIcon, dir)
+            var/image/weaponOverlay = image(icon = icon, icon_state = ResolveAnimState(S.icon_state), dir = dir)
+            weaponOverlay.pixel_x = weaponNudge[1]
+            weaponOverlay.pixel_y = weaponNudge[2] + (target ? 0 : pixel_y)
+            weaponOverlay.layer = (target ? target.layer : layer) + 0.1
+            host.overlays += weaponOverlay
+            spawn(duration)
+                if(host) host.overlays -= weaponOverlay
         else if(S.isSpell)
             // "cast" isn't a real state on any player icon — falls back to "attack".
-            var/castState = user.ResolveAnimState("cast") || user.ResolveAnimState("attack")
-            if(castState) flick(castState, user)
-            PlaySFXAt(user, 'spell.wav', base = 70)
+            var/castState = ResolveAnimState("cast") || ResolveAnimState("attack")
+            if(castState) flick(castState, src)
+            PlaySFXAt(src, 'spell.wav', base = 70)
             // The spell's own effect art is NOT drawn here. It used to be — as a plain
             // /icon built from the CASTER'S portrait file, which was wrong twice over: a
             // spell's art lives in spells.dmi, not on the player sprite, and a bare

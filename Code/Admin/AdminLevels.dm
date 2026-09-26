@@ -69,9 +69,11 @@ proc/ResolveAdminLevel(ckey)
         return LEVEL_GM_HOST
     if(ckey in test_gms)
         return LEVEL_GM_HOST
-    if(ckey in test_admins || ckey in persistent_admins)
+    // Parenthesized: DM's `in` binds looser than `||`, so the bare form never
+    // reached the persistent lists (GM_PromoteAdmin/GM_PromoteBuilder never took).
+    if((ckey in test_admins) || (ckey in persistent_admins))
         return LEVEL_ADMIN
-    if(ckey in test_builders || ckey in persistent_builders)
+    if((ckey in test_builders) || (ckey in persistent_builders))
         return LEVEL_BUILDER
     return LEVEL_PLAYER
 

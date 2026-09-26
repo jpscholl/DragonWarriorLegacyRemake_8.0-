@@ -311,15 +311,14 @@ client
                     if(BUILD_MODE_LINE)
                         if(buildDownTurf) PlaceBuildLine(buildDownTurf, T)
                     if(BUILD_MODE_MOVE)
-                        if(buildGrabbedAtom)
+                        // A grabbed mob (the GM's own, or any other player's) goes
+                        // through TeleportTo() (SmoothMovement.dm) so its camera
+                        // follows; anything else just moves.
+                        if(ismob(buildGrabbedAtom))
+                            var/mob/grabbedMob = buildGrabbedAtom
+                            grabbedMob.TeleportTo(T)
+                        else if(buildGrabbedAtom)
                             buildGrabbedAtom.loc = T
-                            // Same direct-.loc-bypasses-the-camera issue as beds/stairs/
-                            // Return — if what got grabbed is a mob (the GM's own, or any
-                            // other player's), its camera needs an explicit snap too.
-                            if(ismob(buildGrabbedAtom))
-                                var/mob/grabbedMob = buildGrabbedAtom
-                                if(grabbedMob.client && grabbedMob.client.camera)
-                                    grabbedMob.client.camera.SnapTo(grabbedMob)
                 RefreshAreaOverlayIfWatching()
 
         buildDownTurf = null

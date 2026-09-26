@@ -239,11 +239,17 @@ mob/proc/BanCharacter(mob/player/target, reason)
     if(!target || !target.saveManager) return
 
     target.saveManager.SetCharacterBanned(target.saveSlot || 1, TRUE)
-    target.skipSaveOnLogout = TRUE
+    DisconnectWithoutSave(target, "You have been banned by a GM. Reason: [reason]")
 
+// The shared end of GM_Ban, GM_Boot and GM_Pwipe: tells the target why, then drops their
+// connection. skipSaveOnLogout stops that disconnect's own Logout()/SaveAndLogout()
+// (Main.dm) from saving over whatever the moderation action just did to their slot.
+proc/DisconnectWithoutSave(mob/player/target, message)
+    if(!target) return
+    target.skipSaveOnLogout = TRUE
     var/client/C = target.client
     if(C)
-        target.ShowInfo("You have been banned by a GM. Reason: [reason]")
+        target.ShowInfo(message)
         del(C)
 
 // Disconnects a player WITHOUT saving (skipSaveOnLogout, same mechanism as GM_Ban) —
@@ -277,13 +283,7 @@ mob/verb/GM_Boot()
     src.ShowInfo("Booted [target.name] ([target.key]).")
 
 mob/proc/BootCharacter(mob/player/target)
-    if(!target) return
-
-    target.skipSaveOnLogout = TRUE
-    var/client/C = target.client
-    if(C)
-        target.ShowInfo("You have been booted by a GM.")
-        del(C)
+    DisconnectWithoutSave(target, "You have been booted by a GM.")
 
 // Same combined-verb shape as GM_Ban — a "Mute List" entry at the top of the picker
 // instead of a separate unmute verb. isMuted is session-only — muting doesn't touch
@@ -404,12 +404,7 @@ mob/proc/PwipeCharacter(mob/player/target)
     if(!target || !target.saveManager) return
 
     target.saveManager.DeleteCharacter(target.saveSlot || 1)
-    target.skipSaveOnLogout = TRUE
-
-    var/client/C = target.client
-    if(C)
-        target.ShowInfo("Your character has been permanently wiped by a GM.")
-        del(C)
+    DisconnectWithoutSave(target, "Your character has been permanently wiped by a GM.")
 
 // Confirmed OG spec: broader target scope than the player-only pickers above —
 // players AND mobs (NPCs/monsters). Mob half is every non-player mob in the GM's view
@@ -537,38 +532,16 @@ mob/verb/GM_PlayerStatus()
 mob/verb/GM_PromoteBuilder()
     set category = "GM"
     set desc = "Grant or revoke persistent Builder access for a connected player"
-
-    if(!RequireGMHost()) return
-    if(!RequireCanAct()) return
-
-    var/list/targets = GetModerationTargets()
-    if(!targets.len)
-        src.ShowInfo("No eligible players are connected.")
-        return
-
-    var/list/options = targets.Copy()
-    options += "Cancel"
-    var/choice = input(src, "Grant/revoke Builder for whom?", "GM_PromoteBuilder") in options
-    if(!choice || choice == "Cancel") return
-
-    var/mob/player/target = targets[choice]
-    if(!target || !target.client) return
-
-    var/targetCkey = target.client.ckey
-    if(targetCkey in persistent_builders)
-        persistent_builders -= targetCkey
-        src.ShowInfo("[target.name] is no longer a persistent Builder.")
-    else
-        persistent_builders += targetCkey
-        src.ShowInfo("[target.name] is now a persistent Builder.")
-
-    SavePersistentAdminLists()
-    target.client.ApplyAdminLevel()   // takes effect immediately, no relog needed
+    TogglePersistentRole(persistent_builders, "Builder", "GM_PromoteBuilder")
 
 mob/verb/GM_PromoteAdmin()
     set category = "GM"
     set desc = "Grant or revoke persistent Admin access for a connected player"
+    TogglePersistentRole(persistent_admins, "Admin", "GM_PromoteAdmin")
 
+// Shared by the two promote verbs above: picks a connected player and flips their ckey
+// in or out of roster (one of AdminLevels.dm's persistent lists), then saves it.
+mob/proc/TogglePersistentRole(list/roster, roleName, verbName)
     if(!RequireGMHost()) return
     if(!RequireCanAct()) return
 
@@ -579,22 +552,22 @@ mob/verb/GM_PromoteAdmin()
 
     var/list/options = targets.Copy()
     options += "Cancel"
-    var/choice = input(src, "Grant/revoke Admin for whom?", "GM_PromoteAdmin") in options
+    var/choice = input(src, "Grant/revoke [roleName] for whom?", verbName) in options
     if(!choice || choice == "Cancel") return
 
     var/mob/player/target = targets[choice]
     if(!target || !target.client) return
 
     var/targetCkey = target.client.ckey
-    if(targetCkey in persistent_admins)
-        persistent_admins -= targetCkey
-        src.ShowInfo("[target.name] is no longer a persistent Admin.")
+    if(targetCkey in roster)
+        roster -= targetCkey
+        src.ShowInfo("[target.name] is no longer a persistent [roleName].")
     else
-        persistent_admins += targetCkey
-        src.ShowInfo("[target.name] is now a persistent Admin.")
+        roster += targetCkey
+        src.ShowInfo("[target.name] is now a persistent [roleName].")
 
     SavePersistentAdminLists()
-    target.client.ApplyAdminLevel()
+    target.client.ApplyAdminLevel()   // takes effect immediately, no relog needed
 
 // Creates any of the game's functional world objects at the GM's own location — not
 // mouse-placed like GM_MakeTurf/GM_MakeMob/GM_MakeArea, since several of these need a
@@ -895,8 +868,9 @@ mob/verb/GM_ToggleLog()
     loggingEnabled = !loggingEnabled
     src.ShowInfo("Chat/login logging is now [loggingEnabled ? "ON" : "OFF"].")
 
-// Directly applies the same side effects LevelCheck() does on a real level-up
-// (StatPoints, RecalculateVitals()) rather than piling on Exp and hoping it triggers.
+// A real level-up chain, one GainLevel() (CombatSystem.dm) at a time -- stat points,
+// HP/MP, the exp curve and skill unlocks all as if earned -- rather than piling on Exp
+// and hoping it triggers. Stops at MAX_LEVEL.
 mob/verb/GM_LevelIncrease()
     set category = "GM"
     set desc = "Increases your level by a chosen amount, same as leveling up normally"
@@ -906,25 +880,13 @@ mob/verb/GM_LevelIncrease()
 
     var/amount = input(src, "How many levels to add?", "GM_LevelIncrease", 1) as num
     if(isnull(amount) || amount < 1) return
-    amount = round(amount)
 
-    // Same per-level side effects as a real level-up, repeated — RecalculateVitals()
-    // tops up HP/MP by however much Max just grew each time, so looping this is
-    // equivalent to a real level-up chain, not a single jump.
-    for(var/i = 1 to amount)
-        Level += 1
-        StatPoints += round(Level / 2) + 5   // matches LevelCheck()'s OG formula (not a flat +6 past level 1->2)
-        RecalculateVitals()
+    var/gained = 0
+    for(var/i = 1 to round(amount))
+        if(!GainLevel(announce = FALSE)) break
+        gained++
 
-    // LevelCheck() also does this on every real level-up (CombatSystem.dm) -- without
-    // it, a level-gated skill (e.g. Goofoff's Classchange at 25, SkillUnlocks.dm) stays
-    // unlearned until something else happens to call CheckSkillUnlocks() later, like
-    // spending a stat point (ClickableStats.dm).
-    if(istype(src, /mob/player))
-        var/mob/player/P = src
-        P.CheckSkillUnlocks()
-
-    src.ShowInfo("You are now Level [Level] (+[amount])")
+    src.ShowInfo("You are now Level [Level] (+[gained])")
     src << sound('levelup.wav', channel = 2, volume = client.ScaledVolume())
 
 // Toggles whether attacks/skills are allowed in a specific area instance — see

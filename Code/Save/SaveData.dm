@@ -162,8 +162,8 @@ datum/CharacterSaveData/proc/ApplyToCharacter(mob/player/P)
 // zone back to the art — which is what makes an existing character pick up a fixed color
 // on their next login instead of needing to be recreated.
 //
-// NOTE: color_families was simplified 2026-09-23 from a flat 59-swatch list to an
-// 18-family/3-shade one, and several old swatches (Cyan, Magenta, Pink, Navy, Maroon,
+// NOTE: color_families was simplified 2026-09-23 from a flat 59-swatch list to a
+// 16-family, mostly 3-shade one, and several old swatches (Cyan, Magenta, Pink, Navy, Maroon,
 // Tan, and most of the old Light/Dark values) no longer have an exact match at all. A
 // legacy color that used to match now just falls through to "was a default" and hands
 // that zone back to the art on migration — same outcome as if the player had never
@@ -211,8 +211,9 @@ datum/CharacterSaveData/proc/ApplySkillSlots(mob/player/P)
 
 // Recreates each carried item from inventorySnapshot and drops it straight into the
 // player's contents — not through PickUpItem(), since these are items the player already
-// owned: no re-stacking, no encumbrance warning on login. A worn amulet is re-equipped silently (Equip()'s silent param,
-// Inventory.dm) so login doesn't spam a "You equip ..." line per worn amulet.
+// owned: no re-stacking, no encumbrance warning on login. A worn amulet is re-equipped
+// silently (Equip()'s silent param, Inventory.dm) so login doesn't spam a "You equip ..."
+// line per worn amulet.
 datum/CharacterSaveData/proc/ApplyInventory(mob/player/P)
     if(!inventorySnapshot) return   // no snapshot (an old save from before this existed)
 

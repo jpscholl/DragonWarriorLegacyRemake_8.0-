@@ -67,6 +67,7 @@ var/global/isCurseNight = FALSE
 // channel 1 like PlayAreaMusic() (Area.dm) does, so area/Entered() below has to check
 // isCurseNight itself to avoid stomping this the moment someone walks into a new area.
 #define CURSE_NIGHT_MUSIC 'cursenight.wav'
+#define CURSE_NIGHT_BANNER "<font color='red' size='5'><b>What a horrible night to have a curse.</b></font>"
 
 mob/proc/ApplyNightTint(toNight)
     color = toNight ? NIGHT_TINT_COLOR : null
@@ -154,7 +155,7 @@ proc/SetWorldNight(toNight, message)
     // isn't coming from a GM. Takes over FROM the normal flavor `message` on the nights
     // it fires, rather than showing alongside it.
     if(isCurseNight)
-        players << output("<font color='red' size='5'><b>What a horrible night to have a curse.</b></font>", "Messages")
+        players << output(CURSE_NIGHT_BANNER, "Messages")
     else if(message)
         players << output("<center><b>[message]</b></center>", "Messages")
 
@@ -174,7 +175,7 @@ proc/TriggerCurseNight()
     for(var/mob/player/P in world)
         P.UpdateHUD()
         P.PlayAreaMusic(CURSE_NIGHT_MUSIC)
-    players << output("<font color='red' size='5'><b>What a horrible night to have a curse.</b></font>", "Messages")
+    players << output(CURSE_NIGHT_BANNER, "Messages")
 
 // Advances the clock one tick and fires sunrise/sunset transitions as they're crossed.
 proc/WorldClockLoop()
@@ -477,7 +478,7 @@ mob/proc/SaveAndLogout()
 
 // -------------------- Command Control --------------------
 mob/proc/DisableCommands()
-   src.verbs -= typesof(/mob/verb)
+    src.verbs -= typesof(/mob/verb)
 
 mob/proc/EnableCommands()
     src.verbs += typesof(/mob/verb)

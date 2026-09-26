@@ -45,7 +45,7 @@ datum/skill/GenericPhysical
         // so the speed penalty still applies to a swing thrown out of a defensive stance.
         var/atkDelay = user.GetAttackDelay(src, wasDefending)
 
-        user.PlayAttackAnimation(user, src, target)
+        user.PlayAttackAnimation(src, target)
         // The skill's spells.dmi art (SkillFX.dm), on top of the portrait's own swing
         // pose that PlayAttackAnimation() just played. Drawn on the target when there is
         // one, otherwise on the tile being swung at — same placement as the weapon
@@ -78,10 +78,18 @@ datum/skill/GenericSpell
     isSpell = TRUE
     icon_state = "weapon"
 
+    // Who a support spell (heal, buff) lands on: the target when it's on the caster's own
+    // side (players and their pets, or wild monsters -- CombatSide(), CombatSystem.dm),
+    // else the caster. The skill slots pass whoever is faced as the target, and that
+    // used to include the monster being fought -- healing and buffing it.
+    proc/AllyOrSelf(mob/user, mob/target)
+        if(target && target != user && target.CombatSide() == user.CombatSide()) return target
+        return user
+
 // -----------------------------
-// Heal Spell — a flat heal_amount on the target faced, or on the caster when facing
-// nobody. A party heal (heal_party) instead covers the caster plus every party member
-// in view. Usable anywhere, peaceful areas included. Plays through
+// Heal Spell — a flat heal_amount on the ally faced, or on the caster when facing
+// nobody (or an enemy -- AllyOrSelf()). A party heal (heal_party) instead covers the
+// caster plus every party member in view. Usable anywhere, peaceful areas included. Plays through
 // PlayHealCastSequence() (CombatSystem.dm): cast meter, then the heal art held on each
 // patient before the heal lands.
 // -----------------------------
@@ -101,8 +109,9 @@ datum/skill/HealSpell
         for(var/mob/M in GetPatients(user, target))
             if(M.HP < M.MaxHP) patients += M
         if(!patients.len)
-            if(heal_party) user.ShowInfo("Everyone is already at full HP.")
-            else user.ShowInfo("[(target || user) == user ? "You are" : "[target] is"] already at full HP.")
+            var/mob/single = heal_party ? null : AllyOrSelf(user, target)
+            if(!single) user.ShowInfo("Everyone is already at full HP.")
+            else user.ShowInfo("[single == user ? "You are" : "[single] is"] already at full HP.")
             return
 
         if(!PayToCast(user)) return
@@ -111,7 +120,7 @@ datum/skill/HealSpell
         user.PlayHealCastSequence(src, patients, wasDefending, mySession)
 
     proc/GetPatients(mob/user, mob/target)
-        if(!heal_party) return list(target || user)
+        if(!heal_party) return list(AllyOrSelf(user, target))
         var/list/L = list(user)
         var/mob/player/P = user
         if(istype(P) && P.Party)
@@ -823,7 +832,7 @@ datum/skill/Boomerang
         var/wasDefending = user.DropDefendForAction()
         var/throwDir = user.dir
 
-        user.PlayAttackAnimation(user, src)  // throwing pose + sound
+        user.PlayAttackAnimation(src)  // throwing pose + sound
         sleep(cast_time)
         if(!user || user.isDead) return
 
@@ -1283,13 +1292,10 @@ datum/skill/ThunderSword
 // =============================================================================
 // OFFENSIVE SPELLS (Int gated) — damage_multiplier scales Intelligence
 // =============================================================================
-// Every spell here got a first shape in one pass (2026-09-25); the user is now going
-// through them one at a time, and a spell marked "user" has been confirmed that way.
-// The rest are drafts: the shape follows the OG decompile where it could be read (nearly
-// every OG spell's use() spawned a /proj, and that /proj's art is used here), and is a
-// pick, marked "PICK", where it couldn't. mana_cost is the real OG SpellCost() value
-// (Markdowns/OGCombatFormulas.md §1); damage_multiplier is still ours. OG status side
-// effects are left out unless the user asked for them (Firebane and Explodet burn).
+// Every spell here has been described by the user one at a time (2026-09-25), usually
+// from memory of the OG; "user" marks those calls. A leftover guess is marked "PICK".
+// mana_cost is the real OG SpellCost() value where marked OG (Markdowns/
+// OGCombatFormulas.md §1); damage_multiplier is ours.
 
 // --- Plain bolts: fly until they hit something ---
 
@@ -1390,7 +1396,6 @@ datum/skill/Blazemore
     bolt_homes = TRUE
     damage_multiplier = 1.2
     mana_cost = 7
-
 
 // --- Rows of three: side-by-side bolts ---
 datum/skill/Icespears
@@ -1642,8 +1647,7 @@ datum/skill/Healus
     heal_party = TRUE
     mana_cost = 10
 
-// The OG's Healmost, a full heal (user, 2026-09-25 -- briefly renamed HealAll, then
-// the user confirmed the OG name).
+// The OG's Healmost, made a full heal (user, 2026-09-25).
 datum/skill/Healmost
     parent_type = /datum/skill/HealSpell
     skillName = "Healmost"
@@ -1662,7 +1666,8 @@ datum/skill/Healusmore
     mana_cost = 15
 
 // =============================================================================
-// BUFF SPELLS — apply statusEffectType (StatusEffects.dm) to self, or to the ally faced
+// BUFF SPELLS — apply statusEffectType (StatusEffects.dm) to the ally faced, else self
+// (AllyOrSelf())
 // =============================================================================
 datum/skill/BuffSpell
     parent_type = /datum/skill/GenericSpell
@@ -1678,7 +1683,7 @@ datum/skill/BuffSpell
         // Utility, not combat -- usable anywhere, peaceful areas included (like heals/Return).
         if(!PayToCast(user)) return
 
-        var/mob/buffTarget = target || user
+        var/mob/buffTarget = AllyOrSelf(user, target)
         if(!user.PlayCastMeter(src)) return  // died or interrupted
 
         user.PlaySkillFX(src, buffTarget)  // the cast burst; the buff's own standing
@@ -1692,7 +1697,7 @@ datum/skill/BuffSpell
         user.canAct = TRUE
 
 // User, from the OG, 2026-09-25: a slowish cast, then "upperon" flashes and goes, then
-// "upper" stays on the buffed player for about a minute (UPPER_DURATION,
+// "upper" stays on the buffed player for about a minute (BUFF_DURATION,
 // StatusEffects.dm).
 #define UPPER_CAST_SLOWNESS 1.5  // cast meter vs. a normal spell -- invented
 
@@ -1706,7 +1711,7 @@ datum/skill/Upper
     mana_cost = 3
 
 // A stronger Upper (user, 2026-09-25): same slow cast, same art, same minute -- it just
-// cuts physical damage further (INCREASE_DEFENSE_BONUS, StatusEffects.dm). No
+// adds more attack power (INCREASE_ATTACK_BONUS, StatusEffects.dm). No
 // "increase" art exists, so it borrows Upper's.
 datum/skill/Increase
     parent_type = /datum/skill/Upper
@@ -1715,7 +1720,7 @@ datum/skill/Increase
     mana_cost = 3
 
 // Works like Upper (user, 2026-09-25): a slowish cast, "barrieron" flashes and goes,
-// then "barrier" stays on the buffed player (BARRIER_DURATION, StatusEffects.dm).
+// then "barrier" stays on the buffed player (BUFF_DURATION, StatusEffects.dm).
 #define BARRIER_CAST_SLOWNESS 1.5  // cast meter vs. a normal spell -- invented, same as Upper
 
 datum/skill/Barrier
@@ -1794,61 +1799,58 @@ datum/skill/Defeat
             ShowCombatNumber(M, "miss", "#ffffff")
             return TRUE
         view(M) << output("[M] is struck down by [skillName]!", "Info")
-        M.TakeDirectDamage(M.HP, user)  // user gets the kill
+        M.TakeDirectDamage(M.HP, user, reducible = FALSE)  // user gets the kill; Barrier can't stop it
         return TRUE
 
 // =============================================================================
 // UTILITY SKILLS — own resource/effect shape, not a plain damage/heal spell
 // =============================================================================
 
-// Vitality-gated self-heal, no mana cost (works for Fighter/Soldier/Goof-off too).
-datum/skill/Rest
+// Rest and Meditate: sit down for cast_time, then get restore_percent of max HP (Rest)
+// or MP (Meditate) back. No MP cost, usable anywhere (peaceful areas included); rooted
+// for a normal attack delay. Dying mid-sit restores nothing.
+datum/skill/Recover
     parent_type = /datum/skill
-    skillName = "Rest"
     icon_state = "weapon"
     cast_time = 4
 
-    var/heal_percent = 30
+    var
+        restore_percent = 30
+        restores_mp = FALSE  // FALSE = HP (Rest), TRUE = MP (Meditate)
+        start_message = null
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
-        // Utility, not combat -- usable anywhere, peaceful areas included (like heals/Return).
 
         user.canAct = FALSE
-        user.ShowInfo("You sit down to rest...")
+        user.ShowInfo(start_message)
 
         spawn(cast_time)
-            var/amount = max(1, round(user.MaxHP * heal_percent / 100))
-            user.ApplyHeal(user, amount)
+            if(!user || user.isDead) return
+            if(restores_mp)
+                var/amount = max(1, round(user.MaxMP * restore_percent / 100))
+                user.MP = min(user.MaxMP, user.MP + amount)
+                user.ShowFloatingMPBar()
+                user.ShowInfo("You restore [amount] MP! (MP: [user.MP]/[user.MaxMP])")
+            else
+                user.ApplyHeal(user, max(1, round(user.MaxHP * restore_percent / 100)))
 
         spawn(user.GetAttackDelay(src, FALSE))
-            if(user.isDead) return
+            if(!user || user.isDead) return
             user.canAct = TRUE
+
+// Vitality-gated self-heal (works for Fighter/Soldier/Goof-off too).
+datum/skill/Rest
+    parent_type = /datum/skill/Recover
+    skillName = "Rest"
+    start_message = "You sit down to rest..."
 
 // Spirit-gated MP restore — the mana-side equivalent of Rest.
 datum/skill/Meditate
-    parent_type = /datum/skill
+    parent_type = /datum/skill/Recover
     skillName = "Meditate"
-    icon_state = "weapon"
-    cast_time = 4
-
-    var/restore_percent = 30
-
-    OnUse(mob/user, mob/target = null)
-        if(!user.canAct) return
-        // Utility, not combat -- usable anywhere, peaceful areas included (like heals/Return).
-
-        user.canAct = FALSE
-        user.ShowInfo("You begin to meditate...")
-
-        spawn(cast_time)
-            var/amount = max(1, round(user.MaxMP * restore_percent / 100))
-            user.MP = min(user.MaxMP, user.MP + amount)
-            user.ShowInfo("You restore [amount] MP! (MP: [user.MP]/[user.MaxMP])")
-
-        spawn(user.GetAttackDelay(src, FALSE))
-            if(user.isDead) return
-            user.canAct = TRUE
+    restores_mp = TRUE
+    start_message = "You begin to meditate..."
 
 // Teleports the caster back to the spawn point (GetPlayerSpawnTurf(), Area.dm).
 datum/skill/Return
@@ -1861,9 +1863,7 @@ datum/skill/Return
         if(!PayToCast(user)) return
         if(!user.PlayCastMeter(src)) return  // died or interrupted
 
-        user.loc = GetPlayerSpawnTurf()
-        if(user.client && user.client.camera)
-            user.client.camera.SnapTo(user)  // direct .loc change bypasses client/Move(), the only place the camera normally tracks
+        user.TeleportTo(GetPlayerSpawnTurf())
         user.ShowInfo("You return to town!")
 
         user.canAct = TRUE
@@ -1923,13 +1923,8 @@ datum/skill/Revive
 
     proc/Raise(mob/user, mob/M)
         if(istype(M, /mob/player))
-            var/mob/player/P = M
-            P.isDead = FALSE
-            P.density = 1
-            P.icon_state = "world"
-            P.canAct = TRUE
-            P.HP = max(1, round(P.MaxHP * revive_hp_percent / 100))
-            P.ShowInfo("You have been revived by [user.name]!")
+            M.ReviveInPlace(M.MaxHP * revive_hp_percent / 100)
+            M.ShowInfo("You have been revived by [user.name]!")
             return
         var/mob/enemy/E = M
         E.RevivePet(revive_hp_percent)
@@ -1956,18 +1951,7 @@ datum/skill/Classchange
         if(!istype(user, /mob/player)) return
         var/mob/player/P = user
         if(!P.canAct) return
-        if(istype(P, /mob/player/Sage))
-            P.ShowInfo("You are already a Sage.")
-            return
-
-        if(P.Level < CLASSCHANGE_MIN_LEVEL)
-            P.ShowInfo("You must be at least level [CLASSCHANGE_MIN_LEVEL] to change your class.")
-            return
-
-        for(var/obj/item/amulet/A in P.contents)
-            if(A.worn)
-                P.ShowInfo("You must unequip everything before you can change your class.")
-                return
+        if(!P.CanBecomeSage()) return
 
         var/confirm = alert(P, "Are you sure you want to change your class to Sage? (You will keep all your items and gold, but you will be set back to level 1.)", "Classchange", "Yes", "No")
         if(confirm != "Yes") return

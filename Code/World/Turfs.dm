@@ -157,9 +157,7 @@ turf
 				if(user.isSleeping)
 					return TRUE   // already sleeping here, nothing more to do
 
-				user.loc = src
-				if(user.client && user.client.camera)
-					user.client.camera.SnapTo(user)  // direct .loc change bypasses client/Move(), the only place the camera normally tracks
+				user.TeleportTo(src)
 				user.CancelDefend()  // no shield up in bed -- otherwise you'd wake still defending, in "world" pose
 				user.icon_state = "sleep"
 				user.isSleeping = TRUE
@@ -231,17 +229,8 @@ turf
 			M.LockForTransition()  // Main.dm — canAct + every bare mob/verb, for the fade's duration
 			spawn(0)
 				M.PlayScreenFade(TRUE)
-				M.loc = destination
-				if(M.client && M.client.camera)
-					M.client.camera.SnapTo(M)  // instant, not a glide — a stairs jump isn't a walk
-				var/area/newArea = destination.loc
-				// Curse night (isCurseNight, Main.dm) overrides every area's own music --
-				// without this check, stairs landing in a different area instance would
-				// switch back to that area's normal track mid-curse-night.
-				if(isCurseNight)
-					M.PlayAreaMusic(CURSE_NIGHT_MUSIC)
-				else if(istype(newArea) && newArea.areaMusic)
-					M.PlayAreaMusic(newArea.areaMusic)
+				M.TeleportTo(destination)
+				M.PlayMusicForArea(destination.loc)
 				M.PlayScreenFade(FALSE)
 				M.UnlockAfterTransition()
 
@@ -329,11 +318,7 @@ turf
 			M << sound('fall.wav', repeat = 0, channel = SFX_CHANNEL, volume = M.client ? M.client.ScaledVolume() : 100)
 			spawn(0)
 				M.PlayScreenFade(TRUE)
-				var/turf/new_loc = locate(M.x, M.y, M.z - 1)
-				if(new_loc)
-					M.loc = new_loc
-					if(M.client && M.client.camera)
-						M.client.camera.SnapTo(M)  // direct .loc change bypasses client/Move(), the only place the camera normally tracks
+				M.TeleportTo(locate(M.x, M.y, M.z - 1))
 				M.PlayScreenFade(FALSE)
 				M.UnlockAfterTransition()
 
@@ -381,17 +366,11 @@ turf
 				M.current_music = null
 				M << sound('warp.wav', repeat = 0, channel = SFX_CHANNEL, volume = M.client ? M.client.ScaledVolume() : 100)
 				sleep(WARP_SOUND_DURATION)  // the teleport waits for the sound to finish
-				M.loc = partner
+				M.TeleportTo(partner)
 				M.warpCooldown = FALSE
 				M.PlayScreenFade(FALSE)
-				var/area/newArea = partner.loc
-				// Curse night (isCurseNight, Main.dm) overrides every area's own music --
-				// current_music was just nulled above for warp.wav, so this always
-				// replays fresh regardless of which track it picks.
-				if(isCurseNight)
-					M.PlayAreaMusic(CURSE_NIGHT_MUSIC)
-				else if(istype(newArea) && newArea.areaMusic)
-					M.PlayAreaMusic(newArea.areaMusic)
+				// current_music was nulled above for warp.wav, so this always replays fresh.
+				M.PlayMusicForArea(partner.loc)
 				M.density = oldDensity
 				M.UnlockAfterTransition()
 
@@ -416,7 +395,7 @@ turf/hazard
 		if(M.equipHazardImmune) return
 
 		// Not TakeDamage() — terrain isn't something you dodge. No attacker to credit.
-		M.TakeDirectDamage(stepDamage, null, "<font color='red'>[hazardMessage] (-[stepDamage] HP)</font>")
+		M.TakeDirectDamage(stepDamage, null, hazardMessage, "red")
 
 		if(M && M.HP > 0 && poisonChance && prob(poisonChance))
 			M.ApplyStatusEffect(/datum/status_effect/poison)

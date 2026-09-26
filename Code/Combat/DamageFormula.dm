@@ -55,8 +55,10 @@ proc/RollDamageVariance(amount, percent = DAMAGE_VARIANCE_PERCENT)
     return amount + rand(-spread, spread)
 
 mob/proc
+    // attackBonus is Upper/Increase (StatusEffects.dm) -- added for damage purposes only,
+    // never written back to the stat.
     GetPhysicalPower()
-        return GetEffectiveStrength() + equipWeaponPower
+        return GetEffectiveStrength() + attackBonus + equipWeaponPower
 
     GetSpellPower()
         return GetEffectiveIntelligence() + equipSpellPower
@@ -79,6 +81,7 @@ mob/proc
 // percentage, and the result is floored, so a well-defended mob still can't take a true
 // zero and become unkillable.
 #define MIN_DAMAGE 1
+#define MAX_DAMAGE_REDUCTION_PERCENT 90  // cap on damageReductionPercent (Barrier), however it stacks
 
 mob/proc/MitigateDamage(damage, isMagic = FALSE)
     var/defense = isMagic ? GetMagicDefense() : GetDefense()
@@ -87,4 +90,12 @@ mob/proc/MitigateDamage(damage, isMagic = FALSE)
     if(isDefending)
         damage = round(damage * (100 - DEFEND_DAMAGE_REDUCTION_PERCENT) / 100)
 
+    return ApplyDamageReduction(damage)
+
+// Barrier (StatusEffects.dm): a flat percent cut to all damage taken -- every hit,
+// physical or magic (MitigateDamage() above), and damage over time (TakeDirectDamage(),
+// CombatSystem.dm).
+mob/proc/ApplyDamageReduction(damage)
+    if(damageReductionPercent > 0)
+        damage = round(damage * (100 - min(MAX_DAMAGE_REDUCTION_PERCENT, damageReductionPercent)) / 100)
     return max(MIN_DAMAGE, damage)

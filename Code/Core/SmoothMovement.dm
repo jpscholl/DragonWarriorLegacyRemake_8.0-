@@ -22,7 +22,7 @@ mob
             if(!canAct && !attackRecoveryOnly)
                 return 0
 
-            // Lethargy (Sword Of Lethargy, StatusEffects.dm) stretches every step.
+            // Slows (Lethargy, Chill -- slowFactor, StatusEffects.dm) stretch every step.
             delay *= slowFactor
 
             // Throttle stepping: only allow step if enough time has passed. The >= tick_lag/10
@@ -50,6 +50,16 @@ mob
                 Unhide()  // moving gives a hidden mob away (Hide, SkillCatalog.dm)
                 return 1
             return 0  // step failed
+
+// Puts the mob straight onto T -- no walk, no glide -- and snaps its camera there. Every
+// teleport (Return, wing of wyvern, respawn, beds, stairs, warps, sky falls) comes
+// through here: a direct loc change bypasses client/Move(), the only place the camera
+// normally follows, so without the snap it would glide across the map on the next step.
+mob/proc/TeleportTo(turf/T)
+    if(!T) return
+    loc = T
+    if(client && client.camera)
+        client.camera.SnapTo(src)
 
 // -----------------------------
 // CAMERA
@@ -205,7 +215,8 @@ client
         UseSkillKey(slotNum as num)
             set instant = 1
             set hidden = 1
-            // UseSkillSlot() only exists on /mob/player, but client.mob is statically
-            // typed as the base /mob — needs a typed local to resolve the call.
+            // UseSkillSlot() only exists on /mob/player. istype(), not a bare null check:
+            // during login and character creation client.mob is a /mob/playerTemp, and
+            // a typed local alone doesn't stop the call reaching it (runtime error).
             var/mob/player/P = mob
-            if(P) P.UseSkillSlot(slotNum)
+            if(istype(P)) P.UseSkillSlot(slotNum)

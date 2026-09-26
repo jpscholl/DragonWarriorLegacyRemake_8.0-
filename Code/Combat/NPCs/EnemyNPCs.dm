@@ -281,13 +281,13 @@ mob/enemy
 		dir = get_dir(src, M)
 		if(!canAct) return
 		canAct = FALSE
-		PlayAttackAnimation(src, attackSkill, M)
+		PlayAttackAnimation(attackSkill, M)
 		PlaySkillFX(attackSkill, M)  // SkillFX.dm — nothing for a plain Attack (no
 		                              // fx_state), real art for a monster whose
 		                              // attackSkill is a named one like Chainsickle
 		PerformMeleeHit(attackSkill, M)
-		spawn(attackCooldown * slowFactor)  // Lethargy stretches it (StatusEffects.dm)
-			canAct = TRUE
+		spawn(attackCooldown * slowFactor)  // slows (Lethargy, Chill) stretch it (StatusEffects.dm)
+			if(HP > 0) canAct = TRUE
 
 	// Pet AI — runs instead of RunWildAI() once this mob has an owner, branching on
 	// petMode. Reuses the same target/moveIntent/moveTowardAtom/TryMeleeAttack()/
@@ -389,7 +389,6 @@ mob/enemy
 					StepRelativeTo(moveTowardAtom, away = (moveIntent == ENEMY_MOVE_FLEE))
 			sleep(world.tick_lag)
 
-	// TRUE if another solid mob stands on this same tile.
 	// TRUE if another solid mob has LANDED on this same tile (one still in the air
 	// doesn't count -- see AirborneOverhead()).
 	proc/IsStacked()

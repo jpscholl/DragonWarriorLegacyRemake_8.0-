@@ -222,12 +222,7 @@ obj/storage
         var/obj/item/I = items[choice]
         if(!I) return
 
-        // A worn amulet has to come off before it's stored, or its stat bonus stays
-        // applied to a player who no longer carries it.
-        if(istype(I, /obj/item/amulet))
-            var/obj/item/amulet/A = I
-            if(A.worn) A.Unequip(user)
-
+        I.OnLeaveOwner(user)  // a worn amulet comes off first (Inventory.dm)
         I.loc = src
         user.ShowInfo("You put [I.name] in [name].")
 
@@ -246,8 +241,10 @@ obj/storage
         var/obj/item/I = items[choice]
         if(!I) return
 
-        user.PickUpItem(I)
+        // Named first -- PickUpItem() may merge I into a stack the user already has
+        // and delete it.
         user.ShowInfo("You take [I.name] from [name].")
+        user.PickUpItem(I)
 
 // Purely cosmetic decoration dropped onto a turf by area/AddedTurf() (Area.dm) --
 // never dense, never interacted with. A real obj rather than an /image specifically so

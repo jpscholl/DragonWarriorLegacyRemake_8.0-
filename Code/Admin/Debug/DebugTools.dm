@@ -15,8 +15,8 @@ mob
 			usr.ShowInfo("Glide Size: [glide_size]")
 			usr.ShowInfo("Frames per Step: [round(step_delay / (1 / world.fps))]")
 
-		// Nothing inflicts poison in-game yet (no monster attack, trap, or spell
-		// applies it) — this is the only way to trigger it for now.
+		// Only swamp terrain inflicts poison in play (turf/hazard/swamp, Turfs.dm) -- this
+		// applies it on the spot for testing.
 		Test_PoisonSelf()
 			set category = "Debug"
 			if(!usr.RequireBuilder()) return
@@ -149,8 +149,8 @@ mob
             usr.ShowInfo("<b>Art nothing claims ([unclaimed.len]):</b> [jointext(unclaimed, ", ")]")
             usr.ShowInfo("Skills (and frameworks) with no art at all: [unnamed]")
 
-        // obj/hazard_field (HazardFields.dm) is only reachable in play by casting
-        // Explodet, which needs the level and MP for it. This drops the same flame blob
+        // obj/hazard_field (HazardFields.dm) is otherwise only reachable in play by casting
+        // Explodet, Firebane or Firevolt. This drops a flame blob
         // at your feet so the field, its expiry, and the burn it applies can be tested
         // directly. Unowned, so it burns whoever stands in it — including you.
         Test_SpawnFlame()
@@ -183,7 +183,7 @@ mob
             usr.ShowInfo("Spawned [placed] training dummies. Test_ClearDummies removes them.")
 
         // Learns any skill regardless of class, level or stats, into the Free Skills
-        // list -- for testing skills no class unlocks yet (Zap). Not saved; relog clears.
+        // list -- for testing skills no class unlocks yet. Not saved; relog clears.
         Test_LearnSkill()
             set category = "Debug"
             if(!usr.RequireBuilder()) return
@@ -191,12 +191,11 @@ mob
             if(!istype(P)) return
 
             var/list/choices = list()
-            for(var/T in typesof(/datum/skill) - /datum/skill)
-                var/datum/skill/S = T
-                var/name = initial(S.skillName)
-                if(name == "Unnamed Skill") continue  // abstract bases (GenericSpell, BoltSword...)
+            for(var/T in typesof(/datum/skill))
+                if(!IsLearnableSkillType(T)) continue  // frameworks (GenericSpell, BoltSword...)
                 if(P.HasSkillType(T)) continue
-                choices[name] = T
+                var/datum/skill/S = T
+                choices[initial(S.skillName)] = T
             if(!choices.len)
                 P.ShowInfo("You already know every skill.")
                 return

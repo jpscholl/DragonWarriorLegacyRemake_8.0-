@@ -96,7 +96,7 @@ datum/skill/Defend
         // toggle made mid-swing.
         user.defendToggleSession++
 
-        user.isDefending = !user.isDefending  // actual damage reduction lives in TakeDamage()
+        user.isDefending = !user.isDefending  // actual damage reduction lives in MitigateDamage()
         if(user.isDefending)
             user.icon_state = "defend"
             user.ShowInfo("You raise your shield, bracing for incoming attacks.")

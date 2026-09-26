@@ -475,9 +475,7 @@ proc/FinalizePlayer(mob/playerTemp/M)
 
     // Start whatever music belongs to the spawn area (mob -> turf -> area)
     // right away, rather than waiting for the player's first step to trigger it.
-    var/area/spawnArea = newPlayer.loc?.loc
-    if(spawnArea && spawnArea.areaMusic)
-        newPlayer.PlayAreaMusic(spawnArea.areaMusic)
+    newPlayer.PlayMusicForArea(newPlayer.loc?.loc)
 
     players += newPlayer
 

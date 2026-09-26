@@ -101,7 +101,7 @@ obj/hazard_field
                 // run through the element matrix, like the spell that made it.
                 if(tickDamage > 0)
                     var/dmg = max(1, round(tickDamage * GetElementalMultiplier(element, M.mobElement)))
-                    M.TakeDirectDamage(dmg, owner, "<font color='[tickColor]'>[tickMessage] (-[dmg] HP)</font>")
+                    M.TakeDirectDamage(dmg, owner, tickMessage, tickColor)
 
         if(src) del src
 
@@ -126,8 +126,8 @@ obj/hazard_field/flame
     icon_state = "explodetflame"
     applyEffects = list(/datum/status_effect/burn)
 
-// Firebane's line of fire (SkillCatalog.dm). Same burn as Explodet's; OG /burn/firebane
-// drew it at layer 6.75, over the mobs standing in it.
+// Firebane's line of fire and Firevolt's burning beam (SkillCatalog.dm). Same burn as
+// Explodet's; OG /burn/firebane drew it at layer 6.75, over the mobs standing in it.
 obj/hazard_field/flame/firebane
     name = "firebane"
     icon_state = "firebane"
