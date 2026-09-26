@@ -21,12 +21,16 @@ datum/status_effect
 
 		// A spells.dmi state drawn on the holder for as long as the effect is active —
 		// the standing indicator, as opposed to the one-shot burst the casting spell
-		// draws ("upper", "barrieron", "asleep"). Leave null for an
+		// draws ("upper", "barrier", "asleep"). Leave null for an
 		// effect with no such art and nothing is drawn. Resolved through
 		// ResolveSkillFXState() (SkillFX.dm), so naming a state that doesn't exist yet
 		// is safe and starts working the moment the art is added.
 		activeFXState = null
 		image/activeFXImage = null
+
+		// Slows everything the holder does by this factor while active (Lethargy,
+		// Chill) -- see UpdateSlowFactor() below. 1 = no slow.
+		slowsBy = 1
 
 	// Override these per effect — base versions do nothing.
 	proc/OnApply()
@@ -57,6 +61,7 @@ datum/status_effect
 		active = TRUE
 		expiresAt = duration ? world.time + duration : 0
 		OnApply()
+		if(slowsBy != 1) holder.UpdateSlowFactor()
 		ShowActiveFX()
 		EffectLoop()
 
@@ -90,6 +95,7 @@ datum/status_effect
 		if(!active) return
 		active = FALSE
 		HideActiveFX()  // before holder is nulled below, or the overlay is stranded
+		if(slowsBy != 1 && holder) holder.UpdateSlowFactor()  // skips this one: inactive now
 		OnExpire()
 		if(holder)
 			holder.statusEffects -= src
@@ -192,7 +198,7 @@ datum/status_effect/poison
 // hit" — an earlier attempt wired it that way and it was wrong. The real OG mechanic is
 // that Explodet deals its impact damage and leaves a circle of flame on the ground, and
 // standing in THAT is what burns you. So the only thing that applies this is
-// obj/hazard_field/flame (HazardFields.dm), spawned by datum/skill/Explodet
+// obj/hazard_field/flame (HazardFields.dm), spawned by datum/skill/Explodet and Firebane
 // (SkillCatalog.dm), re-applying it every tick to whoever is standing in the fire.
 // -----------------------------
 #define BURN_TICK_INTERVAL 20         // deciseconds between ticks — same cadence as Poison
@@ -282,16 +288,15 @@ datum/status_effect/sleep/more
 		duration = rand(SLEEP_MORE_DURATION_MIN, SLEEP_MORE_DURATION_MAX)
 
 // -----------------------------
-// Buffs — Upper (attack), Increase (defense), Barrier (magic defense). Applied
+// Buffs — Upper and Increase (physical defense), Barrier (magic defense). Applied
 // additively to a separate bonus var rather than mutating the stat itself, so it can't
 // show in the Battle panel, trip stat-cap checks, or get saved-in permanently.
 // -----------------------------
 #define BUFF_DURATION 300              // deciseconds
-#define UPPER_ATTACK_BONUS 5           // flat added to Strength for damage purposes
+#define UPPER_DEFENSE_BONUS 5          // flat added to physical defense (user, 2026-09-25: Upper cuts physical damage)
 #define INCREASE_DEFENSE_BONUS 4       // flat added to physical defense
 #define BARRIER_MAGIC_DEFENSE_BONUS 6  // flat added to magic defense
 
-mob/var/attackBonus = 0
 mob/var/defenseBonus = 0
 mob/var/magicDefenseBonus = 0
 
@@ -301,7 +306,7 @@ mob/var/magicDefenseBonus = 0
 // OnApply()/OnExpire() exist once instead of three times.
 datum/status_effect/buff
 	parent_type = /datum/status_effect
-	var/bonusVar        // mob var name this buff adds to, e.g. "attackBonus"
+	var/bonusVar        // mob var name this buff adds to, e.g. "defenseBonus"
 	var/bonusAmount = 0
 	var/buffColor = "orange"
 	var/applyMsg
@@ -322,21 +327,22 @@ datum/status_effect/buff
 			if(!holder.isDead)
 				holder.ShowInfo("<font color='[buffColor]'>[expireMsg]</font>")
 
-// Barrier's pairing below guesses the "...on" state is the standing indicator. Upper
-// is the other way round (user, from the OG, 2026-09-25): "upperon" is the cast flash,
-// "upper" the overlay that stays -- and it lasts about a minute, not BUFF_DURATION.
-#define UPPER_DURATION 600  // deciseconds
+// Upper and Barrier (user, from the OG, 2026-09-25): the "...on" state is the cast
+// flash, the bare name the overlay that stays -- and they last about a minute, not
+// BUFF_DURATION.
+#define UPPER_DURATION 600    // deciseconds
+#define BARRIER_DURATION 600  // deciseconds
 
 datum/status_effect/buff/upper
 	New()
 		..()
 		effectName = "Upper"
 		duration = UPPER_DURATION
-		bonusVar = "attackBonus"
-		bonusAmount = UPPER_ATTACK_BONUS
+		bonusVar = "defenseBonus"
+		bonusAmount = UPPER_DEFENSE_BONUS
 		activeFXState = "upper"
-		applyMsg = "Your attack power rises!"
-		expireMsg = "Your attack power returns to normal."
+		applyMsg = "Your defense rises!"
+		expireMsg = "Your defense returns to normal."
 
 datum/status_effect/buff/increase
 	New()
@@ -354,9 +360,10 @@ datum/status_effect/buff/barrier
 	New()
 		..()
 		effectName = "Barrier"
+		duration = BARRIER_DURATION
 		bonusVar = "magicDefenseBonus"
 		bonusAmount = BARRIER_MAGIC_DEFENSE_BONUS
-		activeFXState = "barrieron"
+		activeFXState = "barrier"
 		buffColor = "cyan"
 		applyMsg = "A magical barrier surrounds you!"
 		expireMsg = "Your barrier fades."
@@ -370,7 +377,16 @@ datum/status_effect/buff/barrier
 #define LETHARGY_SLOW_FACTOR 1.6  // 1.6 = everything 60% slower -- invented
 #define LETHARGY_DURATION 80      // deciseconds -- invented
 
+// Read by every slowed path above. Kept in step by the status effects themselves
+// (slowsBy, Start()/Stop()): the strongest active slow wins -- slows don't multiply, so
+// a chilled and lethargic mob is only as slow as the worse of the two.
 mob/var/tmp/slowFactor = 1
+
+mob/proc/UpdateSlowFactor()
+	var/factor = 1
+	for(var/datum/status_effect/E in statusEffects)
+		if(E.active && E.slowsBy > factor) factor = E.slowsBy
+	slowFactor = factor
 
 datum/status_effect/lethargy
 	parent_type = /datum/status_effect
@@ -379,17 +395,41 @@ datum/status_effect/lethargy
 		..()
 		effectName = "Lethargy"
 		duration = LETHARGY_DURATION
+		slowsBy = LETHARGY_SLOW_FACTOR
 
 	OnApply()
 		if(holder)
-			holder.slowFactor = LETHARGY_SLOW_FACTOR
 			holder.ShowInfo("<font color='#9080c0'>Your body feels heavy...</font>")
 
 	OnExpire()
+		if(holder && !holder.isDead)
+			holder.ShowInfo("<font color='#9080c0'>The heaviness lifts.</font>")
+
+// -----------------------------
+// Chill — any landed ice spell hit may leave it (ICE_CHILL_PERCENT, ApplySpellDamage(),
+// CombatSystem.dm; user's design, 2026-09-25). "icespearhit" stays on the target and
+// they're slowed the same way Lethargy slows them (slowFactor), just less.
+// -----------------------------
+#define CHILL_SLOW_FACTOR 1.3  // 1.3 = everything 30% slower -- invented
+#define CHILL_DURATION 50      // deciseconds -- invented
+
+datum/status_effect/chill
+	parent_type = /datum/status_effect
+
+	New()
+		..()
+		effectName = "Chill"
+		duration = CHILL_DURATION
+		slowsBy = CHILL_SLOW_FACTOR
+		activeFXState = "icespearhit"
+
+	OnApply()
 		if(holder)
-			holder.slowFactor = 1
-			if(!holder.isDead)
-				holder.ShowInfo("<font color='#9080c0'>The heaviness lifts.</font>")
+			holder.ShowInfo("<font color='#80c0ff'>You're chilled to the bone!</font>")
+
+	OnExpire()
+		if(holder && !holder.isDead)
+			holder.ShowInfo("<font color='#80c0ff'>You thaw out.</font>")
 
 // -----------------------------
 // Blind — Sand Toss (SkillCatalog.dm; user's design, 2026-09-25). The blinded mob can

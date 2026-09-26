@@ -87,7 +87,9 @@ datum/skill/GenericSpell
 datum/skill/HealSpell
     parent_type = /datum/skill/GenericSpell
 
-    var/heal_amount = 0
+    var
+        heal_amount = 0
+        heal_full = FALSE  // TRUE = restores the patient to full HP instead (HealAll)
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
@@ -100,7 +102,7 @@ datum/skill/HealSpell
         if(!PayToCast(user)) return
         var/mySession = user.defendToggleSession
         var/wasDefending = user.DropDefendForAction()
-        user.PlayHealCastSequence(src, patient, heal_amount, wasDefending, mySession)
+        user.PlayHealCastSequence(src, patient, heal_full ? patient.MaxHP : heal_amount, wasDefending, mySession)
 
 // -----------------------------
 // AoE Spell — hits everything in a blob instead of one target, and optionally leaves a
@@ -113,12 +115,14 @@ datum/skill/AoESpell
         aoe_radius = 1   // Manhattan radius of the blast
         aoe_range = 3    // how far ahead the blast centers when nothing is being faced
         aoe_square = FALSE      // TRUE = full square (diagonals too) instead of a diamond
+        aoe_cut_corners = FALSE // with aoe_square: drop the square's 4 corner tiles (Boom's 3-5-5-5-3)
         aoe_on_caster = FALSE   // TRUE = centered on the caster (who is never hit by it)
         blast_fx_state = null   // art flashed on each blast tile; null = fx_state
+        blast_dodgeable = TRUE  // FALSE = everyone in the blast is hit, no dodge roll (Bang)
+        blast_covers_walls = FALSE  // TRUE = the whole shape is drawn, over walls too (Bang, Boom)
 
-        // Residual ground hazard left behind. null = none.
+        // Residual ground hazard left behind, over the blast's shape. null = none.
         hazardFieldType = null
-        hazard_radius = 1
         hazard_duration = 60
         // The field's power is scaled off the damage this cast actually rolled rather
         // than being a flat number, so residual fire from a high-Intelligence caster
@@ -142,13 +146,23 @@ datum/skill/AoESpell
             T = next
         return T
 
+    // The blast's tiles around center: a diamond, a square, or a square with its corners
+    // cut (aoe_radius, aoe_square, aoe_cut_corners).
+    proc/GetBlastArea(turf/center, skipWalls = TRUE)
+        var/list/area = aoe_square ? GetSquareTurfs(center, aoe_radius, skipWalls) : GetDiamondTurfs(center, aoe_radius, skipWalls)
+        if(aoe_square && aoe_cut_corners)
+            for(var/turf/T in area.Copy())
+                if(abs(T.x - center.x) == aoe_radius && abs(T.y - center.y) == aoe_radius)
+                    area -= T
+        return area
+
     // One damage roll shared by everyone caught in the blast, not a separate roll per
     // victim — an explosion should read as a single event. fxDir: which way directional
     // blast art faces -- the caster's facing unless a spell bolt passes its flight dir.
     proc/ApplyBlast(mob/user, turf/center, damage, fxDir = 0)
         if(!fxDir) fxDir = user.dir
         var/fxState = ResolveSkillFXState(blast_fx_state || fx_state, fxDir, user.animAlternate)
-        var/list/area = aoe_square ? GetSquareTurfs(center, aoe_radius) : GetDiamondTurfs(center, aoe_radius)
+        var/list/area = GetBlastArea(center, !blast_covers_walls)
 
         for(var/turf/T in area)
             if(fxState) FlashSkillFX(T, fxState, fxDir = fxDir, pixelY = user.pixel_y)
@@ -158,11 +172,13 @@ datum/skill/AoESpell
                 // excludes the caster itself.
                 if(!user.CanHarm(M)) continue
                 if(M.HP <= 0) continue
-                user.ApplySpellDamage(M, damage, element)
+                user.ApplySpellDamage(M, damage, element, canDodge = blast_dodgeable)
 
+        // The fire takes the blast's own shape, walls left out (Explodet's 3-5-5-5-3).
         if(hazardFieldType)
-            SpawnHazardBlob(center, hazardFieldType, hazard_radius, user,
-                            round(damage * hazard_power_multiplier), element, hazard_duration)
+            var/power = round(damage * hazard_power_multiplier)
+            for(var/turf/T in GetBlastArea(center))
+                PlaceHazardField(T, hazardFieldType, user, power, element, hazard_duration)
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
@@ -189,19 +205,36 @@ datum/skill/AoESpell
 //
 // Shape knobs, all per skill:
 //   bolt_lanes     1 = one bolt; 3 = a row of three, side by side (Icespears, Blazemost)
-//   bolt_pierces   flies through whoever it hits instead of stopping (Infernos, Firebane)
+//   bolt_pierces   flies through whoever it hits instead of stopping (Infernos, Infermore)
 //   bolt_range     tiles it may travel; 0 = until it hits something
 //   bolt_slowness  multiplies the flight step delay -- 2 = half speed
 //   bolt_bursts    on contact / at a wall / at range's end it explodes as this spell's
 //                  AoESpell blast (aoe_radius, aoe_square, blast_fx_state, hazard field)
 //   bolt_status    a status bolt (Sleep, Stopspell): applies this instead of damage
+//   bolt_homes     seeks the nearest mob the caster may harm (Blazemore) -- see below
+//   bolt_four_ways one bolt each way, N/E/S/W, from the tiles around the caster
+//                  (Blizzard); overrides bolt_lanes
+//   bolt_knockback_chance / _again_chance / _max
+//                  a landed hit may shove the target back along the flight (Infernos)
 //
 // A plain bolt stops on the first solid mob or wall. A landed hit on a mob the caster
 // may harm flashes impact_fx_state; an ally or a wall just stops it with no flash; a
 // dodge lets it fly on. A bursting bolt detonates on ANY mob it touches, dodge or not --
 // the blast does the damage, so dodging the bolt itself means nothing.
+//
+// A homing bolt (user's design for Blazemore, 2026-09-25) picks its target when it
+// leaves the caster's hands: the nearest mob in sight the caster may harm, hidden and
+// ghosted ones excluded. It launches toward that mob and re-aims every tile, diagonals
+// included. Anyone else in its path still takes the hit. If the target dies, hides or
+// leaves, it re-picks from where it is now. With no target left it flies straight.
+// If its target dodges, it stops homing and flies straight on.
+// Homing lanes (Blazemost) all launch toward the nearest target, then split up: the
+// middle bolt keeps that one, and each side bolt takes the nearest one nobody else has.
 // -----------------------------
 #define SPELL_BOLT_LANE_SPREAD 90  // side lanes sit at facing +/- this many degrees
+#define HOMING_ACQUIRE_RANGE 6     // tiles a homing bolt looks for a target -- the 13x13 screen's edge; invented
+#define HOMING_MAX_TILES 20        // a homing bolt gives up after this many tiles -- invented safety cap
+#define SPELL_KNOCKBACK_GLIDE 1.5  // deciseconds per tile a bolt's knockback slides the target -- invented
 
 datum/skill/SpellBolt
     parent_type = /datum/skill/AoESpell  // for the burst: ApplyBlast() and its knobs
@@ -214,6 +247,11 @@ datum/skill/SpellBolt
         bolt_bursts = FALSE
         bolt_status = null
         bolt_status_chance = 100  // % a status bolt takes hold; a fail shows "miss"
+        bolt_homes = FALSE
+        bolt_four_ways = FALSE
+        bolt_knockback_chance = 0        // % a landed hit knocks the target back a tile
+        bolt_knockback_again_chance = 0  // % each further tile, once knocked back
+        bolt_knockback_max = 1           // most tiles one hit can knock a target back
 
     OnUse(mob/user, mob/target = null)
         if(!user.canAct) return
@@ -232,19 +270,32 @@ datum/skill/SpellBolt
         // still flies at full speed once it leaves their hands.
         var/stepDelay = max(PROJECTILE_MIN_STEP_DELAY, atkDelay / user.slowFactor / PROJECTILE_SPEED_DIVISOR) * bolt_slowness
 
-        var/turf/front = get_step(user, castDir)
-        var/list/spawns = list(front)
-        if(bolt_lanes >= 3 && front)
-            spawns += get_step(front, turn(castDir, SPELL_BOLT_LANE_SPREAD))
-            spawns += get_step(front, turn(castDir, -SPELL_BOLT_LANE_SPREAD))
+        // A homing bolt launches at its target, not where the caster faces.
+        var/mob/homeOn = bolt_homes ? FindHomingTarget(user, user) : null
+        if(homeOn) castDir = HomingStepDir(user, homeOn) || castDir
 
+        var/turf/front = get_step(user, castDir)
+        var/list/spawns = list()  // spawn turf = its travel dir
+        if(bolt_four_ways)
+            for(var/d in list(castDir, turn(castDir, 90), turn(castDir, 180), turn(castDir, -90)))
+                var/turf/S = get_step(user, d)
+                if(S) spawns[S] = d
+        else if(front)
+            spawns[front] = castDir
+            if(bolt_lanes >= 3)
+                for(var/side in list(SPELL_BOLT_LANE_SPREAD, -SPELL_BOLT_LANE_SPREAD))
+                    var/turf/S = get_step(front, turn(castDir, side))
+                    if(S) spawns[S] = castDir
+
+        var/list/claimed = homeOn ? list(homeOn) : list()
         for(var/turf/T in spawns)
+            var/flyDir = spawns[T]
             var/obj/projectile/spell/P = new(T)
             P.skill = src
             P.caster = user
-            P.travelDir = castDir
+            P.travelDir = flyDir
             P.stepDelay = stepDelay
-            P.icon_state = ResolveSkillFXState(fx_state, castDir)
+            P.icon_state = ResolveSkillFXState(fx_state, flyDir)
             // Each lane rolls its own damage -- the three Icespears hit separately
             // (user, 2026-09-25). A burst still shares its one roll across its blast.
             P.damage = bolt_status ? 0 : user.ComputeSpellDamage(damage_multiplier)
@@ -252,6 +303,10 @@ datum/skill/SpellBolt
             P.pierces = bolt_pierces
             P.maxRange = bolt_range
             P.blockedByMobs = !bolt_pierces
+            if(bolt_homes)
+                P.homing = TRUE
+                P.homingTarget = (T == front) ? homeOn : PickLaneTarget(user, T, claimed)
+                if(!P.maxRange) P.maxRange = HOMING_MAX_TILES
             P.Launch()
 
         user.canAct = TRUE
@@ -276,7 +331,51 @@ datum/skill/SpellBolt
 
         var/landed = user.ApplySpellDamage(M, P.damage, element)
         if(landed) FlashSkillFX(T, impact_fx_state, IMPACT_FX_DURATION)
+        if(landed && bolt_knockback_chance && prob(bolt_knockback_chance))
+            BlowBack(M, P.travelDir)
         return landed
+
+    // A landed hit's knockback: one tile the way the bolt flies, then each further
+    // tile rolls bolt_knockback_again_chance, up to bolt_knockback_max tiles. A wall, a
+    // solid object or another mob in the way ends it (KnockBack()).
+    proc/BlowBack(mob/M, pushDir)
+        set waitfor = 0
+        for(var/i = 1 to bolt_knockback_max)
+            if(!M || M.HP <= 0 || M.isDead) return
+            if(i > 1 && !prob(bolt_knockback_again_chance)) return
+            if(!M.KnockBack(pushDir, SPELL_KNOCKBACK_GLIDE)) return
+            sleep(SPELL_KNOCKBACK_GLIDE)
+
+    // Whether a homing bolt may chase M: alive, visible, and someone the caster may harm.
+    proc/IsHomeable(mob/user, mob/M)
+        if(!user || !M || !M.loc || M == user) return FALSE
+        if(M.HP <= 0 || M.isDead || !M.IsTargetable()) return FALSE
+        return user.CanHarm(M)
+
+    // The nearest homeable mob in sight of `origin` (the caster at launch, the bolt
+    // mid-flight). Ties go to the straighter line.
+    proc/FindHomingTarget(mob/user, atom/origin, list/exclude = null)
+        var/mob/best = null
+        var/bestDist = 0
+        var/bestLine = 0
+        for(var/mob/M in view(HOMING_ACQUIRE_RANGE, origin))
+            if(exclude && (M in exclude)) continue
+            if(!IsHomeable(user, M)) continue
+            var/dist = get_dist(origin, M)
+            var/line = (M.x - origin.x) ** 2 + (M.y - origin.y) ** 2
+            if(best && (dist > bestDist || (dist == bestDist && line >= bestLine))) continue
+            best = M
+            bestDist = dist
+            bestLine = line
+        return best
+
+    // A side lane's homing target: the nearest mob from its own tile that no other lane
+    // of this cast has claimed, so a volley spreads over a group. With fewer targets than
+    // lanes, it doubles up on the nearest anyway.
+    proc/PickLaneTarget(mob/user, turf/T, list/claimed)
+        var/mob/M = FindHomingTarget(user, T, claimed) || FindHomingTarget(user, T)
+        if(M) claimed |= M
+        return M
 
     // Extra effect when a status bolt takes hold (Stopspell's MP drain). Base: none.
     proc/OnStatusLanded(mob/user, mob/M)
@@ -288,11 +387,29 @@ datum/skill/SpellBolt
         ApplyBlast(P.caster, T, P.damage, P.travelDir)
 
 obj/projectile/spell
-    var/datum/skill/SpellBolt/skill
+    var
+        datum/skill/SpellBolt/skill
+        homing = FALSE
+        mob/homingTarget
 
     Impact(turf/T, mob/target = null)
         if(!target || !skill) return FALSE
-        return skill.BoltHit(src, T, target)
+        var/landed = skill.BoltHit(src, T, target)
+        if(!landed && target == homingTarget) homing = FALSE  // dodged -- fly on past
+        return landed
+
+    Steer()
+        if(!homing || !skill) return
+        if(!skill.IsHomeable(caster, homingTarget))
+            homingTarget = skill.FindHomingTarget(caster, src)
+            if(!homingTarget)
+                homing = FALSE  // nobody left -- straight on from here
+                return
+        var/newDir = HomingStepDir(src, homingTarget)
+        if(!newDir || newDir == travelDir) return
+        travelDir = newDir
+        dir = newDir
+        icon_state = ResolveSkillFXState(skill.fx_state, newDir)
 
     Finish(turf/T)
         if(skill) skill.BoltFinish(src, T)
@@ -315,6 +432,11 @@ datum/skill/BeamSpell
     var
         beam_origin_state = null  // first tile's art; null = same as the rest
         beam_range = 6            // tiles beyond the first
+        beam_hold = BEAM_HOLD     // deciseconds held at full length before it fades
+        // A hazard field (HazardFields.dm) laid on each beam tile instead of plain art --
+        // the beam stays for beam_hold as damage over time (Firevolt's burning line).
+        beam_hazard_type = null
+        beam_hazard_power_multiplier = 0.5  // field power vs. the beam's damage roll
 
     GetArtStates()
         return ..() + beam_origin_state
@@ -348,7 +470,14 @@ datum/skill/BeamSpell
             T = get_step(T, castDir)
             if(!T || IsTurfBlocked(T)) break
 
-            segments[T] = AddTurfFX(T, (i == 0) ? originState : bodyState, castDir, pixelY)
+            // A burning beam lays its fire field as it grows, and the field IS the beam's
+            // art (Firevolt). Laid a step apart, the fields also burn out a step apart --
+            // so it still vanishes from the caster's end first.
+            if(beam_hazard_type)
+                PlaceHazardField(T, beam_hazard_type, user, round(damage * beam_hazard_power_multiplier),
+                                 element, beam_hold, castDir)
+            else
+                segments[T] = AddTurfFX(T, (i == 0) ? originState : bodyState, castDir, pixelY)
 
             if(user)
                 for(var/mob/M in T)
@@ -360,7 +489,7 @@ datum/skill/BeamSpell
 
             if(i < beam_range) sleep(BEAM_STEP_DELAY)
 
-        ClearTurfFX(segments, BEAM_HOLD, BEAM_STEP_DELAY)  // caster's end first
+        ClearTurfFX(segments, beam_hold, BEAM_STEP_DELAY)  // caster's end first
 
 // =============================================================================
 // PHYSICAL SKILLS (Str/Agi gated) — damage_multiplier scales Strength
@@ -680,6 +809,7 @@ datum/skill/Boomerang
         if(!user || user.isDead) return
 
         var/obj/projectile/boomerang/B = new(user.loc)
+        B.icon_state = fx_state
         B.caster = user
         B.skill = src
         B.travelDir = throwDir
@@ -744,6 +874,15 @@ obj/projectile/boomerang
             if(!caster || !caster.CanHarm(M)) return TRUE
             if(caster.ResolvePhysicalHit(M, skill ? skill.damage_multiplier : 1)) return TRUE
         return FALSE
+
+// A stronger Boomerang, flight and all (user, 2026-09-25: "for now"). Not in the OG
+// decompile at all; spells.dmi does have "masterang" art. No class unlocks it yet --
+// Test_LearnSkill and Archsage have it. It's its own skill, so a Boomerang and a
+// Masterang can both be in the air at once.
+datum/skill/Boomerang/Masterang
+    skillName = "Masterang"
+    fx_state = "masterang"
+    damage_multiplier = 1.8  // invented -- Boomerang's is 1.3
 
 // Club's 4-way spin, just harder (user, from the OG, 2026-09-25).
 datum/skill/Morningstar
@@ -1089,6 +1228,31 @@ datum/skill/DragonKiller
     fx_state = "dragonkiller"
     damage_multiplier = 2.3
 
+// Plain melee swings, their own art in place of the generic weapon (user, 2026-09-25).
+// Damage is a placeholder and special effects are undecided; none is in any class's
+// unlock table yet (Test_LearnSkill and Archsage have them).
+//
+// Zenithiansword is OG: /skill/zenithiansword drew "zenithian", but no class could learn
+// it (GM-only or cut). Gemsword and Demonsword aren't in the OG decompile; "gemsword"
+// art exists, "demonsword" has none yet (a swing draws nothing until it's added).
+datum/skill/Gemsword
+    parent_type = /datum/skill/GenericPhysical
+    skillName = "Gemsword"
+    fx_state = "gemsword"
+    damage_multiplier = 1.6    // placeholder
+
+datum/skill/Demonsword
+    parent_type = /datum/skill/GenericPhysical
+    skillName = "Demonsword"
+    fx_state = "demonsword"    // no art yet
+    damage_multiplier = 2.0    // placeholder
+
+datum/skill/Zenithiansword
+    parent_type = /datum/skill/GenericPhysical
+    skillName = "Zenithiansword"
+    fx_state = "zenithian"     // OG
+    damage_multiplier = 2.5    // placeholder
+
 datum/skill/ThunderSword
     parent_type = /datum/skill/BoltSword
     skillName = "ThunderSword"
@@ -1105,8 +1269,8 @@ datum/skill/ThunderSword
 // The rest are drafts: the shape follows the OG decompile where it could be read (nearly
 // every OG spell's use() spawned a /proj, and that /proj's art is used here), and is a
 // pick, marked "PICK", where it couldn't. mana_cost is the real OG SpellCost() value
-// (Markdowns/OGCombatFormulas.md §1); damage_multiplier is still ours. OG status/burn
-// side effects (Firebane's burn trail) are left out for now.
+// (Markdowns/OGCombatFormulas.md §1); damage_multiplier is still ours. OG status side
+// effects are left out unless the user asked for them (Firebane and Explodet burn).
 
 // --- Plain bolts: fly until they hit something ---
 
@@ -1189,23 +1353,25 @@ datum/skill/Lightning
             if(!nextSources.len) return
             sources = nextSources
 
+// Lightning with the "dark" art (user, 2026-09-25) -- same bolt, chain, damage and
+// cost. Art only in the OG: no dark spell survives in the decompile. No unlock yet.
+datum/skill/Lightning/DarkLightning
+    skillName = "DarkLightning"
+    fx_state = "darklightning"
+    impact_fx_state = "darklightninghit"
+
+// Blaze that homes (user, 2026-09-25): locks onto the nearest enemy in sight and
+// steers after it -- see the homing notes at SpellBolt.
 datum/skill/Blazemore
     parent_type = /datum/skill/SpellBolt
     skillName = "Blazemore"
     element = "fire"
     fx_state = "blazemore"           // OG: /proj/blazemore
     impact_fx_state = "blazemorehit"
+    bolt_homes = TRUE
     damage_multiplier = 1.2
     mana_cost = 7
 
-datum/skill/Firevolt
-    parent_type = /datum/skill/SpellBolt
-    skillName = "Firevolt"
-    element = "fire"
-    fx_state = "flamespear"          // PICK -- OG /proj/flamespear art, fits a "volt"
-    impact_fx_state = "flamespearhit"
-    damage_multiplier = 1.6
-    mana_cost = 10
 
 // --- Rows of three: side-by-side bolts ---
 datum/skill/Icespears
@@ -1230,28 +1396,51 @@ datum/skill/Flamespears
     damage_multiplier = 1.4          // invented -- a tier above Icespears' 1.1
     mana_cost = 16                   // OG
 
-// OG use() turns the caster's dir by 90 -- read here as a row of three.
+// Three fireballs abreast like Icespears, each homing like Blazemore (user, 2026-09-25).
+// OG use() fired three /proj/blaze, from the caster's left, front and right.
 datum/skill/Blazemost
     parent_type = /datum/skill/SpellBolt
     skillName = "Blazemost"
     element = "fire"
-    fx_state = "blazemore"           // no "blazemost" art -- Blazemore's, three abreast
-    impact_fx_state = "blazemorehit"
+    fx_state = "blaze"               // OG /proj/blaze -- Fireball's art
+    impact_fx_state = "blazehit"
     bolt_lanes = 3
+    bolt_homes = TRUE
     damage_multiplier = 1.9
     mana_cost = 10
 
+// --- Four ways: one bolt each direction ---
+// Cast, then a blizzard flies out N, E, S and W at once (user, 2026-09-25; OG use()
+// spawns /proj/blizzard in the caster's dir, then turns 90 until it's back). Each is a
+// plain bolt: it flies until a mob or wall stops it, rolling its own damage.
+datum/skill/Blizzard
+    parent_type = /datum/skill/SpellBolt
+    skillName = "Blizzard"
+    element = "ice"
+    fx_state = "blizzard"            // OG: /proj/blizzard
+    impact_fx_state = "icespearhit"
+    bolt_four_ways = TRUE
+    damage_multiplier = 1.3          // OG Int*3+6, ~1.5x Blaze's Int*2+4
+    mana_cost = 10
+
 // --- Piercing: fly through everyone in the line ---
-// OG /proj/infernos and /proj/infermore have their own slower Step() -- a rolling fire.
+// OG /proj/infernos and /proj/infermore have their own slower Step().
+// Wind spells (user, 2026-09-25; the OG's element list also calls Infernos "Air"): a
+// landed hit may blow the target back along the flight. Infernos rarely, one tile;
+// Infermore more often, and it can keep blowing them further, a roll per tile.
+// "air" has no row in the element matrix (GetElementalMultiplier(), CombatSystem.dm),
+// so it hits every monster type for neutral damage.
 datum/skill/Infernos
     parent_type = /datum/skill/SpellBolt
     skillName = "Infernos"
-    element = "fire"
-    fx_state = "infernos"            // 4-frame flame, no directions
+    element = "air"
+    fx_state = "infernos"            // 4-frame gust, no directions
     impact_fx_state = "blazehit"     // PICK -- no infernos hit art
     bolt_pierces = TRUE
     bolt_range = 4
     bolt_slowness = 2
+    bolt_knockback_chance = 20       // invented
+    bolt_knockback_max = 1
     damage_multiplier = 1.0
     mana_cost = 5
 
@@ -1261,35 +1450,45 @@ datum/skill/Infermore
     fx_state = "infermore"
     impact_fx_state = "blazemorehit"
     bolt_lanes = 3                   // PICK -- the bigger tier rolls three wide
+    bolt_knockback_chance = 45       // invented
+    bolt_knockback_again_chance = 50 // invented -- so 2 tiles ~1 in 2, 3 tiles ~1 in 4
+    bolt_knockback_max = 3           // invented
     damage_multiplier = 1.5
     mana_cost = 8
 
-datum/skill/Blizzard
-    parent_type = /datum/skill/SpellBolt
-    skillName = "Blizzard"
-    element = "ice"
-    fx_state = "blizzard"            // OG: /proj/blizzard
-    impact_fx_state = "icespearhit"
-    bolt_pierces = TRUE              // PICK -- a three-wide gust through everything
-    bolt_lanes = 3
-    bolt_range = 4
-    damage_multiplier = 1.3
-    mana_cost = 10
+// A Blaze bolt that leaves a line of fire where it stops (user, 2026-09-25; OG
+// /proj/firebane Collide() lays /burn/firebane turned 90 from the flight). It flies until
+// a mob or wall stops it, like Blaze, and a landed hit does its damage there. Then
+// "firebane" burns on 5 tiles across the flight -- the stopping tile plus 2 each side
+// (flying north/south it spreads east-west, flying east/west it spreads north-south).
+// Walls cut the line short. Standing in it burns (HazardFields.dm), as Explodet's does.
+// A dodge lets the bolt fly on, so the fire lands wherever it finally stops.
+#define FIREBANE_SPREAD 2  // tiles of fire each side of the stopping tile
 
 datum/skill/Firebane
     parent_type = /datum/skill/SpellBolt
     skillName = "Firebane"
     element = "fire"
-    fx_state = "firebane"            // 2-frame, 4 dirs
-    impact_fx_state = "blazemorehit"
-    bolt_pierces = TRUE              // OG also left a burn trail -- left out for now
-    bolt_range = 7
+    fx_state = "blaze"               // user: flies as Blaze (the OG proj drew "blazemore")
+    impact_fx_state = "blazehit"
     damage_multiplier = 1.7
     mana_cost = 7
+    hazardFieldType = /obj/hazard_field/flame/firebane
+    hazard_duration = 100            // user: ~10 seconds on the ground
+
+    BoltFinish(obj/projectile/spell/P, turf/T)
+        if(!T || !P.caster) return
+        var/across = turn(P.travelDir, 90)
+        SpawnHazardLine(T, across, FIREBANE_SPREAD, hazardFieldType, P.caster,
+                        round(P.damage * hazard_power_multiplier), element, hazard_duration, across)
 
 // --- Bursts: the bolt explodes where it stops ---
-// OG /proj/bang flies with Blaze's art and its Collide() hits the 4 sides; /proj/boom
-// flies with Blazemore's and also turns 45 -- the corners too.
+// Bang (user, 2026-09-25): a Blaze bolt that erupts on contact into a 3x3 of "bang" --
+// one tile of art drawn on each of the 9 tiles -- and instant damage to every enemy in
+// it. No fire is left behind. Touching a mob centres the 3x3 on that mob (dodging
+// the bolt doesn't save them -- the blast is what hits); a wall centres it on the tile
+// in front of the wall. The OG decompile read Bang as the 4 sides only; the user's
+// version is the full square.
 datum/skill/Bang
     parent_type = /datum/skill/SpellBolt
     skillName = "Bang"
@@ -1297,20 +1496,27 @@ datum/skill/Bang
     fx_state = "blaze"
     blast_fx_state = "bang"
     bolt_bursts = TRUE
-    aoe_radius = 1                   // the plus: centre + 4 sides
+    aoe_radius = 1
+    aoe_square = TRUE                // the full 3x3
+    blast_dodgeable = FALSE          // user: every enemy in it takes the damage
+    blast_covers_walls = TRUE        // user: the full shape shows even against a wall
     damage_multiplier = 1.5
     mana_cost = 6
 
+// Bang, but a bigger blast (user, 2026-09-25): rows of 3-5-5-5-3 -- a 5x5 with its
+// corners cut off -- still "bang" on every tile. (The OG /proj/boom flew with
+// Blazemore's art; the user's Boom is Bang's bolt.)
 datum/skill/Boom
     parent_type = /datum/skill/Bang
     skillName = "Boom"
-    fx_state = "blazemore"
-    aoe_square = TRUE                // the full 3x3
+    aoe_radius = 2
+    aoe_cut_corners = TRUE
     mana_cost = 12
 
-// Boom's 3x3 plus the ring of flame it leaves on the ground (HazardFields.dm) -- burn
-// comes from standing in the flames, not from the blast. Open question to the user
-// whether the flames stay while status effects are off the table.
+// Upgraded Boom (user, 2026-09-25): flies as "explodet", blasts exactly like Boom (3-5-5-5-3
+// of "bang", no dodge), then leaves "explodetflame" burning over that same shape for 10
+// seconds. Standing in the fire burns (damage over time, HazardFields.dm); the blast
+// itself is the only up-front hit.
 datum/skill/Explodet
     parent_type = /datum/skill/Boom
     skillName = "Explodet"
@@ -1318,8 +1524,7 @@ datum/skill/Explodet
     damage_multiplier = 2.2
     mana_cost = 16
     hazardFieldType = /obj/hazard_field/flame
-    hazard_radius = 1
-    hazard_duration = 80  // deciseconds the fire stays on the ground
+    hazard_duration = 100            // user: 10 seconds
 
 // --- Beam ---
 // User, from the OG, 2026-09-25: "thordain" on the first tile, then 6 more tiles of
@@ -1335,16 +1540,54 @@ datum/skill/Thordain
     damage_multiplier = 1.6
     mana_cost = 7
 
+// Thordain with the "dark" art (user, 2026-09-25) -- same beam, damage and cost.
+// Art only in the OG: no dark spell survives in the decompile. No unlock yet.
+datum/skill/Thordain/DarkThordain
+    skillName = "DarkThordain"
+    fx_state = "darkthordain"         // -> "darkthordainns"/"darkthordainew"
+    impact_fx_state = "darklightninghit"
+    beam_origin_state = "darkthordain"
+
+// Fires like Thordain (user, 2026-09-25): a 7-tile line grows out from the caster,
+// hitting every enemy it reaches -- but in "firebane" art, and it stays about 7 seconds
+// as burning ground. Standing in it burns (damage over time), the same fire Firebane
+// leaves (HazardFields.dm). Walls cut it short.
+datum/skill/Firevolt
+    parent_type = /datum/skill/BeamSpell
+    skillName = "Firevolt"
+    element = "fire"
+    fx_state = "firebane"
+    impact_fx_state = "blazehit"
+    beam_range = 6                   // 7 tiles in all
+    beam_hold = 70                   // user: ~7 seconds
+    beam_hazard_type = /obj/hazard_field/flame/firebane
+    damage_multiplier = 1.6
+    mana_cost = 10
+
 // --- Around the caster ---
+// A storm in Boom's 3-5-5-5-3 shape, centred on the tile the caster stood on when it
+// went off (user, 2026-09-25). "snowstorm" plays on every tile for SNOWSTORM_DURATION,
+// and the whole time it deals damage over time to every enemy standing in it -- no
+// up-front hit. It stays where it was cast; the caster can walk out. Walls are left out.
+#define SNOWSTORM_DURATION 100    // deciseconds -- user: 10 seconds
+#define SNOWSTORM_TICK_SHARE 0.2  // each tick's damage vs. the cast's damage roll -- invented
+
 datum/skill/Snowstorm
     parent_type = /datum/skill/AoESpell
     skillName = "Snowstorm"
     element = "ice"
     fx_state = "snowstorm"           // 4-frame, no directions
-    aoe_on_caster = TRUE             // PICK -- a storm all around you
+    aoe_on_caster = TRUE
     aoe_radius = 2
+    aoe_square = TRUE
+    aoe_cut_corners = TRUE           // Boom's shape
     damage_multiplier = 1.8
     mana_cost = 16
+
+    ApplyBlast(mob/user, turf/center, damage, fxDir = 0)
+        var/tickDamage = max(1, round(damage * SNOWSTORM_TICK_SHARE))
+        for(var/turf/T in GetBlastArea(center))
+            PlaceHazardField(T, /obj/hazard_field/snowstorm, user, tickDamage, element, SNOWSTORM_DURATION)
 
 // =============================================================================
 // HEALING SPELLS (Int gated) — heal_amount is flat, not stat-scaled (HealSpell, top)
@@ -1374,11 +1617,13 @@ datum/skill/Healus
     heal_amount = 40
     mana_cost = 10
 
+// The OG's Healmost, renamed HealAll and made a full heal (user, 2026-09-25). The type
+// path stays /Healmost so saved characters who know it keep it.
 datum/skill/Healmost
     parent_type = /datum/skill/HealSpell
-    skillName = "Healmost"
+    skillName = "HealAll"
     fx_state = "healmost"
-    heal_amount = 55
+    heal_full = TRUE
     mana_cost = 12
 
 // No dedicated "healusmore" art — reuses Healmost's.
@@ -1440,10 +1685,16 @@ datum/skill/Increase
     statusEffectType = /datum/status_effect/buff/increase
     mana_cost = 3
 
+// Works like Upper (user, 2026-09-25): a slowish cast, "barrieron" flashes and goes,
+// then "barrier" stays on the buffed player (BARRIER_DURATION, StatusEffects.dm).
+#define BARRIER_CAST_SLOWNESS 1.5  // cast meter vs. a normal spell -- invented, same as Upper
+
 datum/skill/Barrier
     parent_type = /datum/skill/BuffSpell
     skillName = "Barrier"
-    fx_state = "barrier"
+    fx_state = "barrieron"
+    burst_before_buff = TRUE
+    cast_meter_slowness = BARRIER_CAST_SLOWNESS
     statusEffectType = /datum/status_effect/buff/barrier
     mana_cost = 4
 
@@ -1492,6 +1743,30 @@ datum/skill/Stopspell
 
     OnStatusLanded(mob/user, mob/M)
         M.DrainMP(user.ComputeSpellDamage(damage_multiplier), user)
+
+// Flies like Stopspell, but a small chance to kill the target outright (user,
+// 2026-09-25; OG /proj/defeat's Collide() dealt a flat 9999). Bosses (mob.isBoss) always
+// resist. A fail shows "miss" and does nothing else. Like the other status bolts it
+// can't be dodged -- the roll is the whole defense. Not in any class's unlock table
+// yet (OG MP 20).
+#define DEFEAT_CHANCE 10  // % Defeat kills -- invented
+
+datum/skill/Defeat
+    parent_type = /datum/skill/SpellBolt
+    skillName = "Defeat"
+    fx_state = "defeat"              // OG: /proj/defeat
+    mana_cost = 20                   // OG
+
+    BoltHit(obj/projectile/spell/P, turf/T, mob/M)
+        var/mob/user = P.caster
+        if(!user) return TRUE
+        if(M.isBoss || !prob(DEFEAT_CHANCE))
+            view(M) << output("[M] resists [skillName]!", "Info")
+            ShowCombatNumber(M, "miss", "#ffffff")
+            return TRUE
+        view(M) << output("[M] is struck down by [skillName]!", "Info")
+        M.TakeDirectDamage(M.HP, user)  // user gets the kill
+        return TRUE
 
 // =============================================================================
 // UTILITY SKILLS — own resource/effect shape, not a plain damage/heal spell

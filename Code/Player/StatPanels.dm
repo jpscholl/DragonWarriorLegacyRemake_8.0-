@@ -115,7 +115,7 @@ mob/player
         // Header panel for carried items
         statpanel("Inventory")
 
-        stat("Capacity: [GetInventoryCount()]/[GetInventoryCapacity()]")
+        stat("Capacity: [GetInventoryCount()]/[GetInventoryCapacity()][IsEncumbered() ? " (Encumbered)" : ""]")
         // The OG's Inventory tab carried a "Quick Item:" line too — numpad * cycles it,
         // numpad - uses it (Code/Player/Commands/PlayerVerbs.dm).
         stat("Quick Item: [quickItem ? quickItem.name : "None"]")

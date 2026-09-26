@@ -108,13 +108,9 @@ mob/npc/merchant
             P.ShowInfo("You don't have enough money to buy [initial(pickedType:name)]!")
             return
 
-        // Create the item first and hand it over through PickUpItem() so the
-        // inventory cap is enforced — charging for an item that can't be carried
-        // would be a silent theft.
-        var/obj/item/I = new pickedType
-        if(!P.PickUpItem(I))
-            del I
-            return
+        // Through PickUpItem(), so it stacks and warns about encumbrance -- buying past
+        // capacity is allowed, like any pickup (Inventory.dm).
+        P.PickUpItem(new pickedType)
 
         P.Gold -= price
         P.ShowInfo("Thank you for shopping. Please come again soon!")

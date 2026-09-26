@@ -62,10 +62,7 @@ obj/item
             M.ShowInfo("You can't give an item to yourself.")
             return
 
-        if(!target.PickUpItem(src))
-            M.ShowInfo("[target.name]'s inventory is full.")
-            return
-
+        target.PickUpItem(src)
         M.ShowInfo("You give [src.name] to [target.name].")
         target.ShowInfo("[M.name] gives you [src.name].")
 
@@ -513,8 +510,23 @@ mob/proc/GetInventoryCount()
         count++
     return count
 
+// Capacity isn't a wall (OG, recalled by the user 2026-09-25; OGGameStructure.md's
+// "Encumbrance"): you can carry past it, but then you're encumbered and can't use any
+// skill -- attacks included -- until you drop down to it again. The OG counted weight;
+// DWLR keeps its item count, so the line is simply count > capacity.
+mob/proc/IsEncumbered()
+    return GetInventoryCount() > GetInventoryCapacity()
+
+// For every skill entry point (UseSkillSlot(), UseQuickSpell(), the cast-on-player
+// menu). TRUE = blocked, with the OG's own message.
+mob/proc/BlockedByEncumbrance()
+    if(!IsEncumbered()) return FALSE
+    ShowInfo("You are carrying too much to use skills. Drop some items from your inventory.")
+    return TRUE
+
 // Stackable items (maxStack > 1) merge into an existing same-type stack first — that's
-// not a new slot, so it can succeed even at capacity.
+// not a new slot. Anything left always goes in: past capacity you're just encumbered
+// (IsEncumbered() above), warned as it happens.
 mob/proc/PickUpItem(obj/item/I)
     if(I.maxStack > 1)
         for(var/obj/item/existing in contents)
@@ -531,14 +543,12 @@ mob/proc/PickUpItem(obj/item/I)
                 del I
                 return TRUE
             // Still some left over — keep looking for another same-type stack with
-            // room, then fall through to the capacity check below for what's left.
-
-    if(GetInventoryCount() >= GetInventoryCapacity())
-        src.ShowInfo("Your inventory is full.")
-        return FALSE
+            // room, then fall through and take the rest as a new slot.
 
     I.loc = src
     I.UpdateStackName()
+    if(IsEncumbered())
+        src.ShowInfo("<font color='orange'>You're carrying too much -- you're encumbered and can't use skills until you drop something.</font>")
     return TRUE
 
 // TRUE if this mob is carrying a key whose keyName matches lockName.

@@ -83,11 +83,27 @@ mob/var/sleepSession = 0
 // otherwise find its own partner (the tile you just left) and bounce you straight back.
 mob/var/warpCooldown = FALSE
 
+// The Sleep spell's "asleep" art (spells.dmi) floats over whoever's sleeping in a bed
+// (user, 2026-09-25). Same kind of held /image the Sleep status effect draws
+// (StatusEffects.dm), so it sits just above the sleeper's own sprite.
+mob/var/tmp/image/bedSleepFX = null
+
+mob/proc/ShowBedSleepFX()
+	if(bedSleepFX) return
+	var/state = ResolveSkillFXState("asleep")
+	if(!state) return
+	bedSleepFX = image(SKILL_FX_FILE, src, state)
+	bedSleepFX.layer = layer + 0.05
+	overlays += bedSleepFX
+
 mob/proc/WakeUp()
 	if(isSleeping)
 		isSleeping = FALSE
 		sleepSession++  // invalidates any in-flight SleepRestoreLoop()
 		icon_state = "world"
+		if(bedSleepFX)
+			overlays -= bedSleepFX
+			bedSleepFX = null
 
 // Started by bedhead's OnInteract() when a mob lies down. Self-terminates on wake.
 // Takes its rate as arguments so the planned Rest skill can reuse it directly for
@@ -147,6 +163,7 @@ turf
 				user.CancelDefend()  // no shield up in bed -- otherwise you'd wake still defending, in "world" pose
 				user.icon_state = "sleep"
 				user.isSleeping = TRUE
+				user.ShowBedSleepFX()
 				user.SleepRestoreLoop()
 				return TRUE
 

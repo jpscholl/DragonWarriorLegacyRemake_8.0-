@@ -37,6 +37,11 @@ mob/var/tmp/isAirborne = FALSE
 #define HIDE_ALPHA 110
 mob/var/tmp/isHidden = FALSE
 
+// Bosses shrug off instant-kill magic (Defeat, SkillCatalog.dm). No DWLR monster sets
+// this yet -- the OG's 13 bosses (King Slime, Dragonlord...) aren't ported -- so a boss
+// type just needs isBoss = TRUE when it lands.
+mob/var/isBoss = FALSE
+
 mob/proc
     Hide()
         isHidden = TRUE
@@ -69,6 +74,10 @@ mob/proc
 // Chance each LANDED hit breaks a spell mid-cast-meter (PlayCastMeter(), below). The
 // user wants interruption possible but not guaranteed (2026-09-25) -- invented number.
 #define CAST_INTERRUPT_PERCENT 25
+
+// Chance a landed ice spell hit leaves the target chilled (StatusEffects.dm) -- user's
+// design, 2026-09-25; invented number. Defined here because this file compiles first.
+#define ICE_CHILL_PERCENT 30
 
 // Blind (Sand Toss, StatusEffects.dm) -- invented numbers. A blinded attacker misses more
 // (an extra roll on top of the target's own dodge, TakeDamage()) and sometimes swings at
@@ -129,7 +138,7 @@ mob/proc
 #define MAGIC_DEFENSE_DIVISOR 4
 
 mob/proc
-    // defenseBonus/magicDefenseBonus are Increase/Barrier buffs (StatusEffects.dm);
+    // defenseBonus/magicDefenseBonus are Upper+Increase/Barrier buffs (StatusEffects.dm);
     // equipDefenseBonus/equipMagicDefenseBonus are their amulet equivalents
     // (Inventory.dm) — added here rather than to the stats so neither trips a
     // stat-cap check or gets baked into a mid-buff/mid-equip save.
@@ -583,14 +592,19 @@ mob/var/mobElement = null
 mob/proc
     // Returns TakeDamage()'s landed/dodged result — Projectiles.dm's Impact() passes
     // this back up to Launch() so a dodged shot keeps flying instead of stopping.
-    ApplySpellDamage(mob/target, damage, element)
+    ApplySpellDamage(mob/target, damage, element, canDodge = TRUE)
         if(!target) return FALSE
 
         damage = round(damage * GetElementalMultiplier(element, target.mobElement))
 
         var/isCrit = RollCrit()
         if(isCrit) damage = round(damage * CRIT_DAMAGE_PERCENT / 100)
-        return target.TakeDamage(damage, src, isMagic = TRUE, isCrit = isCrit)
+        var/landed = target.TakeDamage(damage, src, isMagic = TRUE, isCrit = isCrit, canDodge = canDodge)
+
+        // Every ice spell -- bolt, spears, Blizzard, Snowstorm -- lands through here.
+        if(landed && element == "ice" && target && target.HP > 0 && prob(ICE_CHILL_PERCENT))
+            target.ApplyStatusEffect(/datum/status_effect/chill)
+        return landed
 
 mob/proc
     // Symmetric to ApplySpellDamage() but restores HP, capped at MaxHP. No dodge/

@@ -246,9 +246,7 @@ obj/storage
         var/obj/item/I = items[choice]
         if(!I) return
 
-        if(!user.PickUpItem(I))
-            return  // PickUpItem() already explained why (inventory full)
-
+        user.PickUpItem(I)
         user.ShowInfo("You take [I.name] from [name].")
 
 // Purely cosmetic decoration dropped onto a turf by area/AddedTurf() (Area.dm) --

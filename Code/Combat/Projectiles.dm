@@ -24,7 +24,7 @@ obj/projectile
 	                       // spell can literally be outrun — which is exactly what
 	                       // happened in the first playtest, when this was ~3. Lower =
 	                       // faster. Set per-launch by whatever fires it.
-	var/pierces = FALSE        // TRUE = a landed hit doesn't stop it (Infernos, Firebane)
+	var/pierces = FALSE        // TRUE = a landed hit doesn't stop it (Infernos, Infermore)
 	var/impactIconState = null // spells.dmi state flashed by the default Impact()
 	var/blockedByMobs = FALSE  // TRUE = any solid mob it can't hurt (an ally) stops it
 	                           // too, with no impact art -- a dodger still lets it by
@@ -35,6 +35,11 @@ obj/projectile
 	// front of a wall or blocking mob, the end of its range, or the map edge. Not called
 	// when it spawns point-blank inside a wall. A burst spell detonates here.
 	proc/Finish(turf/T)
+		return
+
+	// Called before every step, so a subtype may change travelDir mid-flight (a homing
+	// spell). Base: flies straight.
+	proc/Steer()
 		return
 
 	proc/End(turf/T)
@@ -81,6 +86,7 @@ obj/projectile
 				End(currentTurf)
 				return
 
+			Steer()
 			var/turf/nextTurf = get_step(src, travelDir)
 			// Off the map edge, or (safety valve) not actually advancing because
 			// travelDir ended up invalid -- a stuck immortal projectile would be a nasty
@@ -126,3 +132,30 @@ obj/projectile
 		var/landed = (target && caster) ? caster.ApplySpellDamage(target, damage, element) : FALSE
 		if(landed) FlashSkillFX(T, impactIconState, IMPACT_FX_DURATION)
 		return landed
+
+// One homing step from `origin` toward `dest`: straight at it, diagonals included, but never
+// cutting a wall's corner. A blocked diagonal falls back to the target's longer axis,
+// then its shorter one. If every way is blocked it still returns the direct line, so
+// the projectile's own look-ahead ends the flight at the wall. 0 = already on its tile.
+proc/HomingStepDir(atom/origin, atom/dest)
+	var/direct = get_dir(origin, dest)
+	if(!direct) return 0
+
+	var/list/tries = list()
+	if(direct & (direct - 1))  // diagonal
+		var/vert = direct & (NORTH|SOUTH)
+		var/horiz = direct & (EAST|WEST)
+		if(!IsTurfBlocked(get_step(origin, vert)) && !IsTurfBlocked(get_step(origin, horiz)))
+			tries += direct
+		if(abs(dest.x - origin.x) >= abs(dest.y - origin.y))
+			tries += horiz
+			tries += vert
+		else
+			tries += vert
+			tries += horiz
+	else
+		tries += direct
+
+	for(var/tryDir in tries)
+		if(!IsTurfBlocked(get_step(origin, tryDir))) return tryDir
+	return direct

@@ -55,10 +55,8 @@ proc/RollDamageVariance(amount, percent = DAMAGE_VARIANCE_PERCENT)
     return amount + rand(-spread, spread)
 
 mob/proc
-    // attackBonus is the Upper buff (StatusEffects.dm) — added for damage purposes only,
-    // never written back to the stat.
     GetPhysicalPower()
-        return GetEffectiveStrength() + attackBonus + equipWeaponPower
+        return GetEffectiveStrength() + equipWeaponPower
 
     GetSpellPower()
         return GetEffectiveIntelligence() + equipSpellPower

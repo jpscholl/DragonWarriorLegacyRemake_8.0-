@@ -677,11 +677,7 @@ mob/proc/CreateLockable(lockableType, choiceLabel, skin = null)
     newKey.keyName = lockName
     newKey.name = "[lockName] Key"
 
-    if(!PickUpItem(newKey))
-        del newKey
-        src.ShowInfo("Created [lockName], but your inventory was full — no key was given!")
-        return
-
+    PickUpItem(newKey)
     src.ShowInfo("Created a locked [lockName] and put its key in your inventory.")
 
 // Signs are otherwise plain (Obj.dm) except for their per-instance message var — set
@@ -799,13 +795,8 @@ mob/verb/GM_MakeItem()
     var/pickedType = items[itemChoice]
     var/obj/item/I = new pickedType
 
-    // Falls back to dropping it at your feet rather than refusing outright — a GM
-    // testing tool has no reason to punish a full inventory by destroying the item.
-    if(PickUpItem(I))
-        src.ShowInfo("Created [I.name] in your inventory.")
-    else
-        I.loc = loc
-        src.ShowInfo("Your inventory is full — dropped [I.name] at your feet instead.")
+    PickUpItem(I)
+    src.ShowInfo("Created [I.name] in your inventory.")
 
 // icon_state offered here comes straight from npc.dmi's own real sprite set
 // (GetCachedIconStates()) — not hardcoded, so a new sprite added to the file is

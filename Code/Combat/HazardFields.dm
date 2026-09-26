@@ -56,6 +56,8 @@ obj/hazard_field
         // does that damage); a future field that should hurt without a status effect
         // sets this instead.
         tickDamage = 0
+        tickMessage = "You're caught in it!"
+        tickColor = "red"
 
         expiresAt = 0
 
@@ -71,7 +73,7 @@ obj/hazard_field
         if(!owner) return TRUE
         return owner.CanHarm(M)
 
-    // Deliberately NOT called from New() — SpawnHazardBlob() below assigns power/
+    // Deliberately NOT called from New() — PlaceHazardField() below assigns power/
     // duration/owner after the `new`, so a loop started in New() would already have
     // snapshotted the type's DEFAULT duration into expiresAt. The spawner calls this
     // last, once the field is fully configured.
@@ -95,13 +97,16 @@ obj/hazard_field
                         else
                             M.ApplyStatusEffect(effectType)
 
-                // Not TakeDamage() — you don't dodge the ground you're standing on.
-                if(tickDamage > 0) M.TakeDirectDamage(tickDamage, owner)
+                // Not TakeDamage() — you don't dodge the ground you're standing on. Still
+                // run through the element matrix, like the spell that made it.
+                if(tickDamage > 0)
+                    var/dmg = max(1, round(tickDamage * GetElementalMultiplier(element, M.mobElement)))
+                    M.TakeDirectDamage(dmg, owner, "<font color='[tickColor]'>[tickMessage] (-[dmg] HP)</font>")
 
         if(src) del src
 
     // Re-arms an existing field instead of stacking a second one on the same tile (see
-    // SpawnHazardBlob()). Strictly a strengthen-or-extend: the stronger power wins and
+    // PlaceHazardField()). Strictly a strengthen-or-extend: the stronger power wins and
     // the later expiry wins, so a weak or short overlapping cast can never downgrade or
     // cut short a field that's already burning.
     //
@@ -121,11 +126,35 @@ obj/hazard_field/flame
     icon_state = "explodetflame"
     applyEffects = list(/datum/status_effect/burn)
 
+// Firebane's line of fire (SkillCatalog.dm). Same burn as Explodet's; OG /burn/firebane
+// drew it at layer 6.75, over the mobs standing in it.
+obj/hazard_field/flame/firebane
+    name = "firebane"
+    icon_state = "firebane"
+    layer = 6.75
+
+// Snowstorm's storm (SkillCatalog.dm; user, 2026-09-25). No status effect -- it hurts
+// directly, every tick, whoever stands in it. Its power is the per-tick damage.
+obj/hazard_field/snowstorm
+    name = "snowstorm"
+    icon_state = "snowstorm"
+    tickMessage = "The snowstorm bites!"
+    tickColor = "#80c0ff"
+
+    Ignite()
+        tickDamage = power
+        ..()
+
+    Refresh(newPower, newDuration)
+        ..()
+        tickDamage = power
+
 // -----------------------------
 // Blob spawning
 // -----------------------------
-// Lays a field over a diamond area (GetDiamondTurfs(), CombatSystem.dm), which already
-// skips tiles a spell can't occupy — so flame never appears inside a wall or a closed
+// Lays a field over a diamond area (GetDiamondTurfs(), CombatSystem.dm) -- now only the
+// Test_ flame debug verb; spells lay theirs in their own shapes via PlaceHazardField(). It
+// already skips tiles a spell can't occupy — so flame never appears inside a wall or a closed
 // door. A tile that already holds a field of this type gets that one refreshed rather
 // than a second one stacked on it.
 proc/SpawnHazardBlob(turf/center, fieldType, radius = 1, mob/owner = null, power = 0, element = null, duration = 60)
@@ -133,17 +162,37 @@ proc/SpawnHazardBlob(turf/center, fieldType, radius = 1, mob/owner = null, power
 
     var/placed = 0
     for(var/turf/T in GetDiamondTurfs(center, radius))
-        var/obj/hazard_field/existing = locate(fieldType) in T
-        if(existing)
-            existing.Refresh(power, duration)
-            continue
-
-        var/obj/hazard_field/F = new fieldType(T)
-        F.owner = owner
-        F.power = power
-        F.element = element
-        F.duration = duration
-        F.Ignite()
-        placed++
-
+        if(PlaceHazardField(T, fieldType, owner, power, element, duration)) placed++
     return placed
+
+// Lays a field in a straight line through center: center itself plus up to `reach` tiles
+// each way along lineDir (and its opposite). Each arm stops at the first tile a spell
+// can't occupy, so fire never spreads through or past a wall. fieldDir sets the art's dir.
+proc/SpawnHazardLine(turf/center, lineDir, reach, fieldType, mob/owner = null, power = 0, element = null, duration = 60, fieldDir = SOUTH)
+    if(!center || !fieldType || IsTurfBlocked(center)) return 0
+
+    var/placed = PlaceHazardField(center, fieldType, owner, power, element, duration, fieldDir) ? 1 : 0
+    for(var/armDir in list(lineDir, turn(lineDir, 180)))
+        var/turf/T = center
+        for(var/i = 1 to reach)
+            T = get_step(T, armDir)
+            if(IsTurfBlocked(T)) break
+            if(PlaceHazardField(T, fieldType, owner, power, element, duration, fieldDir)) placed++
+    return placed
+
+// One tile of a field. A tile that already holds a field of this type gets that one
+// refreshed rather than a second one stacked on it. Returns the NEW field, or null.
+proc/PlaceHazardField(turf/T, fieldType, mob/owner, power, element, duration, fieldDir = SOUTH)
+    var/obj/hazard_field/existing = locate(fieldType) in T
+    if(existing)
+        existing.Refresh(power, duration)
+        return null
+
+    var/obj/hazard_field/F = new fieldType(T)
+    F.owner = owner
+    F.power = power
+    F.element = element
+    F.duration = duration
+    F.dir = fieldDir
+    F.Ignite()
+    return F

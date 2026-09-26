@@ -210,9 +210,8 @@ datum/CharacterSaveData/proc/ApplySkillSlots(mob/player/P)
         // else: leave whatever EquipStartingKit() already put in this slot
 
 // Recreates each carried item from inventorySnapshot and drops it straight into the
-// player's contents — bypasses PickUpItem()'s capacity check deliberately, since these
-// are items the player already owned, not a new pickup a shrunk capacity should be
-// allowed to refuse. A worn amulet is re-equipped silently (Equip()'s silent param,
+// player's contents — not through PickUpItem(), since these are items the player already
+// owned: no re-stacking, no encumbrance warning on login. A worn amulet is re-equipped silently (Equip()'s silent param,
 // Inventory.dm) so login doesn't spam a "You equip ..." line per worn amulet.
 datum/CharacterSaveData/proc/ApplyInventory(mob/player/P)
     if(!inventorySnapshot) return   // no snapshot (an old save from before this existed)

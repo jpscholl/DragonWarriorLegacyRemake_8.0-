@@ -169,6 +169,8 @@ mob/player
         var/datum/skill/S = skillSlots[slotNum]
         if(!S) return
 
+        if(BlockedByEncumbrance()) return  // Inventory.dm -- every skill, attacks too
+
         // Every skill funnels through here, so this is the one place silence needs
         // enforcing (not duplicated in each skill's own OnUse()).
         if(S.isSpell && isSilenced)

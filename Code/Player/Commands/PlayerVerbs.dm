@@ -186,6 +186,8 @@ mob/verb/UseQuickSpell(slot as num)
         src.ShowInfo("No spell assigned to F[slot].")
         return
 
+    if(BlockedByEncumbrance()) return
+
     if(isSilenced)
         src.ShowInfo("You are silenced and cannot cast!")
         return
@@ -256,10 +258,7 @@ mob/player
         var/obj/item/I = items[choice]
         if(!I) return
 
-        if(!target.PickUpItem(I))
-            src.ShowInfo("[target.name]'s inventory is full.")
-            return
-
+        target.PickUpItem(I)
         src.ShowInfo("You give [I.name] to [target.name].")
         target.ShowInfo("[src.name] gives you [I.name].")
 
@@ -281,8 +280,9 @@ mob/player
         var/datum/skill/S = castable[choice]
         if(!S) return
 
-        // Same central silence gate UseSkillSlot() enforces — a second casting entry
-        // point, so Stopspell shouldn't be bypassable just by clicking a player.
+        // Same central gates UseSkillSlot() enforces — a second casting entry point, so
+        // neither encumbrance nor Stopspell is bypassable just by clicking a player.
+        if(BlockedByEncumbrance()) return
         if(isSilenced)
             src.ShowInfo("You are silenced and cannot cast!")
             return
