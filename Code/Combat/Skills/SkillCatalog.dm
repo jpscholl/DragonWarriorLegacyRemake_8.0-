@@ -232,8 +232,9 @@ datum/skill/AoESpell
 // fx_state flies out in the facing direction. Aimed, not locked on -- needs no target.
 //
 // Shape knobs, all per skill:
-//   bolt_lanes     1 = one bolt; 3 = a row of three, side by side (Icespears, Blazemost)
-//   bolt_pierces   flies through whoever it hits instead of stopping (Infernos, Infermore)
+//   bolt_lanes     1 = one bolt; 3 = a row of three, side by side (Icespears, Blazemost,
+//                  Infermost)
+//   bolt_pierces   flies through whoever it hits instead of stopping (Infernos family)
 //   bolt_range     tiles it may travel; 0 = until it hits something
 //   bolt_slowness  multiplies the flight step delay -- 2 = half speed
 //   bolt_bursts    on contact / at a wall / at range's end it explodes as this spell's
@@ -1330,6 +1331,17 @@ datum/skill/Icebolt
     damage_multiplier = 0.7
     mana_cost = 3
 
+// Icebolt in fire -- one flame spear, as Flamespears is Icespears in fire (user,
+// 2026-09-25). Not in the OG: only the three-spear Flamespears was.
+datum/skill/Flamespear
+    parent_type = /datum/skill/Icebolt
+    skillName = "Flamespear"
+    element = "fire"
+    fx_state = "flamespear"          // OG: /proj/flamespear
+    impact_fx_state = "flamespearhit"
+    damage_multiplier = 0.9          // invented -- Icebolt x Flamespears' 1.4/1.1
+    mana_cost = 4                    // invented
+
 // OG: /skill/zap fires /proj/zap ("lightning" art), and was the Hero's Level-1 spell.
 // Its OG damage formula matched Lightning's (Int*2+4); the user has Lightning hit harder.
 datum/skill/Zap
@@ -1409,8 +1421,8 @@ datum/skill/Icespears
     mana_cost = 5
 
 // Icespears in fire (user, 2026-09-25). A real OG spell -- SpellCost() lists
-// Flamespears at 16 MP and /skill/flamespears/use() exists -- but no class unlocks it
-// in DWLR yet (Test_LearnSkill grants it).
+// Flamespears at 16 MP and /skill/flamespears/use() exists -- though no OG class
+// learned it. Wizard and Sage do in DWLR (user).
 datum/skill/Flamespears
     parent_type = /datum/skill/Icespears
     skillName = "Flamespears"
@@ -1451,15 +1463,15 @@ datum/skill/Blizzard
 // OG /proj/infernos and /proj/infermore have their own slower Step().
 // Wind spells (user, 2026-09-25; the OG's element list also calls Infernos "Air"): a
 // landed hit may blow the target back along the flight. Infernos rarely, one tile;
-// Infermore more often, and it can keep blowing them further, a roll per tile.
-// "air" has no row in the element matrix (GetElementalMultiplier(), CombatSystem.dm),
+// Infermore more often, and it can keep blowing them further, a roll per tile;
+// Infermost always. "air" has no row in the element matrix (GetElementalMultiplier(), CombatSystem.dm),
 // so it hits every monster type for neutral damage.
 datum/skill/Infernos
     parent_type = /datum/skill/SpellBolt
     skillName = "Infernos"
     element = "air"
     fx_state = "infernos"            // 4-frame gust, no directions
-    impact_fx_state = "blazehit"     // PICK -- no infernos hit art
+    impact_fx_state = "infernoshit"  // user-drawn, 2026-09-25
     bolt_pierces = TRUE
     bolt_range = 6                   // user: gone after 7 tiles (6 past the first)
     bolt_slowness = 2
@@ -1471,15 +1483,24 @@ datum/skill/Infernos
 datum/skill/Infermore
     parent_type = /datum/skill/Infernos
     skillName = "Infermore"
-    fx_state = "infermore"
-    impact_fx_state = "blazemorehit"
-    bolt_lanes = 3                   // PICK -- the bigger tier rolls three wide
+    fx_state = "infermore"           // hits with Infernos' "infernoshit"
     bolt_range = 9                   // user: reaches 10 tiles (9 past the first)
     bolt_knockback_chance = 45       // invented
     bolt_knockback_again_chance = 50 // invented -- so 2 tiles ~1 in 2, 3 tiles ~1 in 4
     bolt_knockback_max = 3           // invented
     damage_multiplier = 1.5
     mana_cost = 8
+
+// Three Infermores abreast, like Blazemost but no homing (user, 2026-09-25), and a
+// landed hit always blows the target back. Extra tiles still roll as Infermore's do.
+// Not in the OG.
+datum/skill/Infermost
+    parent_type = /datum/skill/Infermore
+    skillName = "Infermost"
+    bolt_lanes = 3
+    bolt_knockback_chance = 100      // user: guaranteed
+    damage_multiplier = 1.9          // invented -- Blazemost's per-bolt draft
+    mana_cost = 12                   // invented
 
 // A Blaze bolt that leaves a line of fire where it stops (user, 2026-09-25; OG
 // /proj/firebane Collide() lays /burn/firebane turned 90 from the flight). It flies until

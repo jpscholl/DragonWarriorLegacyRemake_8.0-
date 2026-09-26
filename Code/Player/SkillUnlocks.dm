@@ -87,14 +87,15 @@ mob/player
                 src.ShowInfo("You learned [S.skillName]!")
 
 // -----------------------------
-// Per-class starting kits — confirmed: Attack always, Defend for Hero/Soldier, Blaze
-// for Hero/Wizard. Slot numbers match the confirmed OG numpad layout.
+// Per-class starting kits — confirmed: Attack always, Defend for Hero/Soldier, Zap for
+// Hero, Fireball + Icebolt for Wizard. Slot numbers match the confirmed OG numpad
+// layout where one is known (Hero's).
 // -----------------------------
 mob/player/Hero/GetStartingKit()
     return list(
         list(/datum/skill/Attack, 9),
         list(/datum/skill/Defend, 7),
-        list(/datum/skill/Blaze, 3),
+        list(/datum/skill/Zap, 3),  // the Hero's default spell (user; ClassReference.md)
     )
 
 mob/player/Soldier/GetStartingKit()
@@ -107,7 +108,8 @@ mob/player/Soldier/GetStartingKit()
 mob/player/Wizard/GetStartingKit()
     return list(
         list(/datum/skill/Attack, 9),
-        list(/datum/skill/Blaze, 3),
+        list(/datum/skill/Fireball, 3),  // ClassReference.md's confirmed Wizard kit
+        list(/datum/skill/Icebolt, 7),   // slot invented -- Hero's Defend slot, which Wizard lacks
     )
 
 mob/player/Fighter/GetStartingKit()
@@ -165,14 +167,15 @@ proc/IsLearnableSkillType(skillType)
     return initial(S.skillName) != "Unnamed Skill"
 
 // -----------------------------
-// Per-class leveled unlocks — real tables built from ClassReference.md. Hero's table
-// has real level+stat numbers throughout (unconfirmed against the OG, but not
-// invented spacing); every other class's table had no level numbers in the doc, only
-// which stat gates each skill — those levels are invented here, spaced using Hero's
-// own curve as the calibration anchor. A skill shared across multiple classes' tables
-// keeps the same stat threshold class-to-class, only the unlock LEVEL differs.
-// Fireball/Blaze are excluded from every class that already starts with them (a
-// leveled unlock for a skill already known is a silent no-op via HasSkillType()).
+// Per-class leveled unlocks — tables built from ClassReference.md. Every class's
+// unlocks are spread evenly from level 1 to 50 (user, 2026-09-25), keeping the order
+// ClassReference.md gave them. The only levels held in place are the OG's: Hero's
+// Heal (3) and Thornwhip (5), and Goof-off's Classchange (25, the OG help file's).
+// Stat thresholds are unchanged; a later level only makes them easier to reach. A
+// skill shared across multiple classes' tables keeps the same stat threshold
+// class-to-class, only the unlock LEVEL differs. A skill a class already starts with
+// is left out of its table (a leveled unlock for a skill already known is a silent
+// no-op via HasSkillType()).
 // -----------------------------
 // Hero/Wizard/Pilgrim's tables are each factored into their own building proc so
 // Sage/GetSkillUnlocks() below can compose the same three lists instead of a
@@ -182,25 +185,26 @@ proc/BuildHeroSkillUnlocks()
         new /datum/skillUnlock(/datum/skill/Heal, 3, "Intelligence", 6),          // confirmed
         new /datum/skillUnlock(/datum/skill/Icebolt, 4, "Intelligence", 7),
         new /datum/skillUnlock(/datum/skill/Thornwhip, 5, "Strength", 8),         // confirmed
-        new /datum/skillUnlock(/datum/skill/Lightning, 7, "Intelligence", 10),
-        new /datum/skillUnlock(/datum/skill/Fireball, 8, "Intelligence", 8),
-        new /datum/skillUnlock(/datum/skill/Sleep, 12, "Intelligence", 9),
-        new /datum/skillUnlock(/datum/skill/Upper, 14, "Intelligence", 10),
-        new /datum/skillUnlock(/datum/skill/Healmore, 16, "Intelligence", 14),
-        new /datum/skillUnlock(/datum/skill/Return, 17, "Intelligence", 14),
-        new /datum/skillUnlock(/datum/skill/Icespears, 18, "Intelligence", 13),
-        new /datum/skillUnlock(/datum/skill/Chainsickle, 20, "Strength", 19),
-        new /datum/skillUnlock(/datum/skill/Thordain, 21, "Intelligence", 20),
-        new /datum/skillUnlock(/datum/skill/Bang, 23, "Intelligence", 18),
-        new /datum/skillUnlock(/datum/skill/Meditate, 24, "Spirit", 15),
-        new /datum/skillUnlock(/datum/skill/SwordOfLethargy, 25, "Strength", 23),
-        new /datum/skillUnlock(/datum/skill/Healus, 25, "Intelligence", 21),
-        new /datum/skillUnlock(/datum/skill/Stopspell, 28, "Intelligence", 20),
-        new /datum/skillUnlock(/datum/skill/Firebane, 30, "Intelligence", 21),
-        new /datum/skillUnlock(/datum/skill/IceSaber, 32, "Strength", 23),
-        new /datum/skillUnlock(/datum/skill/DragonKiller, 35, "Strength", 30),
-        new /datum/skillUnlock(/datum/skill/Vivify, 38, "Intelligence", 22),
-        new /datum/skillUnlock(/datum/skill/ThunderSword, 40, "Strength", 35),
+        new /datum/skillUnlock(/datum/skill/Lightning, 9, "Intelligence", 10),
+        new /datum/skillUnlock(/datum/skill/Blaze, 11, "Intelligence", 9),
+        new /datum/skillUnlock(/datum/skill/Fireball, 13, "Intelligence", 8),  // after Blaze: it's the faster, harder Blaze
+        new /datum/skillUnlock(/datum/skill/Sleep, 15, "Intelligence", 9),
+        new /datum/skillUnlock(/datum/skill/Upper, 17, "Intelligence", 10),
+        new /datum/skillUnlock(/datum/skill/Healmore, 20, "Intelligence", 14),
+        new /datum/skillUnlock(/datum/skill/Return, 22, "Intelligence", 14),
+        new /datum/skillUnlock(/datum/skill/Icespears, 24, "Intelligence", 13),
+        new /datum/skillUnlock(/datum/skill/Chainsickle, 26, "Strength", 19),
+        new /datum/skillUnlock(/datum/skill/Thordain, 28, "Intelligence", 20),
+        new /datum/skillUnlock(/datum/skill/Bang, 30, "Intelligence", 18),
+        new /datum/skillUnlock(/datum/skill/Meditate, 33, "Spirit", 15),
+        new /datum/skillUnlock(/datum/skill/SwordOfLethargy, 35, "Strength", 23),
+        new /datum/skillUnlock(/datum/skill/Healus, 37, "Intelligence", 21),
+        new /datum/skillUnlock(/datum/skill/Stopspell, 39, "Intelligence", 20),
+        new /datum/skillUnlock(/datum/skill/Firebane, 41, "Intelligence", 21),
+        new /datum/skillUnlock(/datum/skill/IceSaber, 43, "Strength", 23),
+        new /datum/skillUnlock(/datum/skill/DragonKiller, 46, "Strength", 30),
+        new /datum/skillUnlock(/datum/skill/Vivify, 48, "Intelligence", 22),
+        new /datum/skillUnlock(/datum/skill/ThunderSword, 50, "Strength", 35),
     )
 
 mob/player/Hero/GetSkillUnlocks()
@@ -208,68 +212,69 @@ mob/player/Hero/GetSkillUnlocks()
 
 mob/player/Soldier/GetSkillUnlocks()
     return list(
-        new /datum/skillUnlock(/datum/skill/Thornwhip, 4, "Strength", 8),
-        new /datum/skillUnlock(/datum/skill/Rest, 5, "Vitality", 8),
-        new /datum/skillUnlock(/datum/skill/Morningstar, 8, "Strength", 12),
-        new /datum/skillUnlock(/datum/skill/Battleaxe, 12, "Strength", 16),
-        new /datum/skillUnlock(/datum/skill/Flamesword, 15, "Strength", 18),
-        new /datum/skillUnlock(/datum/skill/Falconsword, 17, "Strength", 20),
-        new /datum/skillUnlock(/datum/skill/Chainsickle, 19, "Strength", 19),
-        new /datum/skillUnlock(/datum/skill/IceSaber, 22, "Strength", 23),
-        new /datum/skillUnlock(/datum/skill/SwordOfLethargy, 23, "Strength", 23),
-        new /datum/skillUnlock(/datum/skill/Demonhammer, 27, "Strength", 26),
-        new /datum/skillUnlock(/datum/skill/DragonKiller, 32, "Strength", 30),
+        new /datum/skillUnlock(/datum/skill/Thornwhip, 5, "Strength", 8),
+        new /datum/skillUnlock(/datum/skill/Rest, 9, "Vitality", 8),
+        new /datum/skillUnlock(/datum/skill/Morningstar, 14, "Strength", 12),
+        new /datum/skillUnlock(/datum/skill/Battleaxe, 18, "Strength", 16),
+        new /datum/skillUnlock(/datum/skill/Flamesword, 23, "Strength", 18),
+        new /datum/skillUnlock(/datum/skill/Falconsword, 27, "Strength", 20),
+        new /datum/skillUnlock(/datum/skill/Chainsickle, 32, "Strength", 19),
+        new /datum/skillUnlock(/datum/skill/IceSaber, 36, "Strength", 23),
+        new /datum/skillUnlock(/datum/skill/SwordOfLethargy, 41, "Strength", 23),
+        new /datum/skillUnlock(/datum/skill/Demonhammer, 45, "Strength", 26),
+        new /datum/skillUnlock(/datum/skill/DragonKiller, 50, "Strength", 30),
     )
 
 mob/player/Fighter/GetSkillUnlocks()
     return list(
-        new /datum/skillUnlock(/datum/skill/Jump, 3, "Agility", 7),
-        new /datum/skillUnlock(/datum/skill/Hide, 4, "Agility", 8),
-        new /datum/skillUnlock(/datum/skill/Rest, 5, "Vitality", 8),
-        new /datum/skillUnlock(/datum/skill/SandToss, 6, "Agility", 9),  // not OG -- user's design, 2026-09-25
-        new /datum/skillUnlock(/datum/skill/IronClaw, 7, "Strength", 9),
-        new /datum/skillUnlock(/datum/skill/Dash, 9, "Agility", 11),
-        new /datum/skillUnlock(/datum/skill/Quakejump, 12, "Agility", 12),
-        new /datum/skillUnlock(/datum/skill/Fireclaw, 15, "Strength", 13),
-        new /datum/skillUnlock(/datum/skill/Iceclaw, 17, "Strength", 13),
-        new /datum/skillUnlock(/datum/skill/Goldclaw, 22, "Strength", 19),
+        new /datum/skillUnlock(/datum/skill/Jump, 5, "Agility", 7),
+        new /datum/skillUnlock(/datum/skill/Hide, 10, "Agility", 8),
+        new /datum/skillUnlock(/datum/skill/Rest, 15, "Vitality", 8),
+        new /datum/skillUnlock(/datum/skill/SandToss, 20, "Agility", 9),  // not OG -- user's design, 2026-09-25
+        new /datum/skillUnlock(/datum/skill/IronClaw, 25, "Strength", 9),
+        new /datum/skillUnlock(/datum/skill/Dash, 30, "Agility", 11),
+        new /datum/skillUnlock(/datum/skill/Quakejump, 35, "Agility", 12),
+        new /datum/skillUnlock(/datum/skill/Fireclaw, 40, "Strength", 13),
+        new /datum/skillUnlock(/datum/skill/Iceclaw, 45, "Strength", 13),
+        new /datum/skillUnlock(/datum/skill/Goldclaw, 50, "Strength", 19),
     )
 
 mob/player/Goofoff/GetSkillUnlocks()
     return list(
-        new /datum/skillUnlock(/datum/skill/Club, 3, "Strength", 6),
-        new /datum/skillUnlock(/datum/skill/Jump, 4, "Agility", 7),
-        new /datum/skillUnlock(/datum/skill/SandToss, 5, "Agility", 8),  // not OG -- user's design, 2026-09-25
-        new /datum/skillUnlock(/datum/skill/Magicknife, 6, "Strength", 8),
-        new /datum/skillUnlock(/datum/skill/Thornwhip, 8, "Strength", 8),
-        new /datum/skillUnlock(/datum/skill/Boomerang, 10, "Strength", 10),
-        new /datum/skillUnlock(/datum/skill/Rest, 12, "Vitality", 8),
-        new /datum/skillUnlock(/datum/skill/Quakejump, 15, "Agility", 12),
-        new /datum/skillUnlock(/datum/skill/Classchange, 25),  // TODOList.md's own confirmed placeholder
+        new /datum/skillUnlock(/datum/skill/Club, 6, "Strength", 6),
+        new /datum/skillUnlock(/datum/skill/Jump, 13, "Agility", 7),
+        new /datum/skillUnlock(/datum/skill/SandToss, 19, "Agility", 8),  // not OG -- user's design, 2026-09-25
+        new /datum/skillUnlock(/datum/skill/Magicknife, 25, "Strength", 8),
+        new /datum/skillUnlock(/datum/skill/Classchange, 25),  // the OG help file's level -- held, not spread
+        new /datum/skillUnlock(/datum/skill/Thornwhip, 31, "Strength", 8),
+        new /datum/skillUnlock(/datum/skill/Boomerang, 38, "Strength", 10),
+        new /datum/skillUnlock(/datum/skill/Rest, 44, "Vitality", 8),
+        new /datum/skillUnlock(/datum/skill/Quakejump, 50, "Agility", 12),
     )
 
 proc/BuildPilgrimSkillUnlocks()
     return list(
-        new /datum/skillUnlock(/datum/skill/Sleep, 5, "Intelligence", 9),
+        new /datum/skillUnlock(/datum/skill/Sleep, 2, "Intelligence", 9),
         new /datum/skillUnlock(/datum/skill/Club, 5, "Strength", 6),  // OG /playerlearn/pilgrim/club -- was missing
-        new /datum/skillUnlock(/datum/skill/Upper, 6, "Intelligence", 10),
-        new /datum/skillUnlock(/datum/skill/Increase, 7, "Intelligence", 11),
-        new /datum/skillUnlock(/datum/skill/Infernos, 9, "Intelligence", 12),
-        new /datum/skillUnlock(/datum/skill/Morningstar, 10, "Strength", 12),
-        new /datum/skillUnlock(/datum/skill/Meditate, 12, "Spirit", 15),
-        new /datum/skillUnlock(/datum/skill/Lightsword, 13, "Strength", 14),
-        new /datum/skillUnlock(/datum/skill/Healmore, 14, "Intelligence", 14),
-        new /datum/skillUnlock(/datum/skill/Return, 15, "Intelligence", 14),
-        new /datum/skillUnlock(/datum/skill/Battleaxe, 16, "Strength", 16),
-        new /datum/skillUnlock(/datum/skill/Sleepmore, 17, "Intelligence", 16),
-        new /datum/skillUnlock(/datum/skill/Infermore, 18, "Intelligence", 19),
-        new /datum/skillUnlock(/datum/skill/SwordOfLethargy, 20, "Strength", 23),
-        new /datum/skillUnlock(/datum/skill/Healmost, 22, "Intelligence", 20),
-        new /datum/skillUnlock(/datum/skill/Stopspell, 24, "Intelligence", 20),
-        new /datum/skillUnlock(/datum/skill/Healus, 26, "Intelligence", 21),
-        new /datum/skillUnlock(/datum/skill/Vivify, 28, "Intelligence", 22),
-        new /datum/skillUnlock(/datum/skill/Revive, 32, "Intelligence", 24),
-        new /datum/skillUnlock(/datum/skill/Healusmore, 36, "Intelligence", 26),
+        new /datum/skillUnlock(/datum/skill/Upper, 7, "Intelligence", 10),
+        new /datum/skillUnlock(/datum/skill/Increase, 10, "Intelligence", 11),
+        new /datum/skillUnlock(/datum/skill/Infernos, 12, "Intelligence", 12),
+        new /datum/skillUnlock(/datum/skill/Morningstar, 14, "Strength", 12),
+        new /datum/skillUnlock(/datum/skill/Meditate, 17, "Spirit", 15),
+        new /datum/skillUnlock(/datum/skill/Lightsword, 19, "Strength", 14),
+        new /datum/skillUnlock(/datum/skill/Healmore, 21, "Intelligence", 14),
+        new /datum/skillUnlock(/datum/skill/Return, 24, "Intelligence", 14),
+        new /datum/skillUnlock(/datum/skill/Battleaxe, 26, "Strength", 16),
+        new /datum/skillUnlock(/datum/skill/Sleepmore, 29, "Intelligence", 16),
+        new /datum/skillUnlock(/datum/skill/Infermore, 31, "Intelligence", 19),
+        new /datum/skillUnlock(/datum/skill/SwordOfLethargy, 33, "Strength", 23),
+        new /datum/skillUnlock(/datum/skill/Healmost, 36, "Intelligence", 20),
+        new /datum/skillUnlock(/datum/skill/Stopspell, 38, "Intelligence", 20),
+        new /datum/skillUnlock(/datum/skill/Healus, 40, "Intelligence", 21),
+        new /datum/skillUnlock(/datum/skill/Vivify, 43, "Intelligence", 22),
+        new /datum/skillUnlock(/datum/skill/Infermost, 45, "Intelligence", 23),  // user: "30+"; Int invented
+        new /datum/skillUnlock(/datum/skill/Revive, 48, "Intelligence", 24),
+        new /datum/skillUnlock(/datum/skill/Healusmore, 50, "Intelligence", 26),
     )
 
 mob/player/Pilgrim/GetSkillUnlocks()
@@ -277,31 +282,39 @@ mob/player/Pilgrim/GetSkillUnlocks()
 
 proc/BuildWizardSkillUnlocks()
     return list(
-        new /datum/skillUnlock(/datum/skill/Lightning, 5, "Intelligence", 10),
-        new /datum/skillUnlock(/datum/skill/Blazemore, 8, "Intelligence", 14),
-        new /datum/skillUnlock(/datum/skill/Barrier, 10, "Intelligence", 17),
-        new /datum/skillUnlock(/datum/skill/Meditate, 12, "Spirit", 15),
-        new /datum/skillUnlock(/datum/skill/Blizzard, 14, "Intelligence", 16),
-        new /datum/skillUnlock(/datum/skill/Icespears, 16, "Intelligence", 13),
-        new /datum/skillUnlock(/datum/skill/Boom, 18, "Intelligence", 18),
-        new /datum/skillUnlock(/datum/skill/Thordain, 20, "Intelligence", 20),
-        new /datum/skillUnlock(/datum/skill/Bang, 22, "Intelligence", 18),
-        new /datum/skillUnlock(/datum/skill/Firevolt, 24, "Intelligence", 20),
-        new /datum/skillUnlock(/datum/skill/Snowstorm, 27, "Intelligence", 23),
-        new /datum/skillUnlock(/datum/skill/Firebane, 30, "Intelligence", 21),
-        new /datum/skillUnlock(/datum/skill/Blazemost, 34, "Intelligence", 24),
-        new /datum/skillUnlock(/datum/skill/Explodet, 38, "Intelligence", 28),
+        new /datum/skillUnlock(/datum/skill/Blaze, 3, "Intelligence", 9),  // OG /playerlearn/wizard/blaze -- no longer in the kit
+        new /datum/skillUnlock(/datum/skill/Lightning, 6, "Intelligence", 10),
+        new /datum/skillUnlock(/datum/skill/Flamespear, 9, "Intelligence", 11),   // user; stat invented
+        new /datum/skillUnlock(/datum/skill/Blazemore, 12, "Intelligence", 14),
+        new /datum/skillUnlock(/datum/skill/Barrier, 15, "Intelligence", 17),
+        new /datum/skillUnlock(/datum/skill/Meditate, 18, "Spirit", 15),
+        new /datum/skillUnlock(/datum/skill/Blizzard, 21, "Intelligence", 16),
+        new /datum/skillUnlock(/datum/skill/Icespears, 24, "Intelligence", 13),
+        new /datum/skillUnlock(/datum/skill/Bang, 26, "Intelligence", 18),
+        new /datum/skillUnlock(/datum/skill/Thordain, 29, "Intelligence", 20),
+        new /datum/skillUnlock(/datum/skill/Boom, 32, "Intelligence", 18),  // after Bang: it's the bigger Bang
+        new /datum/skillUnlock(/datum/skill/Firevolt, 35, "Intelligence", 20),
+        new /datum/skillUnlock(/datum/skill/Flamespears, 38, "Intelligence", 22), // user; stat invented
+        new /datum/skillUnlock(/datum/skill/Snowstorm, 41, "Intelligence", 23),
+        new /datum/skillUnlock(/datum/skill/Firebane, 44, "Intelligence", 21),
+        new /datum/skillUnlock(/datum/skill/Blazemost, 47, "Intelligence", 24),
+        new /datum/skillUnlock(/datum/skill/Explodet, 50, "Intelligence", 28),
     )
 
 mob/player/Wizard/GetSkillUnlocks()
     return BuildWizardSkillUnlocks()
 
 // Sage learns exactly the OG's /playerlearn/sage spells (Markdowns/types.dm ~1692; user,
-// 2026-09-25) -- no weapons, no Fireball or Icebolt. Each one's level/stat comes from
-// the Hero, Wizard or Pilgrim table (the building procs above), so Sage's numbers can't
-// drift from the class a spell is "from". A spell in more than one table keeps the
-// FIRST entry found -- Hero, then Wizard, then Pilgrim. Blaze also sits in Sage's
-// starting kit; its entry here is the OG list's and a no-op for a new Sage.
+// 2026-09-25) -- no weapons, no Fireball or Icebolt -- plus Flamespear and Flamespears
+// (user, 2026-09-25; not OG). Each one's stat gate comes from the Hero, Wizard or
+// Pilgrim table (the building procs above), so Sage's numbers can't drift from the
+// class a spell is "from". A spell in more than one table keeps the FIRST entry found
+// -- Hero, then Wizard, then Pilgrim. The spells Sage already starts with (Blaze,
+// Meditate, Return) are skipped. The rest keep their source levels' order but are
+// re-spread evenly up to SAGE_LAST_UNLOCK_LEVEL (SpreadUnlockLevels()), since three
+// tables stacked together bunch up (three spells at 50, nothing below 6).
+#define SAGE_LAST_UNLOCK_LEVEL 50
+
 mob/player/Sage/GetSkillUnlocks()
     var/static/list/sageSpells = list(
         /datum/skill/Bang, /datum/skill/Barrier, /datum/skill/Blaze, /datum/skill/Blazemore,
@@ -311,11 +324,13 @@ mob/player/Sage/GetSkillUnlocks()
         /datum/skill/Infermore, /datum/skill/Infernos, /datum/skill/Lightning, /datum/skill/Meditate,
         /datum/skill/Return, /datum/skill/Revive, /datum/skill/Sleep, /datum/skill/Sleepmore,
         /datum/skill/Snowstorm, /datum/skill/Stopspell, /datum/skill/Thordain, /datum/skill/Upper,
-        /datum/skill/Vivify,
+        /datum/skill/Vivify, /datum/skill/Flamespear, /datum/skill/Flamespears,
     )
 
     var/list/merged = list()
     var/list/seenTypes = list()
+    for(var/list/entry in GetStartingKit())
+        seenTypes[entry[1]] = TRUE
 
     for(var/datum/skillUnlock/U in BuildHeroSkillUnlocks() + BuildWizardSkillUnlocks() + BuildPilgrimSkillUnlocks())
         if(!(U.skillType in sageSpells)) continue
@@ -323,9 +338,26 @@ mob/player/Sage/GetSkillUnlocks()
         seenTypes[U.skillType] = TRUE
         merged += U
 
-    merged += new /datum/skillUnlock(/datum/skill/Blaze, 10, "Intelligence", 9)
     // Sage-only, and its last unlock (user, 2026-09-25) -- above everything else Sage
-    // learns (Explodet, 38). Level/stat invented.
-    merged += new /datum/skillUnlock(/datum/skill/SageSaber, 45, "Intelligence", 35)
+    // learns. The spread below keeps it last; stat invented.
+    merged += new /datum/skillUnlock(/datum/skill/SageSaber, SAGE_LAST_UNLOCK_LEVEL, "Intelligence", 35)
 
-    return merged
+    return SpreadUnlockLevels(merged, SAGE_LAST_UNLOCK_LEVEL)
+
+// Re-levels unlocks evenly from level 1 to `last`, in their current level order (ties
+// keep list order): the Nth of M lands on round(last * N / M), so the last one lands on
+// `last`. Rewrites the datums' requiredLevel in place -- callers pass fresh ones.
+proc/SpreadUnlockLevels(list/unlocks, last)
+    var/list/sorted = list()
+    for(var/datum/skillUnlock/U in unlocks)
+        var/at = sorted.len + 1
+        while(at > 1)
+            var/datum/skillUnlock/before = sorted[at - 1]
+            if(before.requiredLevel <= U.requiredLevel) break
+            at--
+        sorted.Insert(at, U)
+
+    for(var/i = 1 to sorted.len)
+        var/datum/skillUnlock/U = sorted[i]
+        U.requiredLevel = round(last * i / sorted.len, 1)
+    return sorted
